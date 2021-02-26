@@ -1,0 +1,28 @@
+Metadata-Version: 2.1
+Name: rsnaped
+Version: 0.0.2
+Summary: Python module for single-molecule image processing.
+Home-page: https://github.com/MunskyGroup/rsnaped
+Author: Luis Aguilera
+Author-email: luisubald@gmail.com
+License: MIT
+Description: # rSNAPed
+        [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
+        
+        rSNAPed a Python library for single-molecule image processing.
+        
+        Author Luis U. Aguilera
+        
+        ## Description
+        
+        The code is intended to automatically track single-molecules from single-cell videos. The code calculates spot position and extract intensity values.
+        
+Keywords: single-molecule image processing
+Platform: UNKNOWN
+Classifier: Development Status :: 2 - Pre-Alpha
+Classifier: Topic :: Scientific/Engineering :: Bio-Informatics
+Classifier: Topic :: Scientific/Engineering :: Image Processing
+Classifier: License :: OSI Approved :: MIT License
+Classifier: Programming Language :: Python :: 3.8
+Requires-Python: >=3.7
+Description-Content-Type: text/markdown
