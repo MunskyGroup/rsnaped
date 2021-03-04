@@ -3,7 +3,7 @@
 
 rSNAPed a Python library for single-molecule image processing.
 
-Author Luis U. Aguilera
+Author Luis U. Aguilera, William Raymond, Brooke Silagy, Brian Munsky
 
 ## Description
 
@@ -16,8 +16,6 @@ Compendium of libraries including `cellpose`, `rsnapsim`, `trackpy`.
 
 
 ## Usage
-
-
 
 * **Single-molecule translation**
 * **Single-molecule transcription**

@@ -1,8 +1,6 @@
 
 https://pypi.org/project/rsnaped/
 
-
-
 Save env in file
 conda env export > rsnaped.yml
 Create env with file

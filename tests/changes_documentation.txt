@@ -1,0 +1,9 @@
+
+
+Important changes
+
+
+class VideoCorrectDimensions():
+transpose  ->  transpose_video
+
+

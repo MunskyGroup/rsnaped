@@ -1,0 +1,358 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" >
+<head>
+  <meta charset="utf-8" />
+  
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  
+  <title>rSNAPed: Module Guide &mdash; rsnaped 0.0.1 documentation</title>
+  
+
+  
+  <link rel="stylesheet" href="_static/css/theme.css" type="text/css" />
+  <link rel="stylesheet" href="_static/pygments.css" type="text/css" />
+
+  
+  
+
+  
+  
+
+  
+
+  
+  <!--[if lt IE 9]>
+    <script src="_static/js/html5shiv.min.js"></script>
+  <![endif]-->
+  
+    
+      <script type="text/javascript" id="documentation_options" data-url_root="./" src="_static/documentation_options.js"></script>
+        <script src="_static/jquery.js"></script>
+        <script src="_static/underscore.js"></script>
+        <script src="_static/doctools.js"></script>
+    
+    <script type="text/javascript" src="_static/js/theme.js"></script>
+
+    
+    <link rel="index" title="Index" href="genindex.html" />
+    <link rel="search" title="Search" href="search.html" /> 
+</head>
+
+<body class="wy-body-for-nav">
+
+   
+  <div class="wy-grid-for-nav">
+    
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+          
+
+          
+            <a href="#" class="icon icon-home"> rsnaped
+          
+
+          
+          </a>
+
+          
+            
+            
+          
+
+          
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+
+          
+        </div>
+
+        
+        <div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="main navigation">
+          
+            
+            
+              
+            
+            
+              <!-- Local TOC -->
+              <div class="local-toc"><ul>
+<li><a class="reference internal" href="#">rSNAPed: Module Guide</a><ul>
+<li><a class="reference internal" href="#rsnaped">rSNAPed</a></li>
+</ul>
+</li>
+<li><a class="reference internal" href="#indices-and-tables">Indices and tables</a></li>
+</ul>
+</div>
+            
+          
+        </div>
+        
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap">
+
+      
+      <nav class="wy-nav-top" aria-label="top navigation">
+        
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="#">rsnaped</a>
+        
+      </nav>
+
+
+      <div class="wy-nav-content">
+        
+        <div class="rst-content">
+        
+          
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<div role="navigation" aria-label="breadcrumbs navigation">
+
+  <ul class="wy-breadcrumbs">
+    
+      <li><a href="#" class="icon icon-home"></a> &raquo;</li>
+        
+      <li>rSNAPed: Module Guide</li>
+    
+    
+      <li class="wy-breadcrumbs-aside">
+        
+          
+            <a href="_sources/index.rst.txt" rel="nofollow"> View page source</a>
+          
+        
+      </li>
+    
+  </ul>
+
+  
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+            
+  <div class="section" id="module-rsnaped.rsnaped">
+<span id="rsnaped-module-guide"></span><h1>rSNAPed: Module Guide<a class="headerlink" href="#module-rsnaped.rsnaped" title="Permalink to this headline">¶</a></h1>
+<div class="section" id="rsnaped">
+<h2>rSNAPed<a class="headerlink" href="#rsnaped" title="Permalink to this headline">¶</a></h2>
+<dl class="py class">
+<dt id="rsnaped.rsnaped.BandpassFilter">
+<em class="property"><span class="pre">class</span> </em><code class="sig-prename descclassname"><span class="pre">rsnaped.rsnaped.</span></code><code class="sig-name descname"><span class="pre">BandpassFilter</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">video</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">low_pass</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0.5</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">high_pass</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">10</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/rsnaped/rsnaped.html#BandpassFilter"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#rsnaped.rsnaped.BandpassFilter" title="Permalink to this definition">¶</a></dt>
+<dd><p>This class is intended to apply high and low bandpass filters to the video. The format of the video must be [T,Y,X,C].</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>video</strong> (<em>numpy array</em>) – array of images.</p></li>
+<li><p><strong>min_percentile</strong> (<em>int</em><em>, </em><em>optional</em>) – Lower bound to normalize intensity. The default is 1.</p></li>
+<li><p><strong>max_percentile</strong> (<em>TYPE</em><em>, </em><em>optional</em>) – Higher bound to normalize intensity. The default is 99.</p></li>
+<li><p><strong>ignore_channel</strong> (<em>int</em><em> or </em><em>None</em><em>, </em><em>optional</em>) – Use this option to ignore the normalization of a given channel. The default is None.</p></li>
+</ul>
+</dd>
+</dl>
+<dl class="py method">
+<dt id="rsnaped.rsnaped.BandpassFilter.apply_filter">
+<code class="sig-name descname"><span class="pre">apply_filter</span></code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/rsnaped/rsnaped.html#BandpassFilter.apply_filter"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#rsnaped.rsnaped.BandpassFilter.apply_filter" title="Permalink to this definition">¶</a></dt>
+<dd><p>This method applies high and low bandpass filters to the video. The method uses <strong>difference_of_gaussians</strong> from skimage.filters.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Returns</dt>
+<dd class="field-odd"><p><strong>video_filtered</strong> – Filtered video resulting from the bandpass process. Array with format [T,Y,X,C].</p>
+</dd>
+<dt class="field-even">Return type</dt>
+<dd class="field-even"><p>np.uint16</p>
+</dd>
+</dl>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="py class">
+<dt id="rsnaped.rsnaped.ConverToStandardFormat">
+<em class="property"><span class="pre">class</span> </em><code class="sig-prename descclassname"><span class="pre">rsnaped.rsnaped.</span></code><code class="sig-name descname"><span class="pre">ConverToStandardFormat</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">video</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">time_position</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">height_position</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">1</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">width_position</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">2</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">channel_position</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">3</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/rsnaped/rsnaped.html#ConverToStandardFormat"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#rsnaped.rsnaped.ConverToStandardFormat" title="Permalink to this definition">¶</a></dt>
+<dd><p>This class contains two methods to:</p>
+<ol class="arabic simple">
+<li><p>Transform any numpy array of images into the format [T,Y,X,C].</p></li>
+<li><p>Convert an image into an array video with a single time point (this last is necessary for compatibility).</p></li>
+</ol>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>video</strong> (<em>numpy array</em>) – Array of images. This class accepts arrays with formats: [Y,X], [T,Y,X], [T,Y,X,C], or anyother permutation of channels, the user must specify the position of each dimension in the original video by deffining the parameters: time_position,height_position,width_position,channel_position.</p></li>
+<li><p><strong>time_position</strong> (<em>int</em><em>, </em><em>optional</em>) – Position for the dimension for the time in the original video array. The default is 0.</p></li>
+<li><p><strong>height_position</strong> (<em>int</em><em>, </em><em>optional</em>) – Position for the dimension for the y-axis (height) in the original video array. The default is 1.</p></li>
+<li><p><strong>width_position</strong> (<em>int</em><em>, </em><em>optional</em>) – Position for the dimension for the x-axis (width) in the original video array. The default is 2.</p></li>
+<li><p><strong>channel_position</strong> (<em>int</em><em>, </em><em>optional</em>) – Position for the dimension for the channels in the original video array. The default is 3.</p></li>
+</ul>
+</dd>
+</dl>
+<dl class="py method">
+<dt id="rsnaped.rsnaped.ConverToStandardFormat.image_to_video">
+<code class="sig-name descname"><span class="pre">image_to_video</span></code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/rsnaped/rsnaped.html#ConverToStandardFormat.image_to_video"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#rsnaped.rsnaped.ConverToStandardFormat.image_to_video" title="Permalink to this definition">¶</a></dt>
+<dd><p>Method that converts an image into a video with one frame. This process is done for compatibility with the rest of the classes.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Returns</dt>
+<dd class="field-odd"><p><strong>video_correct_order</strong> – Array with dimensions [T,Y,X,C].</p>
+</dd>
+<dt class="field-even">Return type</dt>
+<dd class="field-even"><p>np.uint16</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt id="rsnaped.rsnaped.ConverToStandardFormat.transpose_video">
+<code class="sig-name descname"><span class="pre">transpose_video</span></code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/rsnaped/rsnaped.html#ConverToStandardFormat.transpose_video"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#rsnaped.rsnaped.ConverToStandardFormat.transpose_video" title="Permalink to this definition">¶</a></dt>
+<dd><p>Method that transposes an unsorted video to the standard [T,Y,X,C]</p>
+<dl class="field-list simple">
+<dt class="field-odd">Returns</dt>
+<dd class="field-odd"><p><strong>video_correct_order</strong> – Array with dimensions [T,Y,X,C].</p>
+</dd>
+<dt class="field-even">Return type</dt>
+<dd class="field-even"><p>np.uint16</p>
+</dd>
+</dl>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="py class">
+<dt id="rsnaped.rsnaped.RemoveExtrema">
+<em class="property"><span class="pre">class</span> </em><code class="sig-prename descclassname"><span class="pre">rsnaped.rsnaped.</span></code><code class="sig-name descname"><span class="pre">RemoveExtrema</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">video</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">min_percentile</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">1</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">max_percentile</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">99</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">ignore_channel</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/rsnaped/rsnaped.html#RemoveExtrema"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#rsnaped.rsnaped.RemoveExtrema" title="Permalink to this definition">¶</a></dt>
+<dd><p>This class is inteded to remove extreme values from a video. The format of the video must be [T,Y,X,C].</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>video</strong> (<em>numpy array</em>) – Array of images with dimensions [T,Y,X,C].</p></li>
+<li><p><strong>min_percentile</strong> (<em>int</em><em>, </em><em>optional</em>) – Lower bound to normalize intensity. The default is 1.</p></li>
+<li><p><strong>max_percentile</strong> (<em>TYPE</em><em>, </em><em>optional</em>) – Higher bound to normalize intensity. The default is 99.</p></li>
+<li><p><strong>ignore_channel</strong> (<em>int</em><em> or </em><em>None</em><em>, </em><em>optional</em>) – Use this option to ignore the normalization of a given channel. The default is None.</p></li>
+</ul>
+</dd>
+</dl>
+<dl class="py method">
+<dt id="rsnaped.rsnaped.RemoveExtrema.remove_outliers">
+<code class="sig-name descname"><span class="pre">remove_outliers</span></code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/rsnaped/rsnaped.html#RemoveExtrema.remove_outliers"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#rsnaped.rsnaped.RemoveExtrema.remove_outliers" title="Permalink to this definition">¶</a></dt>
+<dd><p>This method normalizes the values of a video by removing extreme values.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Returns</dt>
+<dd class="field-odd"><p><strong>normalized_video</strong> – Normalized video. Array with dimensions [T,Y,X,C].</p>
+</dd>
+<dt class="field-even">Return type</dt>
+<dd class="field-even"><p>np.uint16</p>
+</dd>
+</dl>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="py class">
+<dt id="rsnaped.rsnaped.ScaleVideo">
+<em class="property"><span class="pre">class</span> </em><code class="sig-prename descclassname"><span class="pre">rsnaped.rsnaped.</span></code><code class="sig-name descname"><span class="pre">ScaleVideo</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">video</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">scale_percentage</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">1</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">ignore_channel</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/rsnaped/rsnaped.html#ScaleVideo"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#rsnaped.rsnaped.ScaleVideo" title="Permalink to this definition">¶</a></dt>
+<dd><p>This class is intended to scale the intensity values in a video. The format of the video must be [T,Y,X,C].</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>video</strong> (<em>numpy array</em>) – Array of images with dimensions [T,Y,X,C].</p></li>
+<li><p><strong>scale_percentage</strong> (<em>float</em><em>, </em><em>optional</em>) – Percentage value (between 0 and 1, where 0.5 represents 50% scaling) to scale the video. The default is 1.</p></li>
+<li><p><strong>ignore_channel</strong> (<em>int</em><em> or </em><em>None</em><em>, </em><em>optional</em>) – Use this option to ignore the normalization of a given channel. The default is None.</p></li>
+</ul>
+</dd>
+</dl>
+<dl class="py method">
+<dt id="rsnaped.rsnaped.ScaleVideo.apply_scale">
+<code class="sig-name descname"><span class="pre">apply_scale</span></code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/rsnaped/rsnaped.html#ScaleVideo.apply_scale"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#rsnaped.rsnaped.ScaleVideo.apply_scale" title="Permalink to this definition">¶</a></dt>
+<dd><p>This method is intendent to scale the intensity values of a video.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Returns</dt>
+<dd class="field-odd"><p><strong>scaled_video</strong> – Scaled video. Array with dimensions [T,Y,X,C].</p>
+</dd>
+<dt class="field-even">Return type</dt>
+<dd class="field-even"><p>np.uint16</p>
+</dd>
+</dl>
+</dd></dl>
+
+</dd></dl>
+
+</div>
+<div class="toctree-wrapper compound">
+</div>
+</div>
+<div class="section" id="indices-and-tables">
+<h1>Indices and tables<a class="headerlink" href="#indices-and-tables" title="Permalink to this headline">¶</a></h1>
+<ul class="simple">
+<li><p><a class="reference internal" href="genindex.html"><span class="std std-ref">Index</span></a></p></li>
+<li><p><a class="reference internal" href="py-modindex.html"><span class="std std-ref">Module Index</span></a></p></li>
+<li><p><a class="reference internal" href="search.html"><span class="std std-ref">Search Page</span></a></p></li>
+</ul>
+</div>
+
+
+           </div>
+           
+          </div>
+          <footer>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>
+        &#169; Copyright 2021, Luis Aguilera.
+
+    </p>
+  </div>
+    
+    
+    
+    Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    
+    provided by <a href="https://readthedocs.org">Read the Docs</a>. 
+
+</footer>
+        </div>
+      </div>
+
+    </section>
+
+  </div>
+  
+
+  <script type="text/javascript">
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script>
+
+  
+  
+    
+   
+
+</body>
+</html>

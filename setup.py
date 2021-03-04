@@ -5,8 +5,8 @@ with open("README.md", "r") as fh:
 
 setup(
     name = "rsnaped",
-    version = "0.0.2",
-    author = "Luis Aguilera",
+    version = "0.0.3",
+    author = "Luis Aguilera, William Raymond, Brian Munsky",
     author_email = "luisubald@gmail.com",
     description = ("Python module for single-molecule image processing."),
     long_description=long_description,
@@ -14,8 +14,8 @@ setup(
     license = "MIT",
     keywords = "single-molecule image processing",
     url = "https://github.com/MunskyGroup/rsnaped",
-    package_dir ={'':'src'},
-    packages=find_packages(where="src"),
+    package_dir ={'':'rsnaped'},
+    packages=find_packages(where="rsnaped"),
     install_requires=['matplotlib','numpy>=1.20.1','numba>=0.52.0','pandas','scikit-image','joblib','bqplot','scipy','cellpose>=0.6.1', 'pyfiglet','tifffile','opencv-python','trackpy','ipywidgets','tqdm','rSANPsim','rsnapsim-ssa-cpp'],
     classifiers=[
         "Development Status :: 2 - Pre-Alpha",
