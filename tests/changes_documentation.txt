@@ -1,9 +1,40 @@
-
-
 Important changes
-
 
 class VideoCorrectDimensions():
 transpose  ->  transpose_video
 
+class VideoCorrectDimensions():  -> ConverToStandardFormat():
 
+class VideoAlignment():   -> CamerasAlignment():
+
+ScaleVideo(): -> ScaleIntensity():
+
+Bandpass_filter_skimage -> BandpassFilter
+Bandpass_filter -> BandpassFilter
+
+ImageVisualizer_Multicell -> ImageVisualizer
+    plot_images -> plot
+
+ImageVisualizer_Comparing_SelectedSpots_Multicell -> VisualizerImage
+    plot_images -> plot
+
+
+VideoVisualizer_SelectedSpots_Multicell -> VisualizerVideo    
+        make_video_app-> plot
+        
+        
+VideoVisualizer3D_Multicell -> VisualizerVideo3D
+    make_video_app-> plot
+
+
+VideoVisualizer_crops -> VisualizerCrops
+
+Cellpose_automated -> Cellpose
+    return selected_masks, selected_probability, self.diameter =-> selected_masks
+
+Cellpose_FISH -> CellposeFISH
+
+
+MultiMask -> CellposeSelection
+
+trackpy_parallel -> Trackpy
