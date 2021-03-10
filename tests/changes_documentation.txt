@@ -34,7 +34,21 @@ Cellpose_automated -> Cellpose
 
 Cellpose_FISH -> CellposeFISH
 
-
 MultiMask -> CellposeSelection
+    slection_method. Options changed to -> 'max_area' or 'max_spots'
 
-trackpy_parallel -> Trackpy
+
+trackpy_parallel and trackpy_FISH ===> Trackpy
+    variable: selected_particles_dataframe -> trackpy_dataframe
+    output: video_removed_mask_full -> video_filtered
+    now output is : trackpy_dataframe, number_particles, video_filtered
+    
+
+Simulated_cell_from_video -> SimulatedCell 
+    make_simulated_cell -> make_simulation   
+    
+Intensity
+    DataFrame_particles_intensities ===> dataframe_particles
+    [Cell_No,Spot_No,Frame,Red_Int,Green_Int,Blue_Int,x_position,y_position]    ===>   Dataframe with fields: [cell_number,spot_number,frame,red_int_mean,green_int_mean,blue_int_mean,red_int_std,green_int_std,blue_int_std,x_position,y_position].
+    
+    

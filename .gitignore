@@ -1,0 +1,11 @@
+.DS_Store
+
+# Ignore folders
+Output/
+
+DataSets/
+
+
+# rSNAPsim_IP/temp
+
+temp/

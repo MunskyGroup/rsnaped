@@ -161,11 +161,11 @@ Created on Fri Jun 26 22:10:24 2020
 <dl class="py class">
 <dt id="rsnaped.rsnaped.BandpassFilter">
 <em class="property"><span class="pre">class</span> </em><code class="sig-prename descclassname"><span class="pre">rsnaped.rsnaped.</span></code><code class="sig-name descname"><span class="pre">BandpassFilter</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">video</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">low_pass</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0.5</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">high_pass</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">10</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#rsnaped.rsnaped.BandpassFilter" title="Permalink to this definition">¶</a></dt>
-<dd><p>This class is intended to apply high and low bandpass filters to the video. The format of the video must be [T, Y, X, C]. This class uses <strong>difference_of_gaussians</strong> from skimage.filters.</p>
+<dd><p>This class is intended to apply high and low bandpass filters to the video. The format of the video must be [T,Y,X,C]. This class uses <strong>difference_of_gaussians</strong> from skimage.filters.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters</dt>
 <dd class="field-odd"><ul class="simple">
-<li><p><strong>video</strong> (<em>NumPy array</em>) – Array of images with dimensions [T, Y, X, C].</p></li>
+<li><p><strong>video</strong> (<em>NumPy array</em>) – Array of images with dimensions [T,Y,X,C].</p></li>
 <li><p><strong>min_percentile</strong> (<em>int between 0 to 100</em><em>, </em><em>optional</em>) – Lower bound to normalize intensity. The default is 1.</p></li>
 <li><p><strong>max_percentile</strong> (<em>int between 0 to 100</em><em>, </em><em>optional</em>) – Higher bound to normalize intensity. The default is 99.</p></li>
 <li><p><strong>ignore_channel</strong> (<em>int</em><em> or </em><em>None</em><em>, </em><em>optional</em>) – Use this option to ignore the normalization of a given channel. The default is None.</p></li>
@@ -178,7 +178,7 @@ Created on Fri Jun 26 22:10:24 2020
 <dd><p>This method applies high and low bandpass filters to the video.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Returns</dt>
-<dd class="field-odd"><p><strong>video_filtered</strong> – Filtered video resulting from the bandpass process. Array with format [T, Y, X, C].</p>
+<dd class="field-odd"><p><strong>video_filtered</strong> – Filtered video resulting from the bandpass process. Array with format [T,Y,X,C].</p>
 </dd>
 <dt class="field-even">Return type</dt>
 <dd class="field-even"><p>np.uint16</p>
@@ -191,11 +191,11 @@ Created on Fri Jun 26 22:10:24 2020
 <dl class="py class">
 <dt id="rsnaped.rsnaped.BeadsAlignment">
 <em class="property"><span class="pre">class</span> </em><code class="sig-prename descclassname"><span class="pre">rsnaped.rsnaped.</span></code><code class="sig-name descname"><span class="pre">BeadsAlignment</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">image_beads</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">spot_size</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">5</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">min_intensity</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">400</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#rsnaped.rsnaped.BeadsAlignment" title="Permalink to this definition">¶</a></dt>
-<dd><p>This class is intended to detected and align spots detected in the various channels of an image with dimensions [C, Y, X]. The class returns a homography matrix that can be used to align the images captured from two different cameras during the experiment. Notice that this class should only be used for images taken from a microscope setup that uses two cameras to image various channels.</p>
+<dd><p>This class is intended to detected and align spots detected in the various channels of an image with dimensions [C,Y, X]. The class returns a homography matrix that can be used to align the images captured from two different cameras during the experiment. Notice that this class should only be used for images taken from a microscope setup that uses two cameras to image various channels.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters</dt>
 <dd class="field-odd"><ul class="simple">
-<li><p><strong>image_beads</strong> (<em>NumPy array</em>) – Array with a simple image with dimensions [C, Y, X].</p></li>
+<li><p><strong>image_beads</strong> (<em>NumPy array</em>) – Array with a simple image with dimensions [C,Y, X].</p></li>
 <li><p><strong>spot_size</strong> (<em>int</em><em>, </em><em>optional</em>) – Average size of the beads,  The default is 5.</p></li>
 <li><p><strong>min_intensity</strong> (<em>int</em><em>, </em><em>optional</em>) – Minimal expected intensity for the beads. The default is 400.</p></li>
 </ul>
@@ -204,7 +204,7 @@ Created on Fri Jun 26 22:10:24 2020
 <dl class="py method">
 <dt id="rsnaped.rsnaped.BeadsAlignment.make_beads_alignment">
 <code class="sig-name descname"><span class="pre">make_beads_alignment</span></code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#rsnaped.rsnaped.BeadsAlignment.make_beads_alignment" title="Permalink to this definition">¶</a></dt>
-<dd><p>This method aligns a list of spots detected in an image with dimensions [C, Y, X] and returns a homography matrix.</p>
+<dd><p>This method aligns a list of spots detected in an image with dimensions [C,Y, X] and returns a homography matrix.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Returns</dt>
 <dd class="field-odd"><p><strong>homography_matrix</strong> – The homography matrix is a 3x3 matrix. This transformation matrix maps the points between two planes (images).</p>
@@ -224,7 +224,7 @@ Created on Fri Jun 26 22:10:24 2020
 <dl class="field-list simple">
 <dt class="field-odd">Parameters</dt>
 <dd class="field-odd"><ul class="simple">
-<li><p><strong>video</strong> (<em>NumPy array</em>) – Array of images with dimensions [T, Y, X, C].</p></li>
+<li><p><strong>video</strong> (<em>NumPy array</em>) – Array of images with dimensions [T,Y,X,C].</p></li>
 <li><p><strong>homography_matrix</strong> (<em>object</em>) – The homography matrix object generated with the class BeadsAlignment.</p></li>
 <li><p><strong>target_channels</strong> (<em>List of int</em><em>, </em><em>optional</em>) – Lower bound to normalize intensity. The default is [1].</p></li>
 </ul>
@@ -236,7 +236,7 @@ Created on Fri Jun 26 22:10:24 2020
 <dd><p>This method transforms the video by multiplying the target channels by the homography matrix.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Returns</dt>
-<dd class="field-odd"><p><strong>transformed_video</strong> – Transformed video. Array with dimensions [T, Y, X, C].</p>
+<dd class="field-odd"><p><strong>transformed_video</strong> – Transformed video. Array with dimensions [T,Y,X,C].</p>
 </dd>
 <dt class="field-even">Return type</dt>
 <dd class="field-even"><p>np.uint16</p>
@@ -253,7 +253,7 @@ Created on Fri Jun 26 22:10:24 2020
 <dl class="field-list simple">
 <dt class="field-odd">Parameters</dt>
 <dd class="field-odd"><ul class="simple">
-<li><p><strong>video</strong> (<em>NumPy array</em>) – Array of images with dimensions [T, Y, X, C].</p></li>
+<li><p><strong>video</strong> (<em>NumPy array</em>) – Array of images with dimensions [T,Y,X,C].</p></li>
 <li><p><strong>num_iterations</strong> (<em>int</em><em>, </em><em>optional</em>) – Number of iterations for the optimization process. The default is 5.</p></li>
 <li><p><strong>channels</strong> (<em>List</em><em>, </em><em>optional</em>) – List with the channels in the image. For gray images use [0,0], for RGB images with intensity for cytosol and nuclei use [0,1] . The default is [0,0].</p></li>
 <li><p><strong>diameter</strong> (<em>float</em><em>, </em><em>optional</em>) – Average cell size. The default is 120.</p></li>
@@ -285,7 +285,7 @@ Created on Fri Jun 26 22:10:24 2020
 <dl class="field-list simple">
 <dt class="field-odd">Parameters</dt>
 <dd class="field-odd"><ul class="simple">
-<li><p><strong>video</strong> (<em>NumPy array</em>) – Array of images with dimensions [Z, Y, X, C].</p></li>
+<li><p><strong>video</strong> (<em>NumPy array</em>) – Array of images with dimensions [Z,Y,X,C].</p></li>
 <li><p><strong>channel_with_cytosol</strong> (<em>int</em><em>, </em><em>optional</em>) – DESCRIPTION. The default is [0,1].</p></li>
 <li><p><strong>channel_with_nucleus</strong> (<em>list</em><em> or </em><em>int</em><em>, </em><em>optional</em>) – DESCRIPTION. The default is 2.</p></li>
 <li><p><strong>selected_z_slice</strong> (<em>int</em><em>, </em><em>optional</em>) – DESCRIPTION. The default is 5.</p></li>
@@ -302,12 +302,43 @@ Created on Fri Jun 26 22:10:24 2020
 <dl class="field-list simple">
 <dt class="field-odd">Returns</dt>
 <dd class="field-odd"><p><ul class="simple">
-<li><p><strong>list_masks_complete_cells</strong> (<em>List of NumPy arrays or a single NumPy array</em>) – Masks for every cell detected in the image. The list contains the mask arrays consisting of one or multiple Numpy arrays with format [Y, X].</p></li>
-<li><p><strong>list_masks_nuclei</strong> (<em>List of NumPy arrays or a single NumPy array</em>) – Masks for the nuclei for every cell detected in the image. The list contains the mask arrays consisting of one or multiple Numpy arrays with format [Y, X].</p></li>
-<li><p><strong>list_masks_cytosol_no_nuclei</strong> (<em>List of NumPy arrays or a single NumPy array</em>) – Masks for every nucleus and cytosol for every cell detected in the image. The list contains the mask arrays consisting of one or multiple Numpy arrays with format [Y, X].</p></li>
+<li><p><strong>list_masks_complete_cells</strong> (<em>List of NumPy arrays or a single NumPy array</em>) – Masks for every cell detected in the image. The list contains the mask arrays consisting of one or multiple Numpy arrays with format [Y,X].</p></li>
+<li><p><strong>list_masks_nuclei</strong> (<em>List of NumPy arrays or a single NumPy array</em>) – Masks for the nuclei for every cell detected in the image. The list contains the mask arrays consisting of one or multiple Numpy arrays with format [Y,X].</p></li>
+<li><p><strong>list_masks_cytosol_no_nuclei</strong> (<em>List of NumPy arrays or a single NumPy array</em>) – Masks for every nucleus and cytosol for every cell detected in the image. The list contains the mask arrays consisting of one or multiple Numpy arrays with format [Y,X].</p></li>
 <li><p><strong>index_paired_masks</strong> (<em>List of pairs of int</em>) – List of pairs of integers that associates the detected nuclei and cytosol.</p></li>
 </ul>
 </p>
+</dd>
+</dl>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="py class">
+<dt id="rsnaped.rsnaped.CellposeSelection">
+<em class="property"><span class="pre">class</span> </em><code class="sig-prename descclassname"><span class="pre">rsnaped.rsnaped.</span></code><code class="sig-name descname"><span class="pre">CellposeSelection</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">mask</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">video</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">slection_method</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'max_area'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">particle_size</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">5</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">selected_channel</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#rsnaped.rsnaped.CellposeSelection" title="Permalink to this definition">¶</a></dt>
+<dd><p>This class is intended to select the cell with the maximum area (max_area) or with the maximum number of spots (max_spots) from a masked image previously detect cells by <strong>Cellpose</strong></p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>mask</strong> (<em>NumPy array</em>) – Arrays with values between 0 and the number of detected cells in the image, where a number larger than zero represents the masked area for each cell, and 0 represents the area where no cells are detected. An array of images with dimensions [Y,X].</p></li>
+<li><p><strong>video</strong> (<em>NumPy array</em>) – An array of images with dimensions [T,Y,X,C].</p></li>
+<li><p><strong>slection_method</strong> (<em>str</em><em>, </em><em>optional</em>) – Options used by the optimization algorithm to select a cell based on the number of cells or the number of spots. The options are: ‘max_area’ or ‘max_spots’. The default is ‘maximum_area’.</p></li>
+<li><p><strong>particle_size</strong> (<em>int</em><em>, </em><em>optional</em>) – Average particle size. The default is 5.</p></li>
+<li><p><strong>selected_channel</strong> (<em>int</em><em>, </em><em>optional</em>) – Channel where the particles are detected and tracked. The default is 0.</p></li>
+</ul>
+</dd>
+</dl>
+<dl class="py method">
+<dt id="rsnaped.rsnaped.CellposeSelection.select_mask">
+<code class="sig-name descname"><span class="pre">select_mask</span></code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#rsnaped.rsnaped.CellposeSelection.select_mask" title="Permalink to this definition">¶</a></dt>
+<dd><p>This method selects the cell with the maximum area (max_area) or with the maximum number of spots (max_spots) from a masked image.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Returns</dt>
+<dd class="field-odd"><p><strong>selected_mask</strong> – An array of images with dimensions [Y,X].</p>
+</dd>
+<dt class="field-even">Return type</dt>
+<dd class="field-even"><p>NumPy array, with Boolean values, where 1 represents the masked area, and 0 represents the area outside the mask.</p>
 </dd>
 </dl>
 </dd></dl>
@@ -319,13 +350,13 @@ Created on Fri Jun 26 22:10:24 2020
 <em class="property"><span class="pre">class</span> </em><code class="sig-prename descclassname"><span class="pre">rsnaped.rsnaped.</span></code><code class="sig-name descname"><span class="pre">ConverToStandardFormat</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">video</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">time_position</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">height_position</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">1</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">width_position</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">2</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">channel_position</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">3</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#rsnaped.rsnaped.ConverToStandardFormat" title="Permalink to this definition">¶</a></dt>
 <dd><p>This class contains two methods to:</p>
 <ol class="arabic simple">
-<li><p>Transform any numpy array of images into the format [T, Y, X, C].</p></li>
+<li><p>Transform any numpy array of images into the format [T,Y,X,C].</p></li>
 <li><p>Convert an image into an array video with a single time point (this last is necessary for compatibility).</p></li>
 </ol>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters</dt>
 <dd class="field-odd"><ul class="simple">
-<li><p><strong>video</strong> (<em>NumPy array</em>) – Array of images. This class accepts arrays with formats: [Y, X], [T, Y, X], [T, Y, X, C], or any other  permutation of channels, the user must specify the position of each dimension in the original video by defining the parameters: time_position,height_position,width_position,channel_position.</p></li>
+<li><p><strong>video</strong> (<em>NumPy array</em>) – Array of images. This class accepts arrays with formats: [Y,X], [T,Y,X], [T,Y,X,C], or any other  permutation of channels, the user must specify the position of each dimension in the original video by defining the parameters: time_position,height_position,width_position,channel_position.</p></li>
 <li><p><strong>time_position</strong> (<em>int</em><em>, </em><em>optional</em>) – Position for the dimension for the time in the original video array. The default is 0.</p></li>
 <li><p><strong>height_position</strong> (<em>int</em><em>, </em><em>optional</em>) – Position for the dimension for the y-axis (height) in the original video array. The default is 1.</p></li>
 <li><p><strong>width_position</strong> (<em>int</em><em>, </em><em>optional</em>) – Position for the dimension for the x-axis (width) in the original video array. The default is 2.</p></li>
@@ -339,7 +370,7 @@ Created on Fri Jun 26 22:10:24 2020
 <dd><p>Method that converts an image into a video with one frame. This process is done for compatibility with the rest of the classes.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Returns</dt>
-<dd class="field-odd"><p><strong>video_correct_order</strong> – Array with dimensions [T, Y, X, C].</p>
+<dd class="field-odd"><p><strong>video_correct_order</strong> – Array with dimensions [T,Y,X,C].</p>
 </dd>
 <dt class="field-even">Return type</dt>
 <dd class="field-even"><p>np.uint16</p>
@@ -350,10 +381,10 @@ Created on Fri Jun 26 22:10:24 2020
 <dl class="py method">
 <dt id="rsnaped.rsnaped.ConverToStandardFormat.transpose_video">
 <code class="sig-name descname"><span class="pre">transpose_video</span></code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#rsnaped.rsnaped.ConverToStandardFormat.transpose_video" title="Permalink to this definition">¶</a></dt>
-<dd><p>Method that transposes an unsorted video to the standard [T, Y, X, C]</p>
+<dd><p>Method that transposes an unsorted video to the standard [T,Y,X,C]</p>
 <dl class="field-list simple">
 <dt class="field-odd">Returns</dt>
-<dd class="field-odd"><p><strong>video_correct_order</strong> – Array with dimensions [T, Y, X, C].</p>
+<dd class="field-odd"><p><strong>video_correct_order</strong> – Array with dimensions [T,Y,X,C].</p>
 </dd>
 <dt class="field-even">Return type</dt>
 <dd class="field-even"><p>np.uint16</p>
@@ -364,27 +395,118 @@ Created on Fri Jun 26 22:10:24 2020
 </dd></dl>
 
 <dl class="py class">
-<dt id="rsnaped.rsnaped.MaskingImage">
-<em class="property"><span class="pre">class</span> </em><code class="sig-prename descclassname"><span class="pre">rsnaped.rsnaped.</span></code><code class="sig-name descname"><span class="pre">MaskingImage</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">video</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">mask</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#rsnaped.rsnaped.MaskingImage" title="Permalink to this definition">¶</a></dt>
-<dd><p>This class is intended to apply a mask to the video. The video format must be [T, Y, X, C], and the format of the mask must be [Y, X].</p>
+<dt id="rsnaped.rsnaped.Intensity">
+<em class="property"><span class="pre">class</span> </em><code class="sig-prename descclassname"><span class="pre">rsnaped.rsnaped.</span></code><code class="sig-name descname"><span class="pre">Intensity</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">video</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">particle_size</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">5</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">trackpy_dataframe</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">spot_positions_movement</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">method</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'disk_donut'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">show_plot</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">1</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#rsnaped.rsnaped.Intensity" title="Permalink to this definition">¶</a></dt>
+<dd><p>This class is intended to calculate the intensity in the detected spots.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters</dt>
 <dd class="field-odd"><ul class="simple">
-<li><p><strong>video</strong> (<em>NumPy array</em>) – Array of images with dimensions [T, Y, X, C].</p></li>
-<li><p><strong>mask</strong> (<em>NumPy array</em><em>, </em><em>with Boolean values</em><em>, </em><em>where 1 represents the masked area</em><em>, </em><em>and 0 represents the area outside the mask.</em>) – An array of images with dimensions [Y, X].</p></li>
+<li><p><strong>video</strong> (<em>NumPy array</em>) – Array of images with dimensions [T,Y,X,C].</p></li>
+<li><p><strong>particle_size</strong> (<em>int</em><em>, </em><em>optional</em>) – Average particle size. The default is 5.</p></li>
+<li><p><strong>trackpy_dataframe</strong> (<em>pandas data frame</em><em> or </em><em>None</em><em> (</em><em>if not given</em><em>)</em><em></em>) – Pandas data frame from trackpy with fields [x, y, mass, size, ecc, signal, raw_mass, ep, frame, particle]. The default is None</p></li>
+<li><p><strong>spot_positions_movement</strong> (<em>NumPy array</em><em>  or </em><em>None</em><em> (</em><em>if not given</em><em>)</em><em></em>) – Array of images with dimensions [T, S, x_y_positions].  The default is None</p></li>
+<li><p><strong>method</strong> (<em>str</em><em>, </em><em>optional</em>) – Method to calculate intensity the options are : ‘total_intensity’ , ‘disk_donut’ and ‘gaussian_fit’. The default is ‘disk_donut’.</p></li>
+<li><p><strong>show_plot</strong> (<em>bool</em><em>, </em><em>optional</em>) – Allows the user to show a plot for the optimization process. The default is 1.</p></li>
 </ul>
 </dd>
 </dl>
+<dl class="py method">
+<dt id="rsnaped.rsnaped.Intensity.calculate_intensity">
+<code class="sig-name descname"><span class="pre">calculate_intensity</span></code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#rsnaped.rsnaped.Intensity.calculate_intensity" title="Permalink to this definition">¶</a></dt>
+<dd><p>This method calculates the spot intensity.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Returns</dt>
+<dd class="field-odd"><p><ul class="simple">
+<li><p><strong>dataframe_particles</strong> (<em>pandas dataframe</em>) – Dataframe with fields [cell_number, particle, frame, red_int_mean, green_int_mean, blue_int_mean, red_int_std, green_int_std, blue_int_std, x, y].</p></li>
+<li><p><strong>array_intensities_mean</strong> (<em>Numpy array</em>) – Array with dimensions [S,T,C].</p></li>
+<li><p><strong>time_vector</strong> (<em>Numpy array</em>) – 1D array.</p></li>
+<li><p><strong>mean_intensities</strong> (<em>Numpy array</em>) – Array with dimensions [S,T,C].</p></li>
+<li><p><strong>std_intensities</strong> (<em>Numpy array</em>) – Array with dimensions [S,T,C].</p></li>
+<li><p><strong>mean_intensities_normalized</strong> (<em>Numpy array</em>) – Array with dimensions [S,T,C].</p></li>
+<li><p><strong>std_intensities_normalized</strong> (<em>Numpy array</em>) – Array with dimensions [S,T,C].</p></li>
+</ul>
+</p>
+</dd>
+</dl>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="py class">
+<dt id="rsnaped.rsnaped.MaskingImage">
+<em class="property"><span class="pre">class</span> </em><code class="sig-prename descclassname"><span class="pre">rsnaped.rsnaped.</span></code><code class="sig-name descname"><span class="pre">MaskingImage</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">video</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">mask</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#rsnaped.rsnaped.MaskingImage" title="Permalink to this definition">¶</a></dt>
+<dd><p>This class is intended to apply a mask to the video. The video format must be [T,Y,X,C], and the format of the mask must be [Y,X].</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>video</strong> (<em>NumPy array</em>) – Array of images with dimensions [T,Y,X,C].</p></li>
+<li><p><strong>mask</strong> (<em>NumPy array</em><em>, </em><em>with Boolean values</em><em>, </em><em>where 1 represents the masked area</em><em>, </em><em>and 0 represents the area outside the mask.</em>) – An array of images with dimensions [Y,X].</p></li>
+</ul>
+</dd>
+</dl>
+<dl class="py method">
+<dt id="rsnaped.rsnaped.MaskingImage.apply_mask">
+<code class="sig-name descname"><span class="pre">apply_mask</span></code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#rsnaped.rsnaped.MaskingImage.apply_mask" title="Permalink to this definition">¶</a></dt>
+<dd><p>This method applies high and low bandpass filters to the video. The method uses <strong>difference_of_gaussians</strong> from skimage.filters.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Returns</dt>
+<dd class="field-odd"><p><strong>video_removed_mask</strong> – Video with zero values outside the area delimited by the mask. Array with format [T,Y,X,C].</p>
+</dd>
+<dt class="field-even">Return type</dt>
+<dd class="field-even"><p>np.uint16</p>
+</dd>
+</dl>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="py class">
+<dt id="rsnaped.rsnaped.PipelineTracking">
+<em class="property"><span class="pre">class</span> </em><code class="sig-prename descclassname"><span class="pre">rsnaped.rsnaped.</span></code><code class="sig-name descname"><span class="pre">PipelineTracking</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">video</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">particle_size</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">5</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">file_name</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'Cell.tif'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">selected_channel</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">intensity_calculation_method</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'disk_donut'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">mask_selection_method</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'max_spots'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">show_plot</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">1</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#rsnaped.rsnaped.PipelineTracking" title="Permalink to this definition">¶</a></dt>
+<dd><p>A pipeline that allows cell segmentation, spot detection, and tracking of spots.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>video</strong> (<em>NumPy array</em>) – Array of images with dimensions [T,Y,X,C].</p></li>
+<li><p><strong>particle_size</strong> (<em>int</em><em>, </em><em>optional</em>) – Average particle size. The default is 5.</p></li>
+<li><p><strong>file_name</strong> (<em>str</em><em>, </em><em>optional</em>) – The file name for the simulated cell. The default is ‘Cell.tif’.</p></li>
+<li><p><strong>selected_channel</strong> (<em>int</em><em>, </em><em>optional</em>) – Allows the user to define the channel to visualize in the plotted images. The default is 0.</p></li>
+<li><p><strong>intensity_calculation_method</strong> (<em>str</em><em>, </em><em>optional</em>) – Method to calculate intensity the options are : ‘total_intensity’ , ‘disk_donut’ and ‘gaussian_fit’. The default is ‘disk_donut’..</p></li>
+<li><p><strong>mask_selection_method</strong> (<em>str</em><em>, </em><em>optional</em>) – Option to use the optimization algorithm to maximize the number of cells or maximize the size. The options are ‘max_area’ or ‘max_cells’. The default is ‘max_area’.</p></li>
+<li><p><strong>show_plot</strong> (<em>bool</em><em>, </em><em>optional</em>) – Allows the user to show a plot for the optimization process. The default is 1.</p></li>
+</ul>
+</dd>
+</dl>
+<dl class="py method">
+<dt id="rsnaped.rsnaped.PipelineTracking.run">
+<code class="sig-name descname"><span class="pre">run</span></code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#rsnaped.rsnaped.PipelineTracking.run" title="Permalink to this definition">¶</a></dt>
+<dd><p>Runs the pipeline.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Returns</dt>
+<dd class="field-odd"><p><ul class="simple">
+<li><p><strong>dataframe_particles</strong> (<em>pandas dataframe</em>) – Dataframe with fields [cell_number, particle, frame, red_int_mean, green_int_mean, blue_int_mean, red_int_std, green_int_std, blue_int_std, x, y].</p></li>
+<li><p><strong>array_intensities</strong> (<em>Numpy array</em>) – Array with dimensions [S,T,C].</p></li>
+<li><p><strong>time_vector</strong> (<em>Numpy array</em>) – 1D array.</p></li>
+<li><p><strong>mean_intensities</strong> (<em>Numpy array</em>) – Array with dimensions [S,T,C].</p></li>
+<li><p><strong>std_intensities</strong> (<em>Numpy array</em>) – Array with dimensions [S,T,C].</p></li>
+<li><p><strong>mean_intensities_normalized</strong> (<em>Numpy array</em>) – Array with dimensions [S,T,C].</p></li>
+<li><p><strong>std_intensities_normalized</strong> (<em>Numpy array</em>) – Array with dimensions [S,T,C].</p></li>
+</ul>
+</p>
+</dd>
+</dl>
+</dd></dl>
+
 </dd></dl>
 
 <dl class="py class">
 <dt id="rsnaped.rsnaped.RemoveExtrema">
 <em class="property"><span class="pre">class</span> </em><code class="sig-prename descclassname"><span class="pre">rsnaped.rsnaped.</span></code><code class="sig-name descname"><span class="pre">RemoveExtrema</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">video</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">min_percentile</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">1</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">max_percentile</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">99</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">ignore_channel</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#rsnaped.rsnaped.RemoveExtrema" title="Permalink to this definition">¶</a></dt>
-<dd><p>This class is intended to remove extreme values from a video. The format of the video must be [T, Y, X, C].</p>
+<dd><p>This class is intended to remove extreme values from a video. The format of the video must be [T,Y,X,C].</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters</dt>
 <dd class="field-odd"><ul class="simple">
-<li><p><strong>video</strong> (<em>NumPy array</em>) – Array of images with dimensions [T, Y, X, C].</p></li>
+<li><p><strong>video</strong> (<em>NumPy array</em>) – Array of images with dimensions [T,Y,X,C] or single image with diemnsions [Y,X].</p></li>
 <li><p><strong>min_percentile</strong> (<em>int</em><em>, </em><em>optional</em>) – Lower bound to normalize intensity. The default is 1.</p></li>
 <li><p><strong>max_percentile</strong> (<em>TYPE</em><em>, </em><em>optional</em>) – Higher bound to normalize intensity. The default is 99.</p></li>
 <li><p><strong>ignore_channel</strong> (<em>int</em><em> or </em><em>None</em><em>, </em><em>optional</em>) – Use this option to ignore the normalization of a given channel. The default is None.</p></li>
@@ -397,7 +519,7 @@ Created on Fri Jun 26 22:10:24 2020
 <dd><p>This method normalizes the values of a video by removing extreme values.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Returns</dt>
-<dd class="field-odd"><p><strong>normalized_video</strong> – Normalized video. Array with dimensions [T, Y, X, C].</p>
+<dd class="field-odd"><p><strong>normalized_video</strong> – Normalized video. Array with dimensions [T,Y,X,C] or iamge with format [Y,X].</p>
 </dd>
 <dt class="field-even">Return type</dt>
 <dd class="field-even"><p>np.uint16</p>
@@ -410,11 +532,11 @@ Created on Fri Jun 26 22:10:24 2020
 <dl class="py class">
 <dt id="rsnaped.rsnaped.ScaleIntensity">
 <em class="property"><span class="pre">class</span> </em><code class="sig-prename descclassname"><span class="pre">rsnaped.rsnaped.</span></code><code class="sig-name descname"><span class="pre">ScaleIntensity</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">video</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">scale_percentage</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">1</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">ignore_channel</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#rsnaped.rsnaped.ScaleIntensity" title="Permalink to this definition">¶</a></dt>
-<dd><p>This class is intended to scale the intensity values in a video. The format of the video must be [T, Y, X, C].</p>
+<dd><p>This class is intended to scale the intensity values in a video. The format of the video must be [T,Y,X,C].</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters</dt>
 <dd class="field-odd"><ul class="simple">
-<li><p><strong>video</strong> (<em>NumPy array</em>) – Array of images with dimensions [T, Y, X, C].</p></li>
+<li><p><strong>video</strong> (<em>NumPy array</em>) – Array of images with dimensions [T,Y,X,C].</p></li>
 <li><p><strong>scale_percentage</strong> (<em>float</em><em>, </em><em>optional</em>) – Percentage value (between 0 and 1, where 0.5 represents 50% scaling) to scale the video. The default is 1.</p></li>
 <li><p><strong>ignore_channel</strong> (<em>int</em><em> or </em><em>None</em><em>, </em><em>optional</em>) – Use this option to ignore the normalization of a given channel. The default is None.</p></li>
 </ul>
@@ -426,10 +548,103 @@ Created on Fri Jun 26 22:10:24 2020
 <dd><p>This method is intended to scale the intensity values of a video.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Returns</dt>
-<dd class="field-odd"><p><strong>scaled_video</strong> – Scaled video. Array with dimensions [T, Y, X, C].</p>
+<dd class="field-odd"><p><strong>scaled_video</strong> – Scaled video. Array with dimensions [T,Y,X,C].</p>
 </dd>
 <dt class="field-even">Return type</dt>
 <dd class="field-even"><p>np.uint16</p>
+</dd>
+</dl>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="py class">
+<dt id="rsnaped.rsnaped.SimulatedCell">
+<em class="property"><span class="pre">class</span> </em><code class="sig-prename descclassname"><span class="pre">rsnaped.rsnaped.</span></code><code class="sig-name descname"><span class="pre">SimulatedCell</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">base_video</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">video_for_mask</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">number_spots</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">10</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">number_frames</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">20</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">step_size</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">1</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">diffusion_coefficient</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0.01</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">simulated_trajectories_ch0</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">size_spot_ch0</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">5</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">spot_sigma_ch0</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">2</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">simulated_trajectories_ch1</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">[0]</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">size_spot_ch1</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">5</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">spot_sigma_ch1</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">2</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">simulated_trajectories_ch2</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">[0]</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">size_spot_ch2</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">5</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">spot_sigma_ch2</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">2</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">ignore_ch0</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">ignore_ch1</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">1</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">ignore_ch2</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">1</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">save_as_tif_uint8</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">save_as_tif</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">save_as_gif</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">save_dataframe</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">saved_file_name</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'temp'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">create_temp_folder</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">True</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">intensity_calculation_method</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'gaussian_fit'</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#rsnaped.rsnaped.SimulatedCell" title="Permalink to this definition">¶</a></dt>
+<dd><p>This class takes a base video, and it draws simulated spots on top of the image. The intensity for each simulated spot is proportional to the stochastic simulation given by the user.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>base_video</strong> (<em>NumPy array</em>) – Array of images with dimensions [T,Y,X,C].</p></li>
+<li><p><strong>video_for_mask</strong> (<em>NumPy array</em><em>, </em><em>optional</em>) – Array of images with dimensions [T,Y,X,C]. Use only if the base video has been edited, and an empty video is needed to calculate the mask. The default is None.</p></li>
+<li><p><strong>number_spots</strong> (<em>int</em>) – Number of simulated spots in the cell. The default is 10.</p></li>
+<li><p><strong>number_frames</strong> (<em>int</em>) – The number of frames or time points to simulate. In seconds. The default is 20.</p></li>
+<li><p><strong>step_size</strong> (<em>int</em><em>, </em><em>optional</em>) – Step size for the simulation. In seconds. The default is 1.</p></li>
+<li><p><strong>diffusion_coefficient</strong> (<em>float</em><em>, </em><em>optional</em>) – The diffusion coefficient for the particles’ Brownian motion. The default is 0.01.</p></li>
+<li><p><strong>simulated_trajectories_ch0</strong> (<em>NumPy array</em><em>, </em><em>optional</em>) – An array of simulated trajectories with dimensions [S,T] for channel 0. The default is None and indicates that the intensity will be generated, drawing random numbers in a range.</p></li>
+<li><p><strong>size_spot_ch0</strong> (<em>int</em><em>, </em><em>optional</em>) – Spot size in pixels for channel 0. The default is 5.</p></li>
+<li><p><strong>spot_sigma_ch0</strong> (<em>int</em><em>, </em><em>optional</em>) – Sigma value for the simulated spots in channel 0, the units are pixels. The default is 2.</p></li>
+<li><p><strong>simulated_trajectories_ch1</strong> (<em>NumPy array</em><em>, </em><em>optional</em>) – An array of simulated trajectories with dimensions [S,T] for channel 1. The default is None and indicates that the intensity will be generated, drawing random numbers in a range.</p></li>
+<li><p><strong>size_spot_ch1</strong> (<em>int</em><em>, </em><em>optional</em>) – Spot size in pixels for channel 1. The default is 5.</p></li>
+<li><p><strong>spot_sigma_ch1</strong> (<em>int</em><em>, </em><em>optional</em>) – Sigma value for the simulated spots in channel 1, the units are pixels. The default is 2.</p></li>
+<li><p><strong>simulated_trajectories_ch2</strong> (<em>NumPy array</em><em>, </em><em>optional</em>) – An array of simulated trajectories with dimensions [S,T] for channel 2. The default is None and indicates that the intensity will be generated, drawing random numbers in a range.</p></li>
+<li><p><strong>size_spot_ch2</strong> (<em>int</em><em>, </em><em>optional</em>) – Spot size in pixels for channel 2. The default is 5.</p></li>
+<li><p><strong>spot_sigma_ch2</strong> (<em>int</em><em>, </em><em>optional</em>) – Sigma value for the simulated spots in channel 2, the units are pixels. The default is 2.</p></li>
+<li><p><strong>ignore_ch0</strong> (<em>bool</em><em>, </em><em>optional</em>) – A flag that ignores channel 0 returning a NumPy array filled with zeros. The default is 0.</p></li>
+<li><p><strong>ignore_ch1</strong> (<em>bool</em><em>, </em><em>optional</em>) – A flag that ignores channel 1 returning a NumPy array filled with zeros. The default is 1.</p></li>
+<li><p><strong>ignore_ch2</strong> (<em>bool</em><em>, </em><em>optional</em>) – A flag that ignores channel 2 returning a NumPy array filled with zeros. The default is 1.</p></li>
+<li><p><strong>save_as_tif_uint8</strong> (<em>bool</em><em>, </em><em>optional</em>) – If true, it generates and saves a uint8 (low) quality image tif file for the simulation. The default is 0.</p></li>
+<li><p><strong>save_as_tif</strong> (<em>bool</em><em>, </em><em>optional</em>) – If true, it generates and saves a uint16 (High) quality image tif file for the simulation. The default is 0.</p></li>
+<li><p><strong>save_as_gif</strong> (<em>bool</em><em>, </em><em>optional</em>) – If true, it generates and saves a gif animation for the simulation. The default is 0.</p></li>
+<li><p><strong>save_dataframe</strong> (<em>bool</em><em>, </em><em>optional</em>) – If true, it generates and saves a pandas dataframe with the simulation. Dataframe with fields [cell_number, particle, frame,red_int_mean, green_int_mean, blue_int_mean, red_int_std, green_int_std, blue_int_std, x, y]. The default is 0.</p></li>
+<li><p><strong>saved_file_name</strong> (<em>str</em><em>, </em><em>optional</em>) – The file name for the simulated cell output files (tif images, gif images, data frames). The default is ‘temp’.</p></li>
+<li><p><strong>create_temp_folder</strong> (<em>bool</em><em>, </em><em>optional</em>) – Creates a folder with the simulation output. The default is True.</p></li>
+<li><p><strong>intensity_calculation_method</strong> (<em>str</em><em>, </em><em>optional</em>) – Method to calculate intensity the options are : ‘total_intensity’ , ‘disk_donut’ and ‘gaussian_fit’. The default is ‘disk_donut’.</p></li>
+</ul>
+</dd>
+</dl>
+<dl class="py method">
+<dt id="rsnaped.rsnaped.SimulatedCell.make_simulation">
+<code class="sig-name descname"><span class="pre">make_simulation</span></code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#rsnaped.rsnaped.SimulatedCell.make_simulation" title="Permalink to this definition">¶</a></dt>
+<dd><p>This method generates the simulated cell.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Returns</dt>
+<dd class="field-odd"><p><ul class="simple">
+<li><p><strong>tensor_video</strong> (<em>NumPy array uint16</em>) – Array with dimensions [T,Y,X,C]</p></li>
+<li><p><strong>tensor_for_image_j</strong> (<em>NumPy array uint16</em>) – Array with dimensions [T,Z,C,Y,X]</p></li>
+<li><p><strong>spot_positions_movement</strong> (<em>NumPy array</em>) – Array with dimensions [T,Spots, position(y,x)]</p></li>
+<li><p><strong>tensor_mean_intensity_in_figure</strong> (<em>NumPy array, np.float</em>) – Array with dimensions [T,Spots]</p></li>
+<li><p><strong>tensor_std_intensity_in_figure</strong> (<em>NumPy array, np.float</em>) – Array with dimensions [T,Spots]</p></li>
+<li><p><strong>dataframe_particles</strong> (<em>pandas dataframe</em>) – Dataframe with fields [cell_number, particle, frame, red_int_mean, green_int_mean, blue_int_mean, red_int_std, green_int_std, blue_int_std, x, y].</p></li>
+</ul>
+</p>
+</dd>
+</dl>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="py class">
+<dt id="rsnaped.rsnaped.Trackpy">
+<em class="property"><span class="pre">class</span> </em><code class="sig-prename descclassname"><span class="pre">rsnaped.rsnaped.</span></code><code class="sig-name descname"><span class="pre">Trackpy</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">video</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">mask</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">particle_size</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">5</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">selected_channel</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">minimal_frames</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">5</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">optimization_iterations</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">30</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">use_defaul_filter</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">1</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">FISH_image</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">show_plot</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">1</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#rsnaped.rsnaped.Trackpy" title="Permalink to this definition">¶</a></dt>
+<dd><p>This class is intended to detect spots in the video by using <strong>Trackpy</strong>.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>video</strong> (<em>NumPy array</em>) – Array of images with dimensions [T,Y,X,C]. In case a FISH image is used, the format must be [Z,Y,X,C], and the user must specify the parameter FISH_image =1.</p></li>
+<li><p><strong>mask</strong> (<em>NumPy array</em><em>, </em><em>with Boolean values</em><em>, </em><em>where 1 represents the masked area</em><em>, </em><em>and 0 represents the area outside the mask.</em>) – An array of images with dimensions [Y,X].</p></li>
+<li><p><strong>particle_size</strong> (<em>int</em><em>, </em><em>optional</em>) – Average particle size. The default is 5.</p></li>
+<li><p><strong>selected_channel</strong> (<em>int</em><em>, </em><em>optional</em>) – Channel where the particles are detected and tracked. The default is 0.</p></li>
+<li><p><strong>minimal_frames</strong> (<em>int</em><em>, </em><em>optional</em>) – This parameter defines the minimal number of frames that a particle should appear on the video to be considered on the final count. The default is 5.</p></li>
+<li><p><strong>optimization_iterations</strong> (<em>int</em><em>, </em><em>optional</em>) – Number of iterations for the optimization process to select the best filter. The default is 30.</p></li>
+<li><p><strong>use_defaul_filter</strong> (<em>bool</em><em>, </em><em>optional</em>) – This option allows the user to use a default filter if TRUE. Else, it uses an optimization process to select the best filter for the image. The default is= 1.</p></li>
+<li><p><strong>show_plot</strong> (<em>bool</em><em>, </em><em>optional</em>) – Allows the user to show a plot for the optimization process. The default is 1.</p></li>
+<li><p><strong>FISH_image</strong> (<em>bool</em><em>, </em><em>optional.</em>) – This parameter allows the user to use FISH images and connect spots detected along multiple z-slices. The default is 0.</p></li>
+</ul>
+</dd>
+</dl>
+<dl class="py method">
+<dt id="rsnaped.rsnaped.Trackpy.perform_tracking">
+<code class="sig-name descname"><span class="pre">perform_tracking</span></code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#rsnaped.rsnaped.Trackpy.perform_tracking" title="Permalink to this definition">¶</a></dt>
+<dd><p>This method</p>
+<dl class="field-list simple">
+<dt class="field-odd">Returns</dt>
+<dd class="field-odd"><p><ul class="simple">
+<li><p><strong>trackpy_dataframe</strong> (<em>pandas data frame.</em>) – Pandas data frame from trackpy with fields [x, y, mass, size, ecc, signal, raw_mass, ep, frame, particle].</p></li>
+<li><p><strong>number_particles</strong> (<em>int.</em>) – The total number of detected particles in the data frame.</p></li>
+<li><p><strong>video_filtered</strong> (<em>np.uint16.</em>) – Filtered video resulting from the bandpass process. Array with format [T,Y,X,C].</p></li>
+</ul>
+</p>
 </dd>
 </dl>
 </dd></dl>
@@ -443,9 +658,9 @@ Created on Fri Jun 26 22:10:24 2020
 <dl class="field-list simple">
 <dt class="field-odd">Parameters</dt>
 <dd class="field-odd"><ul class="simple">
-<li><p><strong>list_videos</strong> (<em>List of NumPy arrays</em><em> or </em><em>a single NumPy array.</em>) – Images or videos to visualize. The format is a list of Numpy arrays where each array follows the convention [T, Y, X, C].</p></li>
+<li><p><strong>list_videos</strong> (<em>List of NumPy arrays</em><em> or </em><em>a single NumPy array.</em>) – Images or videos to visualize. The format is a list of Numpy arrays where each array follows the convention [T,Y,X,C].</p></li>
 <li><p><strong>list_selected_particles_dataframe</strong> (<em>pandas data frame.</em>) – A pandas data frame containing the position of each spot in the image.</p></li>
-<li><p><strong>particle_size</strong> (<em>int</em><em>, </em><em>optional</em>) – Allows the user to change the size of the crop. The default is 5.</p></li>
+<li><p><strong>particle_size</strong> (<em>int</em><em>, </em><em>optional</em>) – Average particle size. The default is 5.</p></li>
 </ul>
 </dd>
 </dl>
@@ -468,15 +683,16 @@ Created on Fri Jun 26 22:10:24 2020
 
 <dl class="py class">
 <dt id="rsnaped.rsnaped.VisualizerImage">
-<em class="property"><span class="pre">class</span> </em><code class="sig-prename descclassname"><span class="pre">rsnaped.rsnaped.</span></code><code class="sig-name descname"><span class="pre">VisualizerImage</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">list_videos</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">list_videos_filtered</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">list_selected_particles_dataframe</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">list_files_names</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">selected_channel</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">selected_timepoint</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">normalize</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">individual_figure_size</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">5</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#rsnaped.rsnaped.VisualizerImage" title="Permalink to this definition">¶</a></dt>
+<em class="property"><span class="pre">class</span> </em><code class="sig-prename descclassname"><span class="pre">rsnaped.rsnaped.</span></code><code class="sig-name descname"><span class="pre">VisualizerImage</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">list_videos</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">list_videos_filtered</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">list_selected_particles_dataframe</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">list_files_names</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">list_mask_array</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">selected_channel</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">selected_timepoint</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">normalize</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">individual_figure_size</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">5</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#rsnaped.rsnaped.VisualizerImage" title="Permalink to this definition">¶</a></dt>
 <dd><p>This class is intended to visualize videos as 2D images. This class has the option to mark the particles that previously were selected by trackPy.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters</dt>
 <dd class="field-odd"><ul class="simple">
-<li><p><strong>list_videos</strong> (<em>List of NumPy arrays</em><em> or </em><em>a single NumPy array</em>) – Images or videos to visualize. The format is a list of Numpy arrays where each array follows the convention [T, Y, X, C] or an image array with format [Y, X].</p></li>
-<li><p><strong>list_videos_filtered</strong> (<em>List of NumPy arrays</em><em> or </em><em>a single NumPy array</em><em> or </em><em>None</em>) – Images or videos to visualize. The format is a list of Numpy arrays where each array follows the convention [T, Y, X, C]. The default is None.</p></li>
+<li><p><strong>list_videos</strong> (<em>List of NumPy arrays</em><em> or </em><em>a single NumPy array</em>) – Images or videos to visualize. The format is a list of Numpy arrays where each array follows the convention [T,Y,X,C] or an image array with format [Y,X].</p></li>
+<li><p><strong>list_videos_filtered</strong> (<em>List of NumPy arrays</em><em> or </em><em>a single NumPy array</em><em> or </em><em>None</em>) – Images or videos to visualize. The format is a list of Numpy arrays where each array follows the convention [T,Y,X,C]. The default is None.</p></li>
 <li><p><strong>list_selected_particles_dataframe</strong> (<em>pandas data frame</em><em>, </em><em>optional</em>) – A pandas data frame containing the position of each spot in the image. The default is None.</p></li>
 <li><p><strong>list_files_names</strong> (<em>List of str</em><em> or </em><em>str</em><em>, </em><em>optional</em>) – List of file names to display as the title on the image. The default is None.</p></li>
+<li><p><strong>list_mask_array</strong> (<em>List of NumPy arrays</em><em> or </em><em>a single NumPy array</em><em>, </em><em>with Boolean values</em><em>, </em><em>where 1 represents the masked area</em><em>, </em><em>and 0 represents the area outside the mask.</em>) – An array of images with dimensions [Y,X].</p></li>
 <li><p><strong>selected_channel</strong> (<em>int</em><em>, </em><em>optional</em>) – Allows the user to define the channel to visualize in the plotted images. The default is 0.</p></li>
 <li><p><strong>selected_timepoint</strong> (<em>int</em><em>, </em><em>optional</em>) – Allows the user to define the time point or frame to display on the image. The default is 0.</p></li>
 <li><p><strong>normalize</strong> (<em>bool</em><em>, </em><em>optional</em>) – Option to normalize the data by removing outliers. The code removes the 1 and 99 percentiles from the image. The default is False.</p></li>
@@ -502,14 +718,14 @@ Created on Fri Jun 26 22:10:24 2020
 
 <dl class="py class">
 <dt id="rsnaped.rsnaped.VisualizerVideo">
-<em class="property"><span class="pre">class</span> </em><code class="sig-prename descclassname"><span class="pre">rsnaped.rsnaped.</span></code><code class="sig-name descname"><span class="pre">VisualizerVideo</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">list_videos</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">list_selected_particles_dataframe</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">list_mask_array</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">show_time_projection_spots</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">normalize</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#rsnaped.rsnaped.VisualizerVideo" title="Permalink to this definition">¶</a></dt>
+<em class="property"><span class="pre">class</span> </em><code class="sig-prename descclassname"><span class="pre">rsnaped.rsnaped.</span></code><code class="sig-name descname"><span class="pre">VisualizerVideo</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">list_videos</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">dataframe_particles</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">list_mask_array</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">show_time_projection_spots</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">normalize</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#rsnaped.rsnaped.VisualizerVideo" title="Permalink to this definition">¶</a></dt>
 <dd><p>This class is intended to visualize videos as interactive widgets. This class has the option to mark the particles that previously were selected by trackPy.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters</dt>
 <dd class="field-odd"><ul class="simple">
-<li><p><strong>list_videos</strong> (<em>List of NumPy arrays</em><em> or </em><em>a single NumPy array</em>) – Images or videos to visualize. The format is a list of Numpy arrays where each array follows the convention [T, Y, X, C] or an image array with format [Y, X].</p></li>
-<li><p><strong>list_selected_particles_dataframe</strong> (<em>pandas data frame</em><em>, </em><em>optional</em>) – A pandas data frame containing the position of each spot in the image. The default is None.</p></li>
-<li><p><strong>list_mask_array</strong> (<em>List of NumPy arrays</em><em> or </em><em>a single NumPy array</em><em>, </em><em>with Boolean values</em><em>, </em><em>where 1 represents the masked area</em><em>, </em><em>and 0 represents the area outside the mask.</em>) – An array of images with dimensions [Y, X].</p></li>
+<li><p><strong>list_videos</strong> (<em>List of NumPy arrays</em><em> or </em><em>a single NumPy array</em>) – Images or videos to visualize. The format is a list of Numpy arrays where each array follows the convention [T,Y,X,C] or an image array with format [Y,X].</p></li>
+<li><p><strong>dataframe_particles</strong> (<em>pandas data frame</em><em>, </em><em>optional</em>) – A pandas data frame containing the position of each spot in the image. The default is None.</p></li>
+<li><p><strong>list_mask_array</strong> (<em>List of NumPy arrays</em><em> or </em><em>a single NumPy array</em><em>, </em><em>with Boolean values</em><em>, </em><em>where 1 represents the masked area</em><em>, </em><em>and 0 represents the area outside the mask.</em>) – An array of images with dimensions [Y,X].</p></li>
 <li><p><strong>show_time_projection_spots</strong> (<em>int</em><em>, </em><em>optional</em>) – Allows the user to display the projection of all detected spots for all time points on the current image. The default is 0.</p></li>
 <li><p><strong>normalize</strong> (<em>bool</em><em>, </em><em>optional</em>) – Option to normalize the data by removing outliers. The code removes the 1 and 99 percentiles from the image. The default is False.</p></li>
 </ul>
@@ -538,7 +754,7 @@ Created on Fri Jun 26 22:10:24 2020
 <dd><p>This class is intended to visualize 3d videos as interactive widgets.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters</dt>
-<dd class="field-odd"><p><strong>list_videos</strong> (<em>List of NumPy arrays</em><em> or </em><em>a single NumPy array</em>) – Images or videos to visualize. The format is a list of Numpy arrays where each array follows the convention [T, Y, X, C] or an image array with format [Y, X].</p>
+<dd class="field-odd"><p><strong>list_videos</strong> (<em>List of NumPy arrays</em><em> or </em><em>a single NumPy array</em>) – Images or videos to visualize. The format is a list of Numpy arrays where each array follows the convention [T,Y,X,C] or an image array with format [Y,X].</p>
 </dd>
 </dl>
 <dl class="py method">
