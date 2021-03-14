@@ -166,9 +166,8 @@ Created on Fri Jun 26 22:10:24 2020
 <dt class="field-odd">Parameters</dt>
 <dd class="field-odd"><ul class="simple">
 <li><p><strong>video</strong> (<em>NumPy array</em>) – Array of images with dimensions [T,Y,X,C].</p></li>
-<li><p><strong>min_percentile</strong> (<em>int between 0 to 100</em><em>, </em><em>optional</em>) – Lower bound to normalize intensity. The default is 1.</p></li>
-<li><p><strong>max_percentile</strong> (<em>int between 0 to 100</em><em>, </em><em>optional</em>) – Higher bound to normalize intensity. The default is 99.</p></li>
-<li><p><strong>ignore_channel</strong> (<em>int</em><em> or </em><em>None</em><em>, </em><em>optional</em>) – Use this option to ignore the normalization of a given channel. The default is None.</p></li>
+<li><p><strong>low_pass</strong> (<em>float</em><em>, </em><em>optional</em>) – Lower pass filter intensity. The default is 0.5.</p></li>
+<li><p><strong>high_pass</strong> (<em>float</em><em>, </em><em>optional</em>) – Higher pass filter intensity. The default is 10.</p></li>
 </ul>
 </dd>
 </dl>
@@ -462,7 +461,7 @@ Created on Fri Jun 26 22:10:24 2020
 
 <dl class="py class">
 <dt id="rsnaped.rsnaped.PipelineTracking">
-<em class="property"><span class="pre">class</span> </em><code class="sig-prename descclassname"><span class="pre">rsnaped.rsnaped.</span></code><code class="sig-name descname"><span class="pre">PipelineTracking</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">video</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">particle_size</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">5</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">file_name</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'Cell.tif'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">selected_channel</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">intensity_calculation_method</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'disk_donut'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">mask_selection_method</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'max_spots'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">show_plot</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">1</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#rsnaped.rsnaped.PipelineTracking" title="Permalink to this definition">¶</a></dt>
+<em class="property"><span class="pre">class</span> </em><code class="sig-prename descclassname"><span class="pre">rsnaped.rsnaped.</span></code><code class="sig-name descname"><span class="pre">PipelineTracking</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">video</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">particle_size</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">5</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">file_name</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'Cell.tif'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">selected_channel</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">intensity_calculation_method</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'disk_donut'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">mask_selection_method</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'max_spots'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">show_plot</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">1</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">use_optimization_for_tracking</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">1</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#rsnaped.rsnaped.PipelineTracking" title="Permalink to this definition">¶</a></dt>
 <dd><p>A pipeline that allows cell segmentation, spot detection, and tracking of spots.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters</dt>
@@ -474,6 +473,7 @@ Created on Fri Jun 26 22:10:24 2020
 <li><p><strong>intensity_calculation_method</strong> (<em>str</em><em>, </em><em>optional</em>) – Method to calculate intensity the options are : ‘total_intensity’ , ‘disk_donut’ and ‘gaussian_fit’. The default is ‘disk_donut’..</p></li>
 <li><p><strong>mask_selection_method</strong> (<em>str</em><em>, </em><em>optional</em>) – Option to use the optimization algorithm to maximize the number of cells or maximize the size. The options are ‘max_area’ or ‘max_cells’. The default is ‘max_area’.</p></li>
 <li><p><strong>show_plot</strong> (<em>bool</em><em>, </em><em>optional</em>) – Allows the user to show a plot for the optimization process. The default is 1.</p></li>
+<li><p><strong>use_optimization_for_tracking</strong> (<em>bool</em><em>, </em><em>optional</em>) – Option to run an optimization process to slect the best filter for the tracking process. The default is 0.</p></li>
 </ul>
 </dd>
 </dl>
@@ -531,13 +531,13 @@ Created on Fri Jun 26 22:10:24 2020
 
 <dl class="py class">
 <dt id="rsnaped.rsnaped.ScaleIntensity">
-<em class="property"><span class="pre">class</span> </em><code class="sig-prename descclassname"><span class="pre">rsnaped.rsnaped.</span></code><code class="sig-name descname"><span class="pre">ScaleIntensity</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">video</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">scale_percentage</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">1</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">ignore_channel</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#rsnaped.rsnaped.ScaleIntensity" title="Permalink to this definition">¶</a></dt>
+<em class="property"><span class="pre">class</span> </em><code class="sig-prename descclassname"><span class="pre">rsnaped.rsnaped.</span></code><code class="sig-name descname"><span class="pre">ScaleIntensity</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">video</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">scale_maximum_value</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">1000</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">ignore_channel</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#rsnaped.rsnaped.ScaleIntensity" title="Permalink to this definition">¶</a></dt>
 <dd><p>This class is intended to scale the intensity values in a video. The format of the video must be [T,Y,X,C].</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters</dt>
 <dd class="field-odd"><ul class="simple">
 <li><p><strong>video</strong> (<em>NumPy array</em>) – Array of images with dimensions [T,Y,X,C].</p></li>
-<li><p><strong>scale_percentage</strong> (<em>float</em><em>, </em><em>optional</em>) – Percentage value (between 0 and 1, where 0.5 represents 50% scaling) to scale the video. The default is 1.</p></li>
+<li><p><strong>scale_maximum_value</strong> (<em>int</em><em>, </em><em>optional</em>) – Maximum intensity value to scaled the video. The default is 1000.</p></li>
 <li><p><strong>ignore_channel</strong> (<em>int</em><em> or </em><em>None</em><em>, </em><em>optional</em>) – Use this option to ignore the normalization of a given channel. The default is None.</p></li>
 </ul>
 </dd>

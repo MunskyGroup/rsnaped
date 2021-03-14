@@ -6,7 +6,7 @@ with open("README.md", "r") as fh:
 setup(
     name = "rsnaped",
     version = "0.0.3",
-    author = "Luis Aguilera, William Raymond, Brian Munsky",
+    author = "Luis Aguilera, William Raymond, Brooke Silagy, Brian Munsky",
     author_email = "luisubald@gmail.com",
     description = ("Python module for single-molecule image processing."),
     long_description=long_description,

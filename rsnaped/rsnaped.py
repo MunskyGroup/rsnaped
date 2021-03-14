@@ -9,15 +9,10 @@ Created on Fri Jun 26 22:10:24 2020
 # https://eikonomega.medium.com/getting-started-with-sphinx-autodoc-part-1-2cebbbca5365
 # https://docs.anaconda.com/restructuredtext/detailed/
 
-#module_name, package_name, ClassName, method_name, 
+# Conventions.
+# module_name, package_name, ClassName, method_name, 
 # ExceptionName, function_name, GLOBAL_CONSTANT_NAME, 
 # global_var_name, instance_var_name, function_parameter_name, local_var_name.
-
-# Conventions.
-#number_timepoints
-# number_channels
-# index_channels
-# index_time
 
 
 import_libraries =1
@@ -54,6 +49,7 @@ if import_libraries ==1:
     from skimage.filters import difference_of_gaussians
     from skimage.filters import gaussian
     from skimage.draw import polygon_perimeter
+    from skimage.restoration import denoise_nl_means, estimate_sigma
     # Open cv
     import cv2
     # Parallel computing
@@ -73,6 +69,7 @@ if import_libraries ==1:
     from scipy.signal import find_peaks #, peak_prominences, find_peaks_cwt
     from scipy.spatial import Delaunay
     from scipy.optimize import curve_fit
+    from scipy import ndimage as nd
     # To read .tiff files
     import tifffile
     # to create gifs
@@ -197,6 +194,7 @@ class RemoveExtrema():
             Normalized video. Array with dimensions [T,Y,X,C] or iamge with format [Y,X].
         '''
         normalized_video = np.copy(self.video)
+        normalized_video = np.array(normalized_video,'float32'); 
         # Normalization code for image with format [Y,X]
         if len(self.video.shape) ==2:
             number_timepoints = 1
@@ -221,8 +219,9 @@ class RemoveExtrema():
                             normalized_video_temp [normalized_video_temp> max_val] = max_val
                             normalized_video_temp [normalized_video_temp< min_val] = min_val
                             normalized_video_temp [normalized_video_temp<0]=0
-        return normalized_video
+        return np.asarray(normalized_video, 'uint16')
 
+ 
 
 class ScaleIntensity():
     '''
@@ -232,14 +231,14 @@ class ScaleIntensity():
     ----------
     video : NumPy array 
         Array of images with dimensions [T,Y,X,C].
-    scale_percentage : float, optional
-        Percentage value (between 0 and 1, where 0.5 represents 50% scaling) to scale the video. The default is 1.
+    scale_maximum_value : int, optional
+        Maximum intensity value to scaled the video. The default is 1000.
     ignore_channel : int or None, optional
         Use this option to ignore the normalization of a given channel. The default is None.
     '''
-    def __init__(self, video, scale_percentage=1,ignore_channel =None):
+    def __init__(self, video, scale_maximum_value=1000,ignore_channel =None):
         self.video = video
-        self.scale_percentage = scale_percentage
+        self.scale_maximum_value = scale_maximum_value
         self.ignore_channel = ignore_channel
     def apply_scale(self):
         '''
@@ -251,15 +250,23 @@ class ScaleIntensity():
             Scaled video. Array with dimensions [T,Y,X,C].
         '''
         scaled_video = np.copy(self.video)
+        scaled_video = np.array(scaled_video,'float32'); 
         number_timepoints, number_channels   = self.video.shape[0], self.video.shape[3]
         for index_channels in range (number_channels):
-            if not self.ignore_channel ==index_channels:
+            if not self.ignore_channel == index_channels:
                 for index_time in range (number_timepoints):
-                    scaled_video_temp = scaled_video[index_time,:,:,index_channels]
-                    if not np.amax(scaled_video_temp) ==0: # this section detect that the channel is not empty to perform the normalization.
-                        scaled_video_temp = scaled_video_temp*self.scale_percentage
-                        scaled_video_temp[scaled_video_temp<0]=0
-        return scaled_video
+                    max_val = np.amax(scaled_video[index_time,:,:,index_channels])
+                    min_val = np.amin(scaled_video[index_time,:,:,index_channels])
+                    if max_val != 0: # this section detect that the channel is not empty to perform the normalization.
+                    
+                        #scaled_video[index_time,:,:,index_channels] = np.array(scaled_video[index_time,:,:,index_channels],'float32'); 
+                        #scaled_video[index_time,:,:,index_channels] *= 255./(max_image-min_image); 
+                        #image = np.asarray(np.round(image_float), 'uint8')
+                
+                        scaled_video[index_time,:,:,index_channels] = (scaled_video[index_time,:,:,index_channels]-min_val) / (max_val-min_val)
+                        scaled_video[index_time,:,:,index_channels] = scaled_video[index_time,:,:,index_channels]*self.scale_maximum_value
+                        scaled_video[index_time,:,:,index_channels][scaled_video[index_time,:,:,index_channels]<0]=0
+        return np.asarray(scaled_video, 'uint16')
     
     
 class BandpassFilter(): 
@@ -270,12 +277,11 @@ class BandpassFilter():
     ----------
     video : NumPy array 
         Array of images with dimensions [T,Y,X,C].
-    min_percentile : int between 0 to 100, optional
-        Lower bound to normalize intensity. The default is 1.
-    max_percentile : int between 0 to 100, optional
-        Higher bound to normalize intensity. The default is 99.
-    ignore_channel : int or None, optional
-        Use this option to ignore the normalization of a given channel. The default is None.
+    low_pass : float, optional
+        Lower pass filter intensity. The default is 0.5.
+    high_pass : float, optional
+        Higher pass filter intensity. The default is 10.
+
     '''
     def __init__(self,video, low_pass = 0.5, high_pass = 10):
         # Making the values for the filters are odd numbers
@@ -516,9 +522,13 @@ class VisualizerImage():
         if not (type(list_videos_filtered) is list):
             list_videos_filtered = [list_videos_filtered]
             self.list_videos_filtered = list_videos_filtered
+            
         if not (type(list_selected_particles_dataframe) is list):
             list_selected_particles_dataframe = [list_selected_particles_dataframe] 
-            self.list_selected_particles_dataframe = list_selected_particles_dataframe      
+            self.list_selected_particles_dataframe = list_selected_particles_dataframe  
+        else:
+            self.list_selected_particles_dataframe = list_selected_particles_dataframe 
+            
         self.list_number_frames = [list_videos[i].shape[0] for i in range(0,self.number_videos)]
         maximum_timepoint_video =  min ( self.list_number_frames ) # Minimum of maximum size in the list of videos.
         if selected_timepoint > maximum_timepoint_video:
@@ -1331,6 +1341,198 @@ class CellposeSelection():
         return selected_mask
 
 
+# class Trackpy():
+#     '''
+#     This class is intended to detect spots in the video by using **Trackpy**. 
+
+#     Parameters
+#     ----------
+#     video : NumPy array 
+#         Array of images with dimensions [T,Y,X,C]. In case a FISH image is used, the format must be [Z,Y,X,C], and the user must specify the parameter FISH_image =1.
+#     mask : NumPy array, with Boolean values, where 1 represents the masked area, and 0 represents the area outside the mask. 
+#         An array of images with dimensions [Y,X].
+#     particle_size : int, optional
+#         Average particle size. The default is 5.
+#     selected_channel : int, optional
+#         Channel where the particles are detected and tracked. The default is 0.
+#     minimal_frames : int, optional
+#         This parameter defines the minimal number of frames that a particle should appear on the video to be considered on the final count. The default is 5.
+#     optimization_iterations : int, optional
+#         Number of iterations for the optimization process to select the best filter. The default is 30.
+#     use_defaul_filter : bool, optional
+#         This option allows the user to use a default filter if TRUE. Else, it uses an optimization process to select the best filter for the image. The default is= 1.
+#     show_plot : bool, optional
+#         Allows the user to show a plot for the optimization process. The default is 1.
+#     FISH_image : bool, optional.
+#         This parameter allows the user to use FISH images and connect spots detected along multiple z-slices. The default is 0.
+#     '''
+#     def __init__(self, video, mask, particle_size =5, selected_channel=0, minimal_frames=5,optimization_iterations =30,use_defaul_filter = 1, FISH_image = 0, show_plot =1):
+#         self.num_cores = multiprocessing.cpu_count()
+#         self.time_points = video.shape[0]
+#         self.selected_channel = selected_channel
+#         # Function to convert the video to uint
+#         def img_uint(image):
+#             temp_vid= img_as_uint(image)
+#             return temp_vid
+#         init_video = Parallel(n_jobs=self.num_cores)(delayed(img_uint)(video[i,:,:,self.selected_channel]) for i in range(0,self.time_points)) 
+#         self.video = np.asarray(init_video)
+#         self.video_complete = video.copy()
+#         self.mask = mask
+#         if (particle_size % 2) ==0:
+#             particle_size = particle_size + 1
+#             print('particle_size must be an odd number, this was automatically changed to: ', particle_size)
+#         self.particle_size = particle_size # according to the documentation must be an even number 3,5,7,9 etc.
+#         self.min_time_particle_vanishes = 1
+#         self.max_distance_particle_moves = 7
+#         if minimal_frames> self.time_points:     # this line is making sure that "minimal_frames" is always less or equal than the total number of frames
+#             minimal_frames = self.time_points
+#         self.minimal_frames = minimal_frames
+#         self.optimization_iterations = optimization_iterations 
+#         self.show_plot = show_plot
+#         self.use_defaul_filter =  use_defaul_filter
+#         # parameters for the filters
+#         self.low_pass_filter = 0.5
+#         self.default_highpass = 10
+#         self.gaussian_filter_sigma = 0.5
+#         self.median_filter_size = 5
+#         self.perecentile_intensity_slection = 90
+#         self.max_highpass = 10
+#         self.min_highpass = 0.1
+        
+#         # This section detects if a FISH image is passed and it adjust accordingly.
+#         self.FISH_image = FISH_image
+#         if self.FISH_image ==1:
+#             self.min_time_particle_vanishes = 0
+#             self.max_distance_particle_moves = 1
+#             self.minimal_frames = minimal_frames
+#     def perform_tracking(self):
+#         '''
+#         This method 
+
+#         Returns
+#         -------
+#         trackpy_dataframe : pandas data frame.
+#             Pandas data frame from trackpy with fields [x, y, mass, size, ecc, signal, raw_mass, ep, frame, particle].
+#         number_particles : int.
+#             The total number of detected particles in the data frame.
+#         video_filtered : np.uint16.
+#             Filtered video resulting from the bandpass process. Array with format [T,Y,X,C].
+#         '''
+#         NUM_STD = 1
+#         num_detected_particles = np.zeros((self.optimization_iterations),dtype=np.float)
+#         vector_highpass_filters = np.linspace(self.min_highpass,self.max_highpass,self.optimization_iterations).astype(np.uint16)
+#         percentile = self.perecentile_intensity_slection
+#         # Funtions with the bandpass and gaussian filters
+#         def bandpass_filter (image, lowfilter, highpass):
+#             temp_vid= difference_of_gaussians(image, lowfilter, highpass,truncate=3.0)
+#             return img_as_uint(temp_vid)
+#         def gaussian_filter(image, sigma=0.1):
+#             temp_image= img_as_float64(image)
+#             filtered_image = gaussian(temp_image, sigma=sigma, output=None, mode='nearest', cval=0, multichannel=None, preserve_range=True, truncate=4.0)
+#             return img_as_uint(filtered_image)
+#         # non-linear filter
+#         def nl_filter(image):
+#             temp_image= img_as_float64(image)
+            
+#             sigma_est = np.mean(estimate_sigma(temp_image, multichannel=True))
+#             denoise_img = denoise_nl_means(temp_image, h=sigma_est, fast_mode=True,patch_size=10, patch_distance=3, multichannel=False)
+#             return img_as_uint(denoise_img)
+        
+#         def median_filter (image, size=1):
+#             temp_image= img_as_float64(image)
+#             filtered_image = nd.median_filter(temp_image,size=size)
+#             return img_as_uint(filtered_image)
+        
+#         if self.use_defaul_filter ==1: # This section uses a default value for the filter size.
+#             temp_vid_dif_filter = Parallel(n_jobs=self.num_cores)(delayed(bandpass_filter)(self.video[i,:,:],self.low_pass_filter,self.default_highpass) for i in range(0,self.time_points)) 
+#             #temp_vid_dif_filter = Parallel(n_jobs=self.num_cores)(delayed(median_filter)(self.video[i,:,:]) for i in range(0,self.time_points)) 
+#             temp_video_bp_filtered = np.asarray(temp_vid_dif_filter)
+#             #vid_dif_filter = Parallel(n_jobs=self.num_cores)(delayed(gaussian_filter)(array_dif_filter[i,:,:],sigma=self.gaussian_filter_sigma) for i in range(0,self.time_points))                                 
+#             #vid_dif_filter = Parallel(n_jobs=self.num_cores)(delayed(median_filter)(array_dif_filter[i,:,:]) for i in range(0,self.time_points))                                 
+#             #temp_video_bp_filtered = np.asarray(vid_dif_filter)
+#             video_removed_mask = np.einsum('ijk,jk->ijk', temp_video_bp_filtered, self.mask)
+#             f_init = tp.locate(video_removed_mask[0,:,:], self.particle_size, minmass=0, max_iterations=100,preprocess=False, percentile=percentile) 
+#             min_int_in_video = np.mean(f_init.mass.values) + NUM_STD*np.std(f_init.mass.values)
+#             f = tp.batch(video_removed_mask[:,:,:],self.particle_size, minmass=min_int_in_video, processes='auto',max_iterations=1000,preprocess=False, percentile=percentile)
+#             t = tp.link_df(f,(self.max_distance_particle_moves,self.max_distance_particle_moves), memory=self.min_time_particle_vanishes, adaptive_stop = 1,link_strategy='auto') # tp.link_df(data_frame, min_distance_particle_moves, min_time_particle_vanish). 
+#             t_sel = tp.filter_stubs(t, self.minimal_frames)  # selecting trajectories that appear in at least 10 frames.
+#             number_particles = t_sel['particle'].nunique()
+#             trackpy_dataframe = t_sel
+#             selected_filter = self.use_defaul_filter
+#         else: # This section uses optimization to select the optimal value for the filter size.
+#             for index_p,highpass_filters in enumerate(vector_highpass_filters):
+#                 try:
+#                     temp_vid_dif_filter = Parallel(n_jobs=self.num_cores)(delayed(bandpass_filter)(self.video[i,:,:],self.low_pass_filter,highpass_filters) for i in range(0,self.time_points)) 
+#                     #temp_vid_dif_filter = Parallel(n_jobs=self.num_cores)(delayed(median_filter)(self.video[i,:,:]) for i in range(0,self.time_points)) 
+#                     temp_video_bp_filtered = np.asarray(temp_vid_dif_filter)
+#                     #vid_dif_filter = Parallel(n_jobs=self.num_cores)(delayed(gaussian_filter)(array_dif_filter[i,:,:],sigma=self.gaussian_filter_sigma) for i in range(0,self.time_points))                                 
+#                     #vid_dif_filter = Parallel(n_jobs=self.num_cores)(delayed(median_filter)(array_dif_filter[i,:,:]) for i in range(0,self.time_points))                                 
+#                     #temp_video_bp_filtered = np.asarray(vid_dif_filter)
+#                     video_removed_mask = np.einsum('ijk,jk->ijk', temp_video_bp_filtered, self.mask)
+#                     f_init = tp.locate(video_removed_mask[0,:,:], self.particle_size, minmass=0, max_iterations=100,preprocess=False, percentile=percentile) 
+#                     min_int_in_video = np.mean(f_init.mass.values)
+#                     f = tp.batch(video_removed_mask[:,:,:],self.particle_size, minmass=min_int_in_video, processes='auto',max_iterations=1000,preprocess=False, percentile=percentile)
+#                     t = tp.link_df(f,(self.max_distance_particle_moves,self.max_distance_particle_moves), memory=self.min_time_particle_vanishes, adaptive_stop = 1,link_strategy='auto') # tp.link_df(data_frame, min_distance_particle_moves, min_time_particle_vanish). 
+#                     t_sel = tp.filter_stubs(t, self.minimal_frames)  # selecting trajectories that appear in at least 10 frames.
+#                     num_detected_particles[index_p] = t_sel['particle'].nunique()
+#                 except:
+#                      num_detected_particles[index_p]  = 0
+#             if self.optimization_iterations <=10:
+#                 window_size = 2
+#             elif (self.optimization_iterations >10) and (self.optimization_iterations <= 20):
+#                 window_size = 3
+#             else:
+#                 window_size = 4
+#             conv_num_detected_particles = np.round( np.convolve(num_detected_particles, np.ones(window_size)/window_size, mode='same'))
+#             try:
+#                 threshold = 3 # threshold to reject if 
+#                 num_detected_particles_with_nans = conv_num_detected_particles.copy()
+#                 num_detected_particles_with_nans[num_detected_particles_with_nans<=threshold]=np.nan
+#                 mode_detected_particles = sps.mode(num_detected_particles_with_nans, nan_policy='omit')[0][0] # calculaitng the mode of nonzero num_detected_particles.
+#                 center_modes = int (len(np.where(num_detected_particles_with_nans == mode_detected_particles)[0])/2)-1 # 
+#                 if center_modes<0:
+#                     center_modes =0
+#                 index_containin_central_mode = np.where(num_detected_particles_with_nans == mode_detected_particles)[0][center_modes]
+#                 selected_filter = vector_highpass_filters[index_containin_central_mode] # selecting the intensity for the first instance where the mode appears in the vector_intensities
+#                 temp_vid_dif_filter = Parallel(n_jobs=self.num_cores)(delayed(bandpass_filter)(self.video[i,:,:],self.low_pass_filter,selected_filter) for i in range(0,self.time_points)) 
+#                 #temp_vid_dif_filter = Parallel(n_jobs=self.num_cores)(delayed(median_filter)(self.video[i,:,:]) for i in range(0,self.time_points)) 
+#                 temp_video_bp_filtered = np.asarray(temp_vid_dif_filter)
+#                 #vid_dif_filter = Parallel(n_jobs=self.num_cores)(delayed(gaussian_filter)(array_dif_filter[i,:,:],sigma=self.gaussian_filter_sigma) for i in range(0,self.time_points))                                 
+#                 #vid_dif_filter = Parallel(n_jobs=self.num_cores)(delayed(median_filter)(array_dif_filter[i,:,:]) for i in range(0,self.time_points))                                 
+#                 #temp_video_bp_filtered = np.asarray(vid_dif_filter)
+#                 video_removed_mask = np.einsum('ijk,jk->ijk', temp_video_bp_filtered, self.mask)
+#                 f_init = tp.locate(video_removed_mask[0,:,:], self.particle_size, minmass=0, max_iterations=100,preprocess=False, percentile=percentile) 
+#                 min_int_in_video = np.mean(f_init.mass.values) + NUM_STD*np.std(f_init.mass.values)
+#                 f = tp.batch(video_removed_mask[:,:,:],self.particle_size, minmass=min_int_in_video, processes='auto',max_iterations=1000,preprocess=False, percentile=percentile)
+#                 t = tp.link_df(f,(self.max_distance_particle_moves,self.max_distance_particle_moves), memory=self.min_time_particle_vanishes, adaptive_stop = 1,link_strategy='auto') # tp.link_df(data_frame, min_distance_particle_moves, min_time_particle_vanish). 
+#                 t_sel = tp.filter_stubs(t, self.minimal_frames)  # selecting trajectories that appear in at least 10 frames.
+#                 number_particles = t_sel['particle'].nunique()
+#                 trackpy_dataframe = t_sel
+#             except:
+#                 number_particles = 0
+#                 trackpy_dataframe = []
+#                 self.show_plot = 0
+#                 selected_filter =0
+#             if self.show_plot ==1:
+#                 plt.figure(figsize=(7,7))
+#                 plt.plot(vector_highpass_filters, num_detected_particles, 'w-', linewidth=2, label = 'real')
+#                 plt.plot(vector_highpass_filters[1:-1], conv_num_detected_particles[1:-1], 'g-', linewidth = 1, label = 'smoothed')
+#                 plt.plot([selected_filter,selected_filter],[np.amin(num_detected_particles),np.amax(num_detected_particles)],'r-',linewidth=2,label='Automatic selection')
+#                 #plt.plot([vector_intensities[0],vector_intensities[-1]],[threshold,threshold],'k--',linewidth=1,label='min. selection threshold')
+#                 plt.legend(loc='best')
+#                 plt.xlabel('High-pass filter (int.)')
+#                 plt.ylabel('Detected Spots')
+#                 plt.title('Optimization: detecting the longest plateau')
+#                 plt.show()
+#                 print('')
+#                 print('The number of detected trajectories is: ', number_particles)
+#                 print('')
+#                 print('')
+#         video_filtered =  self.video_complete.copy()
+#         video_filtered[:,:,:,self.selected_channel] = video_removed_mask
+#         return trackpy_dataframe, int(number_particles), video_filtered
+
+
 class Trackpy():
     '''
     This class is intended to detect spots in the video by using **Trackpy**. 
@@ -1360,20 +1562,33 @@ class Trackpy():
         self.num_cores = multiprocessing.cpu_count()
         self.time_points = video.shape[0]
         self.selected_channel = selected_channel
+        
+        # function that remove outliers from the video
+        video = RemoveExtrema(video, min_percentile=0, max_percentile=99,ignore_channel =None).remove_outliers()
+        
         # Function to convert the video to uint
         def img_uint(image):
             temp_vid= img_as_uint(image)
             return temp_vid
         init_video = Parallel(n_jobs=self.num_cores)(delayed(img_uint)(video[i,:,:,self.selected_channel]) for i in range(0,self.time_points)) 
         self.video = np.asarray(init_video)
+        
+        
+        
         self.video_complete = video.copy()
         self.mask = mask
         if (particle_size % 2) ==0:
             particle_size = particle_size + 1
             print('particle_size must be an odd number, this was automatically changed to: ', particle_size)
         self.particle_size = particle_size # according to the documentation must be an even number 3,5,7,9 etc.
-        self.min_time_particle_vanishes = 1
-        self.max_distance_particle_moves = 7
+        
+        if self.time_points< 10: 
+            self.min_time_particle_vanishes = 0
+            self.max_distance_particle_moves = 5
+        else:
+            self.min_time_particle_vanishes = 1
+            self.max_distance_particle_moves = 7
+            
         if minimal_frames> self.time_points:     # this line is making sure that "minimal_frames" is always less or equal than the total number of frames
             minimal_frames = self.time_points
         self.minimal_frames = minimal_frames
@@ -1381,12 +1596,16 @@ class Trackpy():
         self.show_plot = show_plot
         self.use_defaul_filter =  use_defaul_filter
         # parameters for the filters
-        self.low_pass_filter = 0.1
-        self.gaussian_filter_sigma = 1
-        self.perecentile_intensity_slection = 90
+        self.low_pass_filter = 0.5
+        self.default_highpass = 20
+        self.gaussian_filter_sigma = 0.5
+        self.median_filter_size = 5
+        self.perecentile_intensity_slection = 95
         self.max_highpass = 10
         self.min_highpass = 0.1
-        self.default_highpass = 5
+        
+        self.default_threshold_int_std =0.5
+        
         # This section detects if a FISH image is passed and it adjust accordingly.
         self.FISH_image = FISH_image
         if self.FISH_image ==1:
@@ -1406,45 +1625,63 @@ class Trackpy():
         video_filtered : np.uint16.
             Filtered video resulting from the bandpass process. Array with format [T,Y,X,C].
         '''
+        #NUM_STD = 1
         num_detected_particles = np.zeros((self.optimization_iterations),dtype=np.float)
-        vector_highpass_filters = np.linspace(self.min_highpass,self.max_highpass,self.optimization_iterations).astype(np.uint16)
+        #vector_highpass_filters = np.linspace(self.min_highpass,self.max_highpass,self.optimization_iterations).astype(np.uint16)
+        min_int_vector = np.linspace(0,0.5,self.optimization_iterations) # range of std to test for optimization
         percentile = self.perecentile_intensity_slection
         # Funtions with the bandpass and gaussian filters
         def bandpass_filter (image, lowfilter, highpass):
-            temp_vid= difference_of_gaussians(image, lowfilter, highpass)
+            temp_vid= difference_of_gaussians(image, lowfilter, highpass,truncate=3.0)
             return img_as_uint(temp_vid)
         def gaussian_filter(image, sigma=0.1):
             temp_image= img_as_float64(image)
             filtered_image = gaussian(temp_image, sigma=sigma, output=None, mode='nearest', cval=0, multichannel=None, preserve_range=True, truncate=4.0)
             return img_as_uint(filtered_image)
+        # non-linear filter
+        def nl_filter(image):
+            temp_image= img_as_float64(image)
+            
+            sigma_est = np.mean(estimate_sigma(temp_image, multichannel=True))
+            denoise_img = denoise_nl_means(temp_image, h=sigma_est, fast_mode=True,patch_size=10, patch_distance=3, multichannel=False)
+            return img_as_uint(denoise_img)
+        
+        def median_filter (image, size=1):
+            temp_image= img_as_float64(image)
+            filtered_image = nd.median_filter(temp_image,size=size)
+            return img_as_uint(filtered_image)
+        
         if self.use_defaul_filter ==1: # This section uses a default value for the filter size.
             temp_vid_dif_filter = Parallel(n_jobs=self.num_cores)(delayed(bandpass_filter)(self.video[i,:,:],self.low_pass_filter,self.default_highpass) for i in range(0,self.time_points)) 
-            array_dif_filter = np.asarray(temp_vid_dif_filter)
-            vid_dif_filter = Parallel(n_jobs=self.num_cores)(delayed(gaussian_filter)(array_dif_filter[i,:,:],sigma=self.gaussian_filter_sigma) for i in range(0,self.time_points))                                 
-            temp_video_bp_filtered = np.asarray(vid_dif_filter)
+            temp_video_bp_filtered = np.asarray(temp_vid_dif_filter)
             video_removed_mask = np.einsum('ijk,jk->ijk', temp_video_bp_filtered, self.mask)
             f_init = tp.locate(video_removed_mask[0,:,:], self.particle_size, minmass=0, max_iterations=100,preprocess=False, percentile=percentile) 
-            min_int_in_video = np.mean(f_init.mass.values) + 0.1*np.std(f_init.mass.values)
+            #min_int_in_video = np.mean(f_init.mass.values) + self.default_threshold_int_std*np.std(f_init.mass.values)
+            min_int_in_video = np.amax( (0, np.mean(f_init.mass.values) + self.default_threshold_int_std *np.std(f_init.mass.values)))
             f = tp.batch(video_removed_mask[:,:,:],self.particle_size, minmass=min_int_in_video, processes='auto',max_iterations=1000,preprocess=False, percentile=percentile)
             t = tp.link_df(f,(self.max_distance_particle_moves,self.max_distance_particle_moves), memory=self.min_time_particle_vanishes, adaptive_stop = 1,link_strategy='auto') # tp.link_df(data_frame, min_distance_particle_moves, min_time_particle_vanish). 
             t_sel = tp.filter_stubs(t, self.minimal_frames)  # selecting trajectories that appear in at least 10 frames.
             number_particles = t_sel['particle'].nunique()
             trackpy_dataframe = t_sel
-            selected_filter = self.use_defaul_filter
+        
+        
         else: # This section uses optimization to select the optimal value for the filter size.
-            for index_p,highpass_filters in enumerate(vector_highpass_filters):
+            #for index_p,highpass_filters in enumerate(vector_highpass_filters):
+            for index_p,int_optimization_value in enumerate(min_int_vector):
                 try:
-                    temp_vid_dif_filter = Parallel(n_jobs=self.num_cores)(delayed(bandpass_filter)(self.video[i,:,:],self.low_pass_filter,highpass_filters) for i in range(0,self.time_points)) 
-                    array_dif_filter = np.asarray(temp_vid_dif_filter)
-                    vid_dif_filter = Parallel(n_jobs=self.num_cores)(delayed(gaussian_filter)(array_dif_filter[i,:,:],sigma=self.gaussian_filter_sigma) for i in range(0,self.time_points))                                 
-                    temp_video_bp_filtered = np.asarray(vid_dif_filter)
+                    #temp_vid_dif_filter = Parallel(n_jobs=self.num_cores)(delayed(bandpass_filter)(self.video[i,:,:],self.low_pass_filter,highpass_filters) for i in range(0,self.time_points)) 
+                    temp_vid_dif_filter = Parallel(n_jobs=self.num_cores)(delayed(bandpass_filter)(self.video[i,:,:],self.low_pass_filter,self.default_highpass) for i in range(0,self.time_points))
+                    temp_video_bp_filtered = np.asarray(temp_vid_dif_filter)
                     video_removed_mask = np.einsum('ijk,jk->ijk', temp_video_bp_filtered, self.mask)
                     f_init = tp.locate(video_removed_mask[0,:,:], self.particle_size, minmass=0, max_iterations=100,preprocess=False, percentile=percentile) 
-                    min_int_in_video = np.min(f_init.mass.values)
+                    #print(int_optimization_value)
+                    #### OPTIMIZATION VARIABLE:  min_int_in_video
+                    min_int_in_video = np.amax( (0,  np.mean(f_init.mass.values) + int_optimization_value *np.std(f_init.mass.values)))
                     f = tp.batch(video_removed_mask[:,:,:],self.particle_size, minmass=min_int_in_video, processes='auto',max_iterations=1000,preprocess=False, percentile=percentile)
                     t = tp.link_df(f,(self.max_distance_particle_moves,self.max_distance_particle_moves), memory=self.min_time_particle_vanishes, adaptive_stop = 1,link_strategy='auto') # tp.link_df(data_frame, min_distance_particle_moves, min_time_particle_vanish). 
                     t_sel = tp.filter_stubs(t, self.minimal_frames)  # selecting trajectories that appear in at least 10 frames.
                     num_detected_particles[index_p] = t_sel['particle'].nunique()
+                    #print(num_detected_particles[index_p])
                 except:
                      num_detected_particles[index_p]  = 0
             if self.optimization_iterations <=10:
@@ -1463,14 +1700,21 @@ class Trackpy():
                 if center_modes<0:
                     center_modes =0
                 index_containin_central_mode = np.where(num_detected_particles_with_nans == mode_detected_particles)[0][center_modes]
-                selected_filter = vector_highpass_filters[index_containin_central_mode] # selecting the intensity for the first instance where the mode appears in the vector_intensities
-                temp_vid_dif_filter = Parallel(n_jobs=self.num_cores)(delayed(bandpass_filter)(self.video[i,:,:],self.low_pass_filter,selected_filter) for i in range(0,self.time_points)) 
-                array_dif_filter = np.asarray(temp_vid_dif_filter)
-                vid_dif_filter = Parallel(n_jobs=self.num_cores)(delayed(gaussian_filter)(array_dif_filter[i,:,:],sigma=self.gaussian_filter_sigma) for i in range(0,self.time_points))                                 
-                temp_video_bp_filtered = np.asarray(vid_dif_filter)
+                selected_int_optimized = min_int_vector[index_containin_central_mode] 
+                
+                #print(selected_int_optimized)
+                
+                #selected_filter = vector_highpass_filters[index_containin_central_mode] # selecting the intensity for the first instance where the mode appears in the vector_intensities
+                temp_vid_dif_filter = Parallel(n_jobs=self.num_cores)(delayed(bandpass_filter)(self.video[i,:,:],self.low_pass_filter,self.default_highpass) for i in range(0,self.time_points))
+                #temp_vid_dif_filter = Parallel(n_jobs=self.num_cores)(delayed(bandpass_filter)(self.video[i,:,:],self.low_pass_filter,selected_filter) for i in range(0,self.time_points)) 
+                temp_video_bp_filtered = np.asarray(temp_vid_dif_filter)
+                #selected_threshold_int = 
                 video_removed_mask = np.einsum('ijk,jk->ijk', temp_video_bp_filtered, self.mask)
                 f_init = tp.locate(video_removed_mask[0,:,:], self.particle_size, minmass=0, max_iterations=100,preprocess=False, percentile=percentile) 
-                min_int_in_video = np.mean(f_init.mass.values) + 0.5*np.std(f_init.mass.values)
+                #### OPTIMIZATION VARIABLE:  min_int_in_video
+                
+                #min_int_in_video = np.mean(f_init.mass.values) + selected_int_optimized*np.std(f_init.mass.values)
+                min_int_in_video = np.amax( (0,  np.mean(f_init.mass.values) + selected_int_optimized *np.std(f_init.mass.values)))
                 f = tp.batch(video_removed_mask[:,:,:],self.particle_size, minmass=min_int_in_video, processes='auto',max_iterations=1000,preprocess=False, percentile=percentile)
                 t = tp.link_df(f,(self.max_distance_particle_moves,self.max_distance_particle_moves), memory=self.min_time_particle_vanishes, adaptive_stop = 1,link_strategy='auto') # tp.link_df(data_frame, min_distance_particle_moves, min_time_particle_vanish). 
                 t_sel = tp.filter_stubs(t, self.minimal_frames)  # selecting trajectories that appear in at least 10 frames.
@@ -1480,15 +1724,16 @@ class Trackpy():
                 number_particles = 0
                 trackpy_dataframe = []
                 self.show_plot = 0
-                selected_filter =0
+                selected_int_optimized =0
+            
             if self.show_plot ==1:
                 plt.figure(figsize=(7,7))
-                plt.plot(vector_highpass_filters, num_detected_particles, 'w-', linewidth=2, label = 'real')
-                plt.plot(vector_highpass_filters[1:-1], conv_num_detected_particles[1:-1], 'g-', linewidth = 1, label = 'smoothed')
-                plt.plot([selected_filter,selected_filter],[np.amin(num_detected_particles),np.amax(num_detected_particles)],'r-',linewidth=2,label='Automatic selection')
+                plt.plot(min_int_vector, num_detected_particles, 'w-', linewidth=2, label = 'real')
+                plt.plot(min_int_vector[1:-1], conv_num_detected_particles[1:-1], 'g-', linewidth = 1, label = 'smoothed')
+                plt.plot([selected_int_optimized,selected_int_optimized],[np.amin(num_detected_particles),np.amax(num_detected_particles)],'r-',linewidth=2,label='Automatic selection')
                 #plt.plot([vector_intensities[0],vector_intensities[-1]],[threshold,threshold],'k--',linewidth=1,label='min. selection threshold')
                 plt.legend(loc='best')
-                plt.xlabel('High-pass filter (int.)')
+                plt.xlabel('minimal value (int.)')
                 plt.ylabel('Detected Spots')
                 plt.title('Optimization: detecting the longest plateau')
                 plt.show()
@@ -1499,7 +1744,6 @@ class Trackpy():
         video_filtered =  self.video_complete.copy()
         video_filtered[:,:,:,self.selected_channel] = video_removed_mask
         return trackpy_dataframe, int(number_particles), video_filtered
-
 
 class Intensity():
     '''
@@ -1521,14 +1765,19 @@ class Intensity():
         Allows the user to show a plot for the optimization process. The default is 1.
     '''
     def __init__(self,video,particle_size=5, trackpy_dataframe=None,spot_positions_movement=None, method ='disk_donut',show_plot=1):
-
+        #print(spot_positions_movement)
+        if particle_size <5:
+            particle_size = 5 # minimal size allowed for detection
+        
         if (particle_size % 2) ==0:
             particle_size = particle_size + 1
             print('particle_size must be an odd number, this was automatically changed to: ', particle_size)
         self.video = video
         self.trackpy_dataframe = trackpy_dataframe
+        
         self.disk_size = int(particle_size/2) # size of the half of the crop
-        self.crop_size = self.disk_size+1
+        self.crop_size = int(particle_size/2)+1
+        
         self.show_plot = show_plot
         self.method = method # options are : 'total_intensity' , 'disk_donut' and 'gaussian_fit'
         self.particle_size = particle_size
@@ -1566,7 +1815,7 @@ class Intensity():
         time_points, number_channels  = self.video.shape[0], self.video.shape[3]
         array_intensities_mean = np.zeros((self.n_particles,time_points,number_channels))  
         array_intensities_std = np.zeros((self.n_particles,time_points,number_channels))
-        def gaussian_fit(test_im, particle_size):
+        def gaussian_fit(test_im):
             size_spot = test_im.shape[0]
             image_flat = test_im.ravel()
             def gaussian_function(size_spot, offset,sigma):
@@ -1579,70 +1828,95 @@ class Intensity():
             spot_intensity_gaussian = popt[0] # Amplitude
             spot_intensity_gaussian_std = popt[1] 
             return spot_intensity_gaussian, spot_intensity_gaussian_std
-        def disk_donut(test_im,disk_size):
+        
+        def disk_donut(test_im,disk_size): 
+            # plt.figure()
+            # plt.imshow(test_im)
+            # plt.colorbar()
+            # plt.show()
+            
             center_coordenates = int(test_im.shape[0]/2)
+            #print('image_size',test_im.shape[1])
+            #print('disk',disk_size)
+            #print('center',center_coordenates)
             # mean intensity in disk
             image_in_disk = test_im[center_coordenates-disk_size:center_coordenates+disk_size+1,center_coordenates-disk_size:center_coordenates+disk_size+1]
             mean_intensity_disk = np.mean(image_in_disk)
             # mean intensity in donut.  The center is set to zeros and then the mean is calculated ignoring the zeros.
             recentered_image_donut = test_im.copy()
+            
+            mean_outside = [np.mean( recentered_image_donut[0,:]),np.mean(recentered_image_donut[-1,:]),np.mean(recentered_image_donut[:,0]),np.mean(recentered_image_donut[:,-1])]
+            mean_outside = np.mean(mean_outside)
+            #print(mean_outside)
+            
             recentered_image_donut[center_coordenates-disk_size:center_coordenates+disk_size+1,center_coordenates-disk_size:center_coordenates+disk_size+1] = 0 
-            mean_intensity_donut = recentered_image_donut[recentered_image_donut!=0].mean() # mean calculation ignoring zeros
+            
+
+            # plt.figure()
+            # plt.imshow(recentered_image_donut)
+            # plt.colorbar()
+            # plt.show()
+            
+            #mean_intensity_donut = recentered_image_donut[np.nonzero(recentered_image_donut)].mean()
+            #mean_intensity_donut = recentered_image_donut[recentered_image_donut!=0].mean() # mean calculation ignoring zeros
+            
             spot_intensity_disk_donut_std = recentered_image_donut[recentered_image_donut!=0].std() # mean calculation ignoring zeros
             # substracting background minus center intensity
-            spot_intensity_disk_donut = np.array( mean_intensity_disk - mean_intensity_donut, dtype=np.float32)
+            #print((mean_intensity_disk - mean_intensity_donut), mean_intensity_disk , mean_intensity_donut)
+            #spot_intensity_disk_donut = np.array( mean_intensity_disk - mean_intensity_donut, dtype=np.float32)
+            spot_intensity_disk_donut = np.array( mean_intensity_disk - mean_outside, dtype=np.float32)
             spot_intensity_disk_donut[spot_intensity_disk_donut<0]=0
             spot_intensity_disk_donut[np.isnan(spot_intensity_disk_donut)] = 0 # replacing nans with zero
             return spot_intensity_disk_donut, spot_intensity_disk_donut_std
-        def recenter_image_guide_and_additional(image_guide,image_additional,index_time,x_pos,y_pos,crop_size):
-            # function that recenters the spots
-            sel_img = image_guide[index_time,y_pos-(crop_size):y_pos+(crop_size+1):1,x_pos-(crop_size):x_pos+(crop_size+1):1]
-            max_coor = unravel_index(sel_img.argmax(), sel_img.shape)
-            # adjusting the x-position
-            if max_coor[1]> (crop_size):
-                x_pos2 = x_pos + abs(max_coor[1]-crop_size)
-            if max_coor[1]< (crop_size):
-                x_pos2 = x_pos - abs(max_coor[1]-crop_size) 
-            if max_coor[1]== (crop_size):
-                x_pos2 = x_pos
-            # adjusting the y-position    
-            if max_coor[0]> (crop_size):
-                y_pos2 = y_pos + abs(max_coor[0]-crop_size)
-            if max_coor[0]< (crop_size):
-                y_pos2 = y_pos - abs(max_coor[0]-crop_size)   
-            if max_coor[0]== (crop_size):
-                y_pos2 = y_pos    
-            recentered_image_additional = image_additional[index_time,y_pos2-(crop_size):y_pos2+(crop_size+1):1,x_pos2-(crop_size):x_pos2+(crop_size+1):1]
-            return recentered_image_additional 
+    
+        # def disk_donut(test_im,disk_size):
+        #     # Function that calculates intensity using the disk and donut method            
+        #     center_coordenates = int(test_im.shape[0]/2)
+        #     # mean intensity in disk
+        #     image_in_disk = test_im[center_coordenates-disk_size:center_coordenates+disk_size+1,center_coordenates-disk_size:center_coordenates+disk_size+1]
+        #     mean_intensity_disk = np.mean(image_in_disk)
+        #     std_intensity_disk = np.std(image_in_disk)
+        #     # mean intensity in donut.  The center is set to zeros and then the mean is calculated ignoring the zeros.
+        #     recentered_image_donut = test_im.copy()
+        #     recentered_image_donut[center_coordenates-disk_size:center_coordenates+disk_size+1,center_coordenates-disk_size:center_coordenates+disk_size+1] = 0 
+        #     mean_intensity_donut = recentered_image_donut[recentered_image_donut!=0].mean() # mean calculation ignoring zeros
+        #     # substracting background minus center intensity
+        #     spot_intensity_disk_donut = np.array( mean_intensity_disk - mean_intensity_donut)
+        #     spot_intensity_disk_donut[spot_intensity_disk_donut<0]=0
+        #     spot_intensity_disk_donut[np.isnan(spot_intensity_disk_donut)] = 0 # replacing nans with zero
+        #     return spot_intensity_disk_donut, std_intensity_disk
+        
+
         def return_crop(image,x_pos,y_pos,crop_size):
             # function that recenters the spots
-            crop_image = image[y_pos-(crop_size):y_pos+(crop_size+1),x_pos-(crop_size):x_pos+(crop_size+1)]
+            crop_image = image[y_pos-crop_size:y_pos+crop_size+1,x_pos-crop_size:x_pos+crop_size+1]
+            #plt.figure()
+            #plt.imshow(crop_image)
+            #plt.colorbar()
+            #plt.show()
             return crop_image
         # Section that marks particles if a numpy array with spot positions is passed.
-        
-        
-        
         
         if not ( self.spot_positions_movement is None):
             frames_part = self.spot_positions_movement.shape[0] 
             for k in range (0,self.n_particles):
                 for j in range(0,frames_part):
                     for i in range(0,number_channels):
-                        x_pos = self.spot_positions_movement[j,k,0]  
-                        y_pos = self.spot_positions_movement[j,k,1]
+                        x_pos = self.spot_positions_movement[j,k,1]  
+                        y_pos = self.spot_positions_movement[j,k,0]
+                        #x_pos = self.spot_positions_movement[j,k,0]  
+                        #y_pos = self.spot_positions_movement[j,k,1]
+                        crop_image = return_crop(self.video[j,:,:,i],x_pos,y_pos,self.crop_size) # NOT RECENTERING IMAGE
                         if self.method == 'disk_donut':
-                            crop_image = return_crop(self.video[j,:,:,i],x_pos,y_pos,self.crop_size) # NOT RECENTERING IMAGE
+                            #print('self_crop',self.crop_size)
+                            #print('self_particle_size',self.particle_size)
+                            #print('--------------------------')
                             array_intensities_mean[k,j,i], array_intensities_std[k,j,i] = disk_donut(crop_image,self.disk_size)
                         elif self.method == 'total_intensity':
-                            crop_image = return_crop(self.video[j,:,:,i],x_pos,y_pos,self.crop_size) # NOT RECENTERING IMAGE
                             array_intensities_mean[k,j,i] = np.amax((0,np.mean(crop_image)))# mean intensity in the crop
                             array_intensities_std[k,j,i] = np.amax((0,np.std(crop_image)))# std intensity in the crop
                         elif self.method == 'gaussian_fit':
-                            crop_image = return_crop(self.video[j,:,:,i],x_pos,y_pos,self.crop_size) # NOT RECENTERING IMAGE
-                            array_intensities_mean[k,j,i], array_intensities_std[k,j,i] = gaussian_fit(crop_image,self.particle_size)# disk_donut(crop_image,self.disk_size)        
-        
-        
-        
+                            array_intensities_mean[k,j,i], array_intensities_std[k,j,i] = gaussian_fit(crop_image)# disk_donut(crop_image,self.disk_size)        
         
         if not ( self.trackpy_dataframe is None):
             for k in range (0,self.n_particles):
@@ -1665,7 +1939,7 @@ class Intensity():
                             array_intensities_std[k,current_frame,i] = np.amax((0,np.std(crop_image))) # std intensity in image
                         elif self.method == 'gaussian_fit':
                             crop_image = return_crop(self.video[j,:,:,i],x_pos,y_pos,self.crop_size) # NOT RECENTERING IMAGE
-                            array_intensities_mean[k,current_frame,i],array_intensities_std[k,current_frame,i] = gaussian_fit(crop_image,self.particle_size)# disk_donut(crop_image,self.disk_size)
+                            array_intensities_mean[k,current_frame,i],array_intensities_std[k,current_frame,i] = gaussian_fit(crop_image)# disk_donut(crop_image,self.disk_size)
         # Calculate mean intensities.
         mean_intensities = np.nanmean(array_intensities_mean, axis = 0, dtype=np.float32)
         std_intensities = np.nanstd(array_intensities_mean, axis = 0, dtype=np.float32)
@@ -1753,11 +2027,10 @@ class Intensity():
                 temporal_y_position_vector = self.trackpy_dataframe.loc[self.trackpy_dataframe['particle']==self.trackpy_dataframe['particle'].unique()[id]].y.values
             else:
                 temporal_frames_vector = time_vector
-                temporal_x_position_vector = self.spot_positions_movement[:,id,1]
-                temporal_y_position_vector = self.spot_positions_movement[:,id,0]
+                temporal_x_position_vector = self.spot_positions_movement[:,id,1] 
+                temporal_y_position_vector = self.spot_positions_movement[:,id,0] 
 
-                
-                
+
             temporal_red_vector = array_intensities_mean[id, temporal_frames_vector,0] # red
             temporal_green_vector = array_intensities_mean[id,temporal_frames_vector,1] # green
             temporal_blue_vector = array_intensities_mean[id,temporal_frames_vector,2] # blue
@@ -1844,14 +2117,21 @@ class SimulatedCell():
     '''
     def __init__(self, base_video,video_for_mask = None, number_spots=10, number_frames=20, step_size =1, diffusion_coefficient =0.01, simulated_trajectories_ch0=None, size_spot_ch0=5, spot_sigma_ch0=2, simulated_trajectories_ch1=[0], size_spot_ch1=5, spot_sigma_ch1=2, simulated_trajectories_ch2=[0], size_spot_ch2=5, spot_sigma_ch2=2, ignore_ch0=0,ignore_ch1=1, ignore_ch2=1,save_as_tif_uint8 =0, save_as_tif=0, save_as_gif=0, save_dataframe=0, saved_file_name='temp',create_temp_folder = True,intensity_calculation_method='gaussian_fit'):        
         self.intensity_calculation_method = intensity_calculation_method
+        #self.base_video = base_video
+        MAXIMUM_INTENSITY_IN_BASE_VIDEO = 1000
+        base_video = RemoveExtrema(base_video, min_percentile=0, max_percentile=99.5,ignore_channel =None).remove_outliers()
+        base_video = ScaleIntensity(base_video, scale_maximum_value=MAXIMUM_INTENSITY_IN_BASE_VIDEO,ignore_channel =None).apply_scale()
         self.base_video = base_video
+        
         if not (video_for_mask is None):
-            self.video_for_mask = video_for_mask
+            #self.video_for_mask = video_for_mask
+            video_for_mask = RemoveExtrema(video_for_mask, min_percentile=0, max_percentile=99.5,ignore_channel =None).remove_outliers()
+            video_for_mask = ScaleIntensity(video_for_mask, scale_maximum_value=MAXIMUM_INTENSITY_IN_BASE_VIDEO,ignore_channel =None).apply_scale()
+            self.video_for_mask = video_for_mask 
             video_for_mask = video_for_mask
         else:
             self.video_for_mask = base_video
             video_for_mask = base_video
-        
         self.number_spots = number_spots
         self.number_frames = number_frames
         self.step_size  = step_size
@@ -1899,6 +2179,10 @@ class SimulatedCell():
         # section that uses cellpose to calculate the mask
         selected_image = self.video_for_mask[0,:,:,1] # selecting for the mask the first time point
         selected_masks = Cellpose(selected_image,num_iterations=10, channels=[0],diameter=200,model_type='cyto',selection_method = 'max_area').calculate_masks() # options are 'max_area' or 'max_cells'
+        if np.amax(selected_masks) ==0:
+            print('Error, no masks were found on the image')
+            raise
+        
         selected_mask  = CellposeSelection(selected_masks,selected_image, slection_method = 'max_area').select_mask()
         # section that converts the mask in contours and resduces the size of the mask to ensure the spots are generated inside the cell.
         contours = np.array(find_contours(selected_mask, 0.5),dtype = int)
@@ -1975,10 +2259,8 @@ class SimulatedCell():
                 for point_index in range(0,len(center_positions_vector)):
                     center_position = center_positions_vector[point_index]
                     crop_with_extra_area = return_crop(temp_tensor_image,center_position[1],center_position[0],crop_size)
-                    
                     #mean_intensity_donut = np.mean(crop_with_extra_area)
                     tensor_mean_intensity_in_figure[t_p,point_index],tensor_std_intensity_in_figure[t_p,point_index]  = gaussian_fit(crop_with_extra_area)
-                    
                     if tensor_mean_intensity_in_figure[t_p,point_index] < 0:
                         tensor_mean_intensity_in_figure[t_p,point_index],tensor_std_intensity_in_figure[t_p,point_index]  = disk_donut(crop_with_extra_area,disk_size)
                     if tensor_mean_intensity_in_figure[t_p,point_index] < 0:
@@ -1996,7 +2278,6 @@ class SimulatedCell():
                     #     plt.imshow(crop_with_extra_area)
                     #     plt.colorbar()
                     #     plt.show()
-                        
             return tensor_mean_intensity_in_figure, tensor_std_intensity_in_figure
         def make_replacement_pixelated_spots(matrix_background, center_positions_vector, size_spot, spot_sigma, using_ssa, simulated_trajectories_time_point,min_SSA_value,max_SSA_value):
             #This funciton is intended to replace a kernel gaussian matrix for each spot position. The kernel gaussian matrix is scaled with the values obtained from the SSA o with the values given in a range.
@@ -2006,11 +2287,11 @@ class SimulatedCell():
             pixelated_image = matrix_background.copy()
             pixelated_image_no_spots = matrix_background.copy()
             # Defining constant values
-            MIN_INTENSITY_ALL_SPOTS = 30000 # basal value for each spot
-            MAX_INTENSITY_ALL_SPOTS = 35000 # maximum allowed intensity for a given spot
+            MIN_INTENSITY_ALL_SPOTS = 4000 # basal value for each spot
+            MAX_INTENSITY_ALL_SPOTS = 5000 # maximum allowed intensity for a given spot
             MAX_INTENSITY_IN_UINT16 = 65535 # maximum value in a unint16 image
             # The following two constants are weights used to define a range of intensities for the simulated spots.
-            MIN_INTENSITY_SPOT_WEIGHT = 1.01 # 1.05 lower weight that multiplays the mean intensity value in the image to define the simulated spot intensity.
+            MIN_INTENSITY_SPOT_WEIGHT = 1.1 # 1.05 lower weight that multiplays the mean intensity value in the image to define the simulated spot intensity.
             MAX_INTENSITY_SPOT_WEIGHT = 1.5 # 1.5 higher weight that multiplays the mean intensity value in the image to define the simulated spot intensity.
             for point_index in range(0,len(center_positions_vector)):
                 # Section that creates the Gaussian Kernel Matrix
@@ -2020,20 +2301,21 @@ class SimulatedCell():
                 #kernel = kernel / np.sum(kernel) # nrrmalized to one
                 # creating a position for each spot
                 center_position = center_positions_vector[point_index]
-                pixel_size_arround_spot = size_spot + 1
-                try:
-                    # this section calculates the basal intensity arround an spots
-                    temp_int_arround_spot = pixelated_image_no_spots[center_position[0]-int(pixel_size_arround_spot/2): center_position[0]+int(pixel_size_arround_spot/2)+1 ,center_position[1]-int(pixel_size_arround_spot/2): center_position[1]+int(pixel_size_arround_spot/2)+1 ]
-                    temp_int_arround_spot.flatten()
-                    temp_mean = np.mean(temp_int_arround_spot)
-                    temp_std = np.std(temp_int_arround_spot)
-                    dist_mean = abs(temp_int_arround_spot - temp_mean)
-                    max_dev = 1
-                    idx_inside_elements = dist_mean < max_dev * temp_std
-                    inside_elements = temp_int_arround_spot[idx_inside_elements]
-                    mean_int_arround_spot = np.mean(inside_elements)
-                except:
-                    mean_int_arround_spot = pixelated_image_no_spots[center_position[0],center_position[1]]
+                pixel_size_arround_spot = size_spot + 10
+                #try:
+                # this section calculates the basal intensity arround an spots
+
+                temp_int_arround_spot = pixelated_image_no_spots[center_position[0]-int(pixel_size_arround_spot/2): center_position[0]+int(pixel_size_arround_spot/2)+1 ,center_position[1]-int(pixel_size_arround_spot/2): center_position[1]+int(pixel_size_arround_spot/2)+1 ]
+                temp_int_arround_spot.flatten()
+                temp_mean = np.mean(temp_int_arround_spot)
+                temp_std = np.std(temp_int_arround_spot)
+                dist_mean = abs(temp_int_arround_spot - temp_mean)
+                max_dev = 1
+                idx_inside_elements = dist_mean < max_dev * temp_std
+                inside_elements = temp_int_arround_spot[idx_inside_elements]
+                mean_int_arround_spot = np.mean(inside_elements)
+                # except:
+                #     mean_int_arround_spot = pixelated_image_no_spots[center_position[0],center_position[1]]
                 if using_ssa == 1 :
                     min_int = np.amin((mean_int_arround_spot *MIN_INTENSITY_SPOT_WEIGHT,MIN_INTENSITY_ALL_SPOTS))
                     max_int = np.amin((mean_int_arround_spot *MAX_INTENSITY_SPOT_WEIGHT,MAX_INTENSITY_ALL_SPOTS))  # 65535 is the maximum value for np.uint16   # bast value 1.5
@@ -2056,10 +2338,10 @@ class SimulatedCell():
                 # Defining the current area in the matrix that will be replaced by the spot kernel.        
                 pixelated_image[center_position[0]-int(size_spot/2): center_position[0]+int(size_spot/2)+1 ,center_position[1]-int(size_spot/2): center_position[1]+int(size_spot/2)+1 ] = kernel_value_intensity    
             return pixelated_image # final_image
-        def make_spots_movement(polygon_array, number_spots, time_vector, step_size, image_size, diffusion_coefficient,base_video=None):
+        def make_spots_movement(polygon_array, number_spots, time_vector, step_size, image_size, diffusion_coefficient,internal_base_video=None):
             # Function that creates the simulated spots inside a given polygon
-            print('mean int in cell',np.mean(base_video))
-            print('std int in cell',np.std(base_video))
+            #print('mean int in cell',np.mean(base_video))
+            #print('std int in cell',np.std(base_video))
             path = mpltPath.Path(polygon_array)
             initial_points_in_polygon = np.zeros((number_spots,2), dtype = 'int')
             counter_number_spots = 0
@@ -2070,15 +2352,19 @@ class SimulatedCell():
             while (counter_number_spots < number_spots) and (conter_security<MAX_ITERATIONS):
                 test_points = (int(random.uniform(min_position,max_position)), int(random.uniform(min_position,max_position)))
                 # testing if the spot is located in an area of high intensity?
-                if not ( base_video is None):
-                    selected_image= base_video
-                    MAX_INTENSITY_TO_DRAW_SPOT = 5500
-                    max_allowed_int_image = np.amin( (np.mean(selected_image) + 3*np.std(selected_image),MAX_INTENSITY_TO_DRAW_SPOT))
+                if not ( internal_base_video is None):
+                    selected_image= internal_base_video
+                    MAX_INTENSITY_TO_DRAW_SPOT = 3500
+                    MAX_STD=3
+                    #max_allowed_int_image = np.amin( (np.mean(selected_image) + MAX_STD*np.std(selected_image),MAX_INTENSITY_TO_DRAW_SPOT))
+                    max_allowed_int_image = np.mean(selected_image) + MAX_STD*np.std(selected_image)
+
+                    min_allowed_int_image = np.mean(selected_image) - MAX_STD*np.std(selected_image)
                     size_spot =5
                     pixel_size_arround_spot = size_spot + 2
                     temp_crop_arround_spot = selected_image[test_points[0]-int(pixel_size_arround_spot/2): test_points[0]+int(pixel_size_arround_spot/2)+1 ,test_points[1]-int(pixel_size_arround_spot/2): test_points[1]+int(pixel_size_arround_spot/2)+1 ]
                     mean_int_tested_spot = np.mean(temp_crop_arround_spot)
-                    if mean_int_tested_spot<max_allowed_int_image:
+                    if (mean_int_tested_spot>min_allowed_int_image) and (mean_int_tested_spot<max_allowed_int_image):
                         int_test =1
                     else:
                         int_test =0
@@ -2116,6 +2402,8 @@ class SimulatedCell():
                     newPosition_y[i_p]= temp_Position_y[i_p]
                     newPosition_x[i_p]= temp_Position_x[i_p]
                 spot_positions_movement [t_p,:,:]= np.vstack((newPosition_y, newPosition_x)).T
+                
+                #print(spot_positions_movement)
             return spot_positions_movement # vector with dimensions (time, spot, y, x )
         def make_simulation(base_video_slected_channel,masked_video_slected_channel, spot_positions_movement, time_vector, polygon_array, image_size,size_spot, spot_sigma, simulated_trajectories):
             # Main function that makes the simulated cell by calling multiple function.
@@ -2145,6 +2433,8 @@ class SimulatedCell():
             return tensor_image
         # Create the spots for all channels. Return array with 3-dimensions: T,Sop, XY-Coord
         spot_positions_movement = make_spots_movement(self.polygon_array, self.number_spots, self.time_vector, self.step_size, self.image_size, self.diffusion_coefficient,self.base_video[0,:,:,1])
+        
+        
         # This section of the code runs the for each channel    
         if self.ignore_ch0 == 0:
             tensor_image_ch0 = make_simulation(self.base_video[:,:,:,0], self.video_removed_mask[:,:,:,0], spot_positions_movement, self.time_vector, self.polygon_array, self.image_size, self.size_spot_ch0, self.spot_sigma_ch0, self.simulated_trajectories_ch0)
@@ -2233,37 +2523,7 @@ class SimulatedCell():
                 save_to_path=''
             tifffile.imwrite(save_to_path+self.saved_file_name+'.tif', tensor_video)
         
-        
         dataframe_particles, _, _, _,_, _, _ = Intensity(tensor_video,particle_size=self.size_spot_ch0,spot_positions_movement=spot_positions_movement,method=self.intensity_calculation_method,show_plot=0 ).calculate_intensity()    
-        # print(dataframe_particles)
-        # # Initialize the dataframe    
-        # init_dataFrame = {'particle': [],
-        #     'frame': [],
-        #     'red_int_mean': [],
-        #     'green_int_mean': [],
-        #     'blue_int_mean': [],
-        #     'red_int_std': [],
-        #     'green_int_std': [],
-        #     'blue_int_std': [],
-        #     'x': [],
-        #     'y': []}
-        # dataframe_particles = pd.DataFrame(init_dataFrame)
-        # for n_spot in range (0,self.number_spots):
-        # # Section that append the information for each spots
-        #     temp_data_frame = {'particle': n_spot,
-        #         'frame': self.time_vector,
-        #         'red_int_mean': tensor_mean_intensity_in_figure[:,n_spot,0],
-        #         'green_int_mean': tensor_mean_intensity_in_figure[:,n_spot,1],
-        #         'blue_int_mean': tensor_mean_intensity_in_figure[:,n_spot,2],
-        #         'red_int_std': tensor_std_intensity_in_figure[:,n_spot,0],
-        #         'green_int_std': tensor_std_intensity_in_figure[:,n_spot,1],
-        #         'blue_int_std': tensor_std_intensity_in_figure[:,n_spot,2],
-        #         'x': spot_positions_movement[:,n_spot,1],
-        #         'y': spot_positions_movement[:,n_spot,0]}
-        #     temp_dataframe = pd.DataFrame(temp_data_frame)
-        #     dataframe_particles = dataframe_particles.append(temp_dataframe, ignore_index=True)
-        #     dataframe_particles = dataframe_particles.astype({"particle": int, "frame": int}) # specify data type as integer for some columns  
-            
         
         if self.save_dataframe==1:
             if self.create_temp_folder == True:
@@ -2297,8 +2557,10 @@ class PipelineTracking():
         Option to use the optimization algorithm to maximize the number of cells or maximize the size. The options are 'max_area' or 'max_cells'. The default is 'max_area'.
     show_plot : bool, optional
         Allows the user to show a plot for the optimization process. The default is 1.
+    use_optimization_for_tracking : bool, optional
+        Option to run an optimization process to slect the best filter for the tracking process. The default is 0.
     '''
-    def __init__(self,video,particle_size=5,file_name='Cell.tif',selected_channel=0,intensity_calculation_method ='disk_donut', mask_selection_method = 'max_spots',show_plot=1):
+    def __init__(self,video,particle_size=5,file_name='Cell.tif',selected_channel=0,intensity_calculation_method ='disk_donut', mask_selection_method = 'max_spots',show_plot=1, use_optimization_for_tracking =1):
         self.video = video
         self.particle_size = particle_size
         self.image = video[1,:,:,:]
@@ -2308,6 +2570,7 @@ class PipelineTracking():
         self.mask_selection_method = mask_selection_method # options are : 'max_spots' and 'max_area' 
         self.selected_channel = selected_channel
         self.show_plot = show_plot 
+        self.use_optimization_for_tracking = use_optimization_for_tracking
     def run(self):
         '''
         Runs the pipeline.
@@ -2331,14 +2594,19 @@ class PipelineTracking():
 
         '''
         start = timer()
-        selected_masks = Cellpose(self.image,num_iterations=6, selection_method='max_cells' ).calculate_masks() # options are 'max_area' or 'max_cells'
+        selected_masks = Cellpose(self.image,num_iterations=10, selection_method='max_cells' ).calculate_masks() # options are 'max_area' or 'max_cells'
         selected_mask  = CellposeSelection(selected_masks,self.video, slection_method = self.mask_selection_method, particle_size=self.particle_size, selected_channel=self.selected_channel).select_mask()
         end = timer()
         print('mask time:',round(end - start), ' sec')
         # Tracking
         start = timer()
         minimal_frames =  int(self.num_frames*0.5) # minimal number of frames to consider a trajectory
-        Dataframe_trajectories, number_detected_trajectories, filtered_video = Trackpy(self.video,selected_mask,particle_size=self.particle_size, selected_channel=self.selected_channel,minimal_frames=minimal_frames,optimization_iterations = 30,use_defaul_filter=1, show_plot =0).perform_tracking()   
+        
+        if self.use_optimization_for_tracking ==1:
+            use_defaul_filter = 0
+        else:
+            use_defaul_filter = 1
+        Dataframe_trajectories, number_detected_trajectories, filtered_video = Trackpy(self.video,selected_mask,particle_size=self.particle_size, selected_channel=self.selected_channel,minimal_frames=minimal_frames,optimization_iterations = 40,use_defaul_filter=use_defaul_filter, show_plot =0).perform_tracking()   
         end = timer()
         print('tracking time:',round(end - start), ' sec')         
         # Intensity calculation
