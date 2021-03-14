@@ -2291,8 +2291,8 @@ class SimulatedCell():
             MAX_INTENSITY_ALL_SPOTS = 5000 # maximum allowed intensity for a given spot
             MAX_INTENSITY_IN_UINT16 = 65535 # maximum value in a unint16 image
             # The following two constants are weights used to define a range of intensities for the simulated spots.
-            MIN_INTENSITY_SPOT_WEIGHT = 1.1 # 1.05 lower weight that multiplays the mean intensity value in the image to define the simulated spot intensity.
-            MAX_INTENSITY_SPOT_WEIGHT = 1.5 # 1.5 higher weight that multiplays the mean intensity value in the image to define the simulated spot intensity.
+            MIN_INTENSITY_SPOT_WEIGHT = 1.2 # 1.05 lower weight that multiplays the mean intensity value in the image to define the simulated spot intensity.
+            MAX_INTENSITY_SPOT_WEIGHT = 1.6 # 1.5 higher weight that multiplays the mean intensity value in the image to define the simulated spot intensity.
             for point_index in range(0,len(center_positions_vector)):
                 # Section that creates the Gaussian Kernel Matrix
                 ax = np.linspace(-(size_spot - 1) / 2., (size_spot - 1) / 2., size_spot)        

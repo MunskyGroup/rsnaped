@@ -170,6 +170,27 @@ class VisualizerImage():
                             ax.add_artist(circle)
                         except:
                             pass
+                
+                
+                
+                real_selected_particles_dataframe = self.list_real_particle_positions[counter]
+                if not len (self.list_real_particle_positions[counter]) == 0:
+                    number_particles = real_selected_particles_dataframe['particle'].nunique()
+                    for k in range (0,number_particles):
+                        frames_part =real_selected_particles_dataframe.loc[real_selected_particles_dataframe['particle']==real_selected_particles_dataframe['particle'].unique()[k]].frame.values  
+                        index_time = self.selected_timepoint
+                        if index_time in frames_part: # plotting the circles for each detected particle at a given time point
+                            index_val=np.where(frames_part == index_time)
+                            x_pos=int(real_selected_particles_dataframe.loc[real_selected_particles_dataframe['particle']==real_selected_particles_dataframe['particle'].unique()[k]].x.values[index_val])
+                            y_pos=int(real_selected_particles_dataframe.loc[real_selected_particles_dataframe['particle']==real_selected_particles_dataframe['particle'].unique()[k]].y.values[index_val])
+                        try:
+                            circle = plt.Circle((x_pos, y_pos), self.particle_size/2, color='yellow', fill=False)
+                            ax.add_artist(circle)
+                        except:
+                            pass
+                
+                
+                
                 # Plots the mask contour on the video
                 if not ( self.list_mask_array[0] is None):
                     mask_array = self.list_mask_array[index_video]
