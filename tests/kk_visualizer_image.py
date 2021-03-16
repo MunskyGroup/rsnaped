@@ -30,6 +30,8 @@ class VisualizerImage():
         Option to normalize the data by removing outliers. The code removes the 1 and 99 percentiles from the image. The default is False.
     individual_figure_size : int, optional
         Allows the user to change the size of each image. The default is 5.
+    list_real_particle_positions : Pandas dataframe.
+        A pandas data frame containing the position of each spot in the image. This dataframe is generated with class SimulatedCell, and it contains the true position for each spot. This option is only intended to be used to train algorithms for tracking and visualize real vs detected spots. The default is None.
     '''
     def __init__(self,list_videos,list_videos_filtered=None,list_selected_particles_dataframe=None,list_files_names=None,list_mask_array=None,list_real_particle_positions=None, selected_channel=0,selected_timepoint=0,normalize=False,individual_figure_size=5):
         self.particle_size =7
@@ -59,8 +61,6 @@ class VisualizerImage():
             self.list_real_particle_positions = list_real_particle_positions
         else:
             self.list_real_particle_positions = list_real_particle_positions
-            
-        
         
         if not (type(list_files_names) is list):
             list_files_names = [list_files_names]
@@ -125,13 +125,6 @@ class VisualizerImage():
                     ax.set(title=self.list_files_names[index_video][0:-4])
                 else:
                     ax.set(title='Cell_'+str(index_video))
-            
-        
-        
-        
-        
-        
-        
         # Plotting the cells and the detected spots
         if not ( self.list_selected_particles_dataframe[0] is None) and ( ( self.list_videos_filtered[0] is None)):
             NUM_COLUMNS = 3
@@ -170,27 +163,26 @@ class VisualizerImage():
                             ax.add_artist(circle)
                         except:
                             pass
-                
-                
-                
-                real_selected_particles_dataframe = self.list_real_particle_positions[counter]
+                # main loop to mark spots ==> REAL SPOTS. USE FOR SIMULATED CELL
+                number_particles  = None
+                frames_part = None
+                x_pos = None
+                y_pos = None
+                selected_particles_dataframe = self.list_real_particle_positions[counter]
                 if not len (self.list_real_particle_positions[counter]) == 0:
-                    number_particles = real_selected_particles_dataframe['particle'].nunique()
+                    number_particles = selected_particles_dataframe['particle'].nunique()
                     for k in range (0,number_particles):
-                        frames_part =real_selected_particles_dataframe.loc[real_selected_particles_dataframe['particle']==real_selected_particles_dataframe['particle'].unique()[k]].frame.values  
+                        frames_part =selected_particles_dataframe.loc[selected_particles_dataframe['particle']==selected_particles_dataframe['particle'].unique()[k]].frame.values  
                         index_time = self.selected_timepoint
                         if index_time in frames_part: # plotting the circles for each detected particle at a given time point
                             index_val=np.where(frames_part == index_time)
-                            x_pos=int(real_selected_particles_dataframe.loc[real_selected_particles_dataframe['particle']==real_selected_particles_dataframe['particle'].unique()[k]].x.values[index_val])
-                            y_pos=int(real_selected_particles_dataframe.loc[real_selected_particles_dataframe['particle']==real_selected_particles_dataframe['particle'].unique()[k]].y.values[index_val])
+                            x_pos=int(selected_particles_dataframe.loc[selected_particles_dataframe['particle']==selected_particles_dataframe['particle'].unique()[k]].x.values[index_val])
+                            y_pos=int(selected_particles_dataframe.loc[selected_particles_dataframe['particle']==selected_particles_dataframe['particle'].unique()[k]].y.values[index_val])
                         try:
-                            circle = plt.Circle((x_pos, y_pos), self.particle_size/2, color='yellow', fill=False)
+                            circle = plt.Circle((x_pos, y_pos), self.particle_size/2, color='red', fill=False)
                             ax.add_artist(circle)
                         except:
                             pass
-                
-                
-                
                 # Plots the mask contour on the video
                 if not ( self.list_mask_array[0] is None):
                     mask_array = self.list_mask_array[index_video]
@@ -202,14 +194,6 @@ class VisualizerImage():
                     temp2 =contuour_position[0][:,0]
                     plt.fill(temp,temp2, facecolor='none', edgecolor='yellow')  
                 counter +=1
-              
-       
-        
-       
-        
-       
-        
-       
         # Plotting the cells and the detected spots and the filtered video.
         if (not ( self.list_selected_particles_dataframe[0] is None)) and (not ( self.list_videos_filtered[0] is None)) :
             NUM_COLUMNS = 3
@@ -240,7 +224,7 @@ class VisualizerImage():
                 ax.imshow(self.list_videos_filtered[counter][self.selected_timepoint,:,:,self.selected_channel],cmap='gray',vmax=np.amax(self.list_videos[counter][self.selected_timepoint,:,:,self.selected_channel])*0.95)
                 ax.set_xticks([])
                 ax.set_yticks([])
-                ax.set(title=title_str + ' Filtered' )
+                ax.set(title=title_str + ' F + M' )
                 # main loop to mark spots
                 number_particles  = None
                 frames_part = None
@@ -262,6 +246,26 @@ class VisualizerImage():
                             ax.add_artist(circle)
                         except:
                             pass
+                # main loop to mark spots ==> REAL SPOTS. USE FOR SIMULATED CELL
+                number_particles  = None
+                frames_part = None
+                x_pos = None
+                y_pos = None
+                selected_particles_dataframe = self.list_real_particle_positions[counter]
+                if not len (self.list_real_particle_positions[counter]) == 0:
+                    number_particles = selected_particles_dataframe['particle'].nunique()
+                    for k in range (0,number_particles):
+                        frames_part =selected_particles_dataframe.loc[selected_particles_dataframe['particle']==selected_particles_dataframe['particle'].unique()[k]].frame.values  
+                        index_time = self.selected_timepoint
+                        if index_time in frames_part: # plotting the circles for each detected particle at a given time point
+                            index_val=np.where(frames_part == index_time)
+                            x_pos=int(selected_particles_dataframe.loc[selected_particles_dataframe['particle']==selected_particles_dataframe['particle'].unique()[k]].x.values[index_val])
+                            y_pos=int(selected_particles_dataframe.loc[selected_particles_dataframe['particle']==selected_particles_dataframe['particle'].unique()[k]].y.values[index_val])
+                        try:
+                            circle = plt.Circle((x_pos, y_pos), self.particle_size/2, color='red', fill=False)
+                            ax.add_artist(circle)
+                        except:
+                            pass            
                 # Plots the mask contour on the video
                 if not ( self.list_mask_array[0] is None):
                     mask_array = self.list_mask_array[index_video]
@@ -273,7 +277,5 @@ class VisualizerImage():
                     temp2 =contuour_position[0][:,0]
                     plt.fill(temp,temp2, facecolor='none', edgecolor='yellow')  
                 counter +=1
-                
-                
         fig.tight_layout()
         plt.show()    
