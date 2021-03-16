@@ -1851,7 +1851,8 @@ class Trackpy():
         
         # function that remove outliers from the video
         video = RemoveExtrema(video, min_percentile=10, max_percentile=100,ignore_channel =None).remove_outliers()
-        video = RemoveExtrema(video, min_percentile=80, max_percentile=100,ignore_channel =None).remove_outliers()
+        #video = RemoveExtrema(video, min_percentile=80, max_percentile=100,ignore_channel =None).remove_outliers()
+        video = RemoveExtrema(video, min_percentile=85, max_percentile=100,ignore_channel =None).remove_outliers()
         
         # Function to convert the video to uint
         def img_uint(image):
@@ -1885,7 +1886,7 @@ class Trackpy():
         self.default_highpass = 10
         self.gaussian_filter_sigma = 0.5
         self.median_filter_size = 5
-        self.perecentile_intensity_slection = 75
+        self.perecentile_intensity_slection = 80 #75
         self.max_highpass = 10
         self.min_highpass = 0.1
         
@@ -1913,7 +1914,7 @@ class Trackpy():
         #NUM_STD = 1
         num_detected_particles = np.zeros((self.optimization_iterations),dtype=np.float)
         #vector_highpass_filters = np.linspace(self.min_highpass,self.max_highpass,self.optimization_iterations).astype(np.uint16)
-        min_int_vector = np.linspace(0,0.5,self.optimization_iterations) # range of std to test for optimization
+        min_int_vector = np.linspace(0.1,1,self.optimization_iterations) # range of std to test for optimization
         percentile = self.perecentile_intensity_slection
         # Funtions with the bandpass and gaussian filters
         def bandpass_filter (image, lowfilter, highpass):

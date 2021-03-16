@@ -1,12 +1,13 @@
 # rSNAPed
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 
+![Screenshot](.docs/images/rSNAPed_Logo.png)
+
 rSNAPed a Python library for single-molecule image processing.
 
-Author Luis U. Aguilera, William Raymond, Brooke Silagy, Brian Munsky
+Author Luis U. Aguilera, William Raymond, Brooke Silagy, Brian Munsky.
 
 ## Description
-
 
 The code is intended to automatically track single-molecules from single-cell videos. The code calculates spot position and extract intensity values.
 
@@ -38,7 +39,7 @@ First make sure that you have installed the following packages. For this, you ca
 ```bash
 pip install rsnaped
 ```
-## The codes were tested with the following packages.
+## dependencies.
 
 matplotlib (3.2.2) <br />
 numpy (1.20.1) <br />
@@ -72,19 +73,7 @@ pip3 install trackpy
 pip3 install ipywidgets
 ```
 
-## If cellpose installation doesn't work, try the following:
-```bash
-pip3 install --no-deps cellpose --upgrade
-pip3 install mxnet
-pip3 install natsort
-```
 
-## Use the following commands to update specific packages:
-```bash
-!pip3 install '[package_name]==[version]'
-!pip3 install [package_name] -U
-!pip3 show [package_name]
-```
 
 
 ## License
