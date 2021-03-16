@@ -1,8 +1,8 @@
-# rSNAPed
+# rSNAPed : RNA Sequence to NAscent Protein Experiment Designer
 
 <img src="./docs/images/logo/rSNAPed_Logo.png" width="200" />
 
-rSNAPed a Python library for single-molecule image processing.
+rSNAPed, a Python library for single-molecule image processing.
 
 Authors: Luis U. Aguilera, William Raymond, Brooke Silagy, Brian Munsky.
 
