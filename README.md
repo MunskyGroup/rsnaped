@@ -1,8 +1,8 @@
-# rSNAPed : RNA Sequence to NAscent Protein Experiment Designer
+# rSNAPed
 
 <img src="./docs/images/logo/rSNAPed_Logo.png" width="200" />
 
-rSNAPed, a Python library for single-molecule image processing.
+rSNAPed : RNA Sequence to NAscent Protein Experiment Designer.
 
 Authors: Luis U. Aguilera, William Raymond, Brooke Silagy, Brian Munsky.
 
@@ -10,33 +10,28 @@ Authors: Luis U. Aguilera, William Raymond, Brooke Silagy, Brian Munsky.
 
 ## Description
 
-The code is intended to automatically track single-molecules from single-cell videos. The code calculates spot position and extract intensity values.
+This library is intended to quantify single-molecules gene expression experiments. The code calculates spot position, and extract spot intensity values. The code also generates simulated data.
 
-Compendium of libraries including `cellpose`, `rsnapsim`, `trackpy`.
+> :warning: **This software is in a very early and experimental stage**: at this point is inteded to be used for testing and debugging purpuses!
 
-![Screenshot](https://github.com/MunskyGroup/image_processing_toolbox/blob/master/rSNAPsim_IP/General_Documents/Images_for_github/rSNAPsimIP_Pipeline.png)
-
+The code use the following dependencies: `cellpose` for automated cell segmentation, `trackpy` for particle tracking, and `rsnapsim` to simulate RNA fluorescence intensity.
 
 ## Usage
 
-* **Single-molecule translation**
-* **Single-molecule transcription**
-* **FISH**
-
-Example using real data.
-
-![Screenshot](https://github.com/MunskyGroup/image_processing_toolbox/blob/master/rSNAPsim_IP/General_Documents/Images_for_github/screenshot_3.png)
+* **Tracking for single-molecule translation (RNA + nascent protein) spots.**
+* **Tracking for single-molecule RNA spots.**
+* **RNA detection spots for FISH images.**
+* **Simulating the single-molecule translation for any gene.**
+* **Design of single-molecule gene expression experiments.**
 
 ## Simulating translation
 
 The code is intended to simulated single-
 molecule translation. A  video with the simulated cell and a data frame containing spot and intensity positions are generated. This simulation can be used to train new algorithms or for training new students.
 
-![Screenshot](https://github.com/MunskyGroup/image_processing_toolbox/blob/master/rSNAPsim_IP/Simulated_Cell/Development/Gifs/output.gif)
-
 ## Installation
 
-First make sure that you have installed the following packages. For this, you can use the package manager [pip](https://pip.pypa.io/en/stable/).
+Open the terminal and use [pip](https://pip.pypa.io/en/stable/) for the installation:
 ```bash
 pip install rsnaped
 ```
@@ -56,7 +51,16 @@ opencv-python (4.4.0.42) <br />
 ipywidgets (7.5.1) <br />
 
 
+## References
 
+- [rSNAPsim](https://github.com/MunskyGroup/rSNAPsim)
+ Aguilera, Luis U., et al. "Computational design and interpretation of single-RNA translation experiments." PLoS computational biology 15.10 (2019): e1007425.
+
+- [Trackpy](http://soft-matter.github.io/trackpy/dev/index.html)
+ Dan Allan, et al. (2019, October 16). soft-matter/trackpy: Trackpy v0.4.2 (Version v0.4.2). Zenodo. http://doi.org/10.5281/zenodo.3492186
+
+- [Cellpose](https://github.com/MouseLand/cellpose)
+ Stringer, Carsen, et al. "Cellpose: a generalist algorithm for cellular segmentation." Nature Methods 18.1 (2021): 100-106.
 
 ## License
 [MIT](https://choosealicense.com/licenses/mit/)
