@@ -19,7 +19,7 @@ sys.path.insert(0, os.path.abspath('..'))
 
 project = 'rsnaped'
 copyright = '2021, Luis Aguilera'
-author = 'Luis Aguilera'
+authors = 'Luis U. Aguilera, William Raymond, Brooke Silagy, Brian Munsky'
 
 # The full version, including alpha/beta/rc tags
 release = '0.0.1'
@@ -54,7 +54,11 @@ exclude_patterns = ['_build', 'Thumbs.db', '.DS_Store']
 # a list of builtin themes.
 #
 html_theme = 'sphinx_rtd_theme'
-#html_theme = 'sphinx_ioam_theme'
+#html_logo = "images/logo/rSNAPed_Logo.png"
+#html_theme_options = {
+#    'logo_only': False,
+#    'display_version': False,
+#}
 
 # Add any paths that contain custom static files (such as style sheets) here,
 # relative to this directory. They are copied after the builtin static files,

@@ -8,26 +8,25 @@ Authors: Luis U. Aguilera, William Raymond, Brooke Silagy, Brian Munsky.
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 
+> :warning: **This software is in a very early and experimental stage**: at this point is inteded to be used for testing and debugging purpuses!
+
 ## Description
 
-This library is intended to quantify single-molecules gene expression experiments. The code calculates spot position, and extract spot intensity values. The code also generates simulated data.
-
-> :warning: **This software is in a very early and experimental stage**: at this point is inteded to be used for testing and debugging purpuses!
+This library is intended to quantify single-molecules gene expression experiments. Specifically, the code uses [Cellpose](https://github.com/MouseLand/cellpose) to segment the cell in the image. Then, it uses [Trackpy](http://soft-matter.github.io/trackpy/dev/index.html) to detect spots inside the mask. Finally, it uses the spot position to quantify the spot intensity. The code also generates simulated data using [rSNAPsim](https://github.com/MunskyGroup/rSNAPsim).
 
 The code use the following dependencies: `cellpose` for automated cell segmentation, `trackpy` for particle tracking, and `rsnapsim` to simulate RNA fluorescence intensity.
 
 ## Usage
 
-* **Tracking for single-molecule translation (RNA + nascent protein) spots.**
-* **Tracking for single-molecule RNA spots.**
-* **RNA detection spots for FISH images.**
-* **Simulating the single-molecule translation for any gene.**
-* **Design of single-molecule gene expression experiments.**
+* Tracking for single-molecule translation (RNA + nascent protein) spots.
+* Tracking for single-molecule RNA spots.
+* RNA detection spots for FISH images.
+* Simulating the single-molecule translation for any gene.
+* Design of single-molecule gene expression experiments.
 
 ## Simulating translation
 
-The code is intended to simulated single-
-molecule translation. A  video with the simulated cell and a data frame containing spot and intensity positions are generated. This simulation can be used to train new algorithms or for training new students.
+The code is intended to simulated single-molecule translation. A  video with the simulated cell and a data frame containing spot and intensity positions are generated. This simulation can be used to train new algorithms or for training new students.
 
 ## Installation
 
@@ -53,13 +52,13 @@ ipywidgets (7.5.1) <br />
 
 ## References
 
-- [rSNAPsim](https://github.com/MunskyGroup/rSNAPsim)
+- [rSNAPsim](https://github.com/MunskyGroup/rSNAPsim):
  Aguilera, Luis U., et al. "Computational design and interpretation of single-RNA translation experiments." PLoS computational biology 15.10 (2019): e1007425.
 
-- [Trackpy](http://soft-matter.github.io/trackpy/dev/index.html)
+- [Trackpy](http://soft-matter.github.io/trackpy/dev/index.html):
  Dan Allan, et al. (2019, October 16). soft-matter/trackpy: Trackpy v0.4.2 (Version v0.4.2). Zenodo. http://doi.org/10.5281/zenodo.3492186
 
-- [Cellpose](https://github.com/MouseLand/cellpose)
+- [Cellpose](https://github.com/MouseLand/cellpose):
  Stringer, Carsen, et al. "Cellpose: a generalist algorithm for cellular segmentation." Nature Methods 18.1 (2021): 100-106.
 
 ## License

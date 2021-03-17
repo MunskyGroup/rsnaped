@@ -3,7 +3,7 @@
 '''
 rSNAPed: A software for single-molecule image tracking, simulation and parameter estimation.
 Created on Fri Jun 26 22:10:24 2020
-@author: Luis Aguilera. luis.aguilera@colostate.edu
+Authors: Luis U. Aguilera, William Raymond, Brooke Silagy, Brian Munsky.
 '''
 
 # https://eikonomega.medium.com/getting-started-with-sphinx-autodoc-part-1-2cebbbca5365
@@ -2643,7 +2643,7 @@ class SimulatedCell():
                 # testing if the spot is located in an area of high intensity?
                 if not ( internal_base_video is None):
                     selected_image= internal_base_video
-                    MAX_INTENSITY_TO_DRAW_SPOT = 3500
+                    #MAX_INTENSITY_TO_DRAW_SPOT = 3500
                     MAX_STD=3.5
                     #max_allowed_int_image = np.amin( (np.mean(selected_image) + MAX_STD*np.std(selected_image),MAX_INTENSITY_TO_DRAW_SPOT))
                     max_allowed_int_image = np.mean(selected_image) + MAX_STD*np.std(selected_image)
@@ -2896,9 +2896,9 @@ class PipelineTracking():
         # Tracking
         start = timer()
         if self.num_frames >20:
-            minimal_frames =  int(self.num_frames*0.2) # minimal number of frames to consider a trajectory
+            minimal_frames =  int(self.num_frames*0.4) # minimal number of frames to consider a trajectory
         else:
-            minimal_frames =  int(self.num_frames*0.2) # minimal number of frames to consider a trajectory
+            minimal_frames =  int(self.num_frames*0.3) # minimal number of frames to consider a trajectory
         if self.use_optimization_for_tracking ==1:
             use_defaul_filter = 0
         else:
