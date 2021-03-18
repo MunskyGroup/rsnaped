@@ -47,7 +47,6 @@ tifffile (2020.10.1) <br />
 opencv-python (4.4.0.42) <br />
 ipywidgets (7.5.1) <br />
 
-
 ## References
 
 - [rSNAPsim](https://github.com/MunskyGroup/rSNAPsim):
@@ -59,5 +58,11 @@ ipywidgets (7.5.1) <br />
 - [Cellpose](https://github.com/MouseLand/cellpose):
  Stringer, Carsen, et al. "Cellpose: a generalist algorithm for cellular segmentation." Nature Methods 18.1 (2021): 100-106.
 
-## License
-[MIT](https://choosealicense.com/licenses/mit/)
+## Licenses for dependencies
+- License for [rSNAPsim](https://github.com/MunskyGroup/rSNAPsim): [MIT](https://choosealicense.com/licenses/mit/).
+- License for [Trackpy](http://soft-matter.github.io/trackpy/dev/index.html): BSD-3-Clause.
+Copyright © 2013-2014 trackpy contributors
+   https://github.com/soft-matter/trackpy
+   All rights reserved.
+- License for [Cellpose](https://github.com/MouseLand/cellpose): BSD 3-Clause.
+Copyright © 2020 Howard Hughes Medical Institute

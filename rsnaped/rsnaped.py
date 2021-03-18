@@ -2411,12 +2411,13 @@ class SimulatedCell():
     intensity_calculation_method : str, optional
         Method to calculate intensity the options are : 'total_intensity' , 'disk_donut' and 'gaussian_fit'. The default is 'disk_donut'.
     '''
-    def __init__(self, base_video,video_for_mask = None, number_spots=10, number_frames=20, step_size =1, diffusion_coefficient =0.01, simulated_trajectories_ch0=None, size_spot_ch0=5, spot_sigma_ch0=2, simulated_trajectories_ch1=[0], size_spot_ch1=5, spot_sigma_ch1=2, simulated_trajectories_ch2=[0], size_spot_ch2=5, spot_sigma_ch2=2, ignore_ch0=0,ignore_ch1=1, ignore_ch2=1,save_as_tif_uint8 =0, save_as_tif=0, save_as_gif=0, save_dataframe=0, saved_file_name='temp',create_temp_folder = True,intensity_calculation_method='gaussian_fit'):        
+    def __init__(self, base_video,video_for_mask = None, number_spots=10, number_frames=20, step_size =1, diffusion_coefficient =0.01, simulated_trajectories_ch0=None, size_spot_ch0=5, spot_sigma_ch0=2, simulated_trajectories_ch1=[0], size_spot_ch1=5, spot_sigma_ch1=2, simulated_trajectories_ch2=[0], size_spot_ch2=5, spot_sigma_ch2=2, ignore_ch0=0,ignore_ch1=1, ignore_ch2=1,save_as_tif_uint8 =0, save_as_tif=0, save_as_gif=0, save_dataframe=0, saved_file_name='temp',create_temp_folder = True,intensity_calculation_method='gaussian_fit',using_for_multiplexing=0):        
         self.intensity_calculation_method = intensity_calculation_method
         #self.base_video = base_video
         MAXIMUM_INTENSITY_IN_BASE_VIDEO = 1000
-        base_video = RemoveExtrema(base_video, min_percentile=0, max_percentile=99.5,ignore_channel =None).remove_outliers()
-        base_video = ScaleIntensity(base_video, scale_maximum_value=MAXIMUM_INTENSITY_IN_BASE_VIDEO,ignore_channel =None).apply_scale()
+        if using_for_multiplexing == 0:
+            base_video = RemoveExtrema(base_video, min_percentile=0, max_percentile=99.5,ignore_channel =None).remove_outliers()
+            base_video = ScaleIntensity(base_video, scale_maximum_value=MAXIMUM_INTENSITY_IN_BASE_VIDEO,ignore_channel =None).apply_scale()
         self.base_video = base_video
         
         if not (video_for_mask is None):
@@ -2857,14 +2858,14 @@ class SimulatedCellMultiplexing ():
             gene_obj.ke = ke
             rss.solver.protein = gene_obj #pass the protein object
             t_burnin = 1000
-            t = np.linspace(0,t_burnin+frames,t_burnin+frames+1)    # ask Will how to pass the step_size
+            t = np.linspace(0,t_burnin+frames,t_burnin+frames+1)    # ask Will how to pass the step_size. (start, stop, num)
             ssa_solution = rss.solver.solve_ssa(gene_obj.kelong, t, ki=ki, kt = ke, low_memory=False,record_stats=False,n_traj=n_traj)    
             time_ssa = ssa_solution.time[t_burnin:-1]
             time_ssa = time_ssa-t_burnin
             ssa_int =  ssa_solution.intensity_vec[0,t_burnin:-1,:].T
             return ssa_solution.time[t_burnin:-1], ssa_int        
         # Wrapper for the simulated cell
-        def wrapper_SimulatedCell (base_video,video_for_mask=None, ssa=None, target_channel=1, diffusion_coefficient=0.05, step_size=1,spot_size=5, spot_sigma=2,intensity_calculation_method='disk_donut'):
+        def wrapper_SimulatedCell (base_video,video_for_mask=None, ssa=None, target_channel=1, diffusion_coefficient=0.05, step_size=1,spot_size=5, spot_sigma=2,intensity_calculation_method='disk_donut',using_for_multiplexing=0):
             if target_channel ==0:
                 ignore_ch0=0; ignore_ch1=1; ignore_ch2=1
             elif target_channel ==1:
@@ -2873,7 +2874,7 @@ class SimulatedCellMultiplexing ():
                 ignore_ch0=0; ignore_ch1=1; ignore_ch2=0
             number_spots_per_cell = ssa.shape[0]
             simulation_time_in_sec =  ssa.shape[1]  # THIS NEEDS TO BE UPDATED TO ALLOW THE USER TO GIVE DIFFERENT STEP_SIZE
-            tensor_video , _ , _, _, _, DataFrame_particles_intensities = SimulatedCell( base_video=base_video,video_for_mask=video_for_mask, number_spots = number_spots_per_cell, number_frames=simulation_time_in_sec, step_size=step_size, diffusion_coefficient =diffusion_coefficient, simulated_trajectories_ch0=None, size_spot_ch0=spot_size, spot_sigma_ch0=spot_sigma, simulated_trajectories_ch1=ssa, size_spot_ch1=spot_size, spot_sigma_ch1=spot_sigma, simulated_trajectories_ch2=ssa, size_spot_ch2=spot_size, spot_sigma_ch2=spot_sigma, ignore_ch0=ignore_ch0,ignore_ch1=ignore_ch1, ignore_ch2=ignore_ch2,save_as_tif_uint8=0,save_as_tif =0,save_as_gif=0, save_dataframe=0, saved_file_name=None,create_temp_folder = False,intensity_calculation_method=intensity_calculation_method).make_simulation()      
+            tensor_video , _ , _, _, _, DataFrame_particles_intensities = SimulatedCell( base_video=base_video,video_for_mask=video_for_mask, number_spots = number_spots_per_cell, number_frames=simulation_time_in_sec, step_size=step_size, diffusion_coefficient =diffusion_coefficient, simulated_trajectories_ch0=None, size_spot_ch0=spot_size, spot_sigma_ch0=spot_sigma, simulated_trajectories_ch1=ssa, size_spot_ch1=spot_size, spot_sigma_ch1=spot_sigma, simulated_trajectories_ch2=ssa, size_spot_ch2=spot_size, spot_sigma_ch2=spot_sigma, ignore_ch0=ignore_ch0,ignore_ch1=ignore_ch1, ignore_ch2=ignore_ch2,save_as_tif_uint8=0,save_as_tif =0,save_as_gif=0, save_dataframe=0, saved_file_name=None,create_temp_folder = False,intensity_calculation_method=intensity_calculation_method,using_for_multiplexing=using_for_multiplexing).make_simulation()      
             return tensor_video, DataFrame_particles_intensities   # [cell_number, particle, frame, red_int_mean, green_int_mean, blue_int_mean, red_int_std, green_int_std, blue_int_std, x, y].     
         # Runs the SSA and the simulated cell functions
         list_DataFrame_particles_intensities= []
@@ -2882,7 +2883,7 @@ class SimulatedCellMultiplexing ():
             if i == 0 :
                 tensor_video , DataFrame_particles_intensities = wrapper_SimulatedCell(self.inial_video, video_for_mask = self.inial_video, ssa=ssa_solution, target_channel=self.list_target_channels[i], diffusion_coefficient=self.list_diffusion_coefficients[i])        
             else:
-                tensor_video , DataFrame_particles_intensities = wrapper_SimulatedCell(tensor_video, video_for_mask = self.inial_video, ssa=ssa_solution, target_channel=self.list_target_channels[i], diffusion_coefficient=self.list_diffusion_coefficients[i])        
+                tensor_video , DataFrame_particles_intensities = wrapper_SimulatedCell(tensor_video, video_for_mask = self.inial_video, ssa=ssa_solution, target_channel=self.list_target_channels[i], diffusion_coefficient=self.list_diffusion_coefficients[i],using_for_multiplexing=1)        
             list_DataFrame_particles_intensities.append(DataFrame_particles_intensities)
         
         # Adding a classification column to all dataframes
