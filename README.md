@@ -8,13 +8,11 @@ Authors: Luis U. Aguilera, William Raymond, Brooke Silagy, Brian Munsky.
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 
-> :warning: **This software is in a very early and experimental stage**: at this point is inteded to be used for testing and debugging purpuses!
+> :warning: **This software is in a very early and experimental stage**: at this point, it is intended to be used for testing and debugging purposes!
 
 ## Description
 
-This library is intended to quantify single-molecules gene expression experiments. Specifically, the code uses [Cellpose](https://github.com/MouseLand/cellpose) to segment the cell in the image. Then, it uses [Trackpy](http://soft-matter.github.io/trackpy/dev/index.html) to detect spots inside the mask. Finally, it uses the spot position to quantify the spot intensity. The code also generates simulated data using [rSNAPsim](https://github.com/MunskyGroup/rSNAPsim).
-
-The code use the following dependencies: `cellpose` for automated cell segmentation, `trackpy` for particle tracking, and `rsnapsim` to simulate RNA fluorescence intensity.
+This library is intended to quantify single-molecule gene expression experiments. Specifically, the code uses [Cellpose](https://github.com/MouseLand/cellpose) to segment the cell in the image. Then, it uses [Trackpy](http://soft-matter.github.io/trackpy/dev/index.html) to detect spots inside the mask. Finally, it uses the spot position to quantify the spot intensity. The code also generates simulated data using [rSNAPsim](https://github.com/MunskyGroup/rSNAPsim).
 
 ## Usage
 
@@ -26,7 +24,7 @@ The code use the following dependencies: `cellpose` for automated cell segmentat
 
 ## Simulating translation
 
-The code is intended to simulated single-molecule translation. A  video with the simulated cell and a data frame containing spot and intensity positions are generated. This simulation can be used to train new algorithms or for training new students.
+The code is intended to simulated single-molecule translation. A  video with the simulated cell and a data frame containing spot and intensity positions are generated. This simulation can be used to train new algorithms or for teaching new students.
 
 ## Installation
 

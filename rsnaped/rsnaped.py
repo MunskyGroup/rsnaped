@@ -17,6 +17,14 @@ Authors: Luis U. Aguilera, William Raymond, Brooke Silagy, Brian Munsky.
 
 import_libraries =1
 if import_libraries ==1:
+    
+    # To manipulate arrays
+    import pkg_resources
+    pkg_resources.require("numpy>=`1.20.1")  #  to use specific numpy version
+    import numpy as np  
+    from numpy import unravel_index
+    # To run stochastic simulations
+    import rsnapsim as rss
     # System libraries
     import io
     import sys
@@ -26,9 +34,6 @@ if import_libraries ==1:
     import random
     import math
     from math import nan
-    # To manipulate arrays
-    import numpy as np  
-    from numpy import unravel_index
     # For data frames
     import pandas as pd   
     # Ignoring warnings
@@ -2150,6 +2155,8 @@ class Intensity():
             #mean_intensity_donut = recentered_image_donut[recentered_image_donut!=0].mean() # mean calculation ignoring zeros
             
             spot_intensity_disk_donut_std = recentered_image_donut[recentered_image_donut!=0].std() # mean calculation ignoring zeros
+            
+            spot_intensity_disk_donut_std= np.nan_to_num(spot_intensity_disk_donut_std)
             # substracting background minus center intensity
             #print((mean_intensity_disk - mean_intensity_donut), mean_intensity_disk , mean_intensity_donut)
             #spot_intensity_disk_donut = np.array( mean_intensity_disk - mean_intensity_donut, dtype=np.float32)
@@ -2580,8 +2587,8 @@ class SimulatedCell():
             MAX_INTENSITY_ALL_SPOTS = 5000 # maximum allowed intensity for a given spot
             MAX_INTENSITY_IN_UINT16 = 65535 # maximum value in a unint16 image
             # The following two constants are weights used to define a range of intensities for the simulated spots.
-            MIN_INTENSITY_SPOT_WEIGHT = 1.2 # 1.05 lower weight that multiplays the mean intensity value in the image to define the simulated spot intensity.
-            MAX_INTENSITY_SPOT_WEIGHT = 2 # 1.5 higher weight that multiplays the mean intensity value in the image to define the simulated spot intensity.
+            MIN_INTENSITY_SPOT_WEIGHT = 1.1 # 1.05 lower weight that multiplays the mean intensity value in the image to define the simulated spot intensity.
+            MAX_INTENSITY_SPOT_WEIGHT = 1.6 # 1.5 higher weight that multiplays the mean intensity value in the image to define the simulated spot intensity.
             for point_index in range(0,len(center_positions_vector)):
                 # Section that creates the Gaussian Kernel Matrix
                 ax = np.linspace(-(size_spot - 1) / 2., (size_spot - 1) / 2., size_spot)        
@@ -2825,6 +2832,98 @@ class SimulatedCell():
             dataframe_particles.to_csv(save_to_path+self.saved_file_name +'_df'+ '.csv', index = True)
         return tensor_video , tensor_for_image_j , spot_positions_movement, tensor_mean_intensity_in_figure, tensor_std_intensity_in_figure, dataframe_particles
 
+
+class SimulatedCellMultiplexing ():
+    def __init__(self,inial_video,list_gene_sequences,list_number_spots,list_target_channels,list_diffusion_coefficients,list_label_names,simulation_time_in_sec,step_size_in_sec,save_as_tif, save_dataframe, saved_file_name,create_temp_folder):
+        self.inial_video = inial_video
+        self.list_gene_sequences = list_gene_sequences
+        self.list_number_spots = list_number_spots
+        self.list_target_channels = list_target_channels
+        self.list_diffusion_coefficients = list_diffusion_coefficients
+        self.list_label_names = list_label_names
+        self.simulation_time_in_sec = simulation_time_in_sec
+        self.step_size_in_sec = step_size_in_sec
+        self.number_genes = len(list_gene_sequences)
+        self.save_as_tif = save_as_tif
+        self.save_dataframe = save_dataframe
+        self.saved_file_name = saved_file_name
+        self.create_temp_folder = create_temp_folder
+        
+    def make_simulation (self):
+        # FUNCTION THAT RUNS THE SSA IN rSNAPsim
+        def rsnapsim_ssa(gene_file,ke =3,ki=0.033,frames=100,n_traj=20):
+            poi_strs, poi_objs, tagged_pois,raw_seq = rss.seqmanip.open_seq_file(gene_file)
+            gene_obj = tagged_pois['1'][0]
+            gene_obj.ke = ke
+            rss.solver.protein = gene_obj #pass the protein object
+            t_burnin = 1000
+            t = np.linspace(0,t_burnin+frames,t_burnin+frames+1)    # ask Will how to pass the step_size
+            ssa_solution = rss.solver.solve_ssa(gene_obj.kelong, t, ki=ki, kt = ke, low_memory=False,record_stats=False,n_traj=n_traj)    
+            time_ssa = ssa_solution.time[t_burnin:-1]
+            time_ssa = time_ssa-t_burnin
+            ssa_int =  ssa_solution.intensity_vec[0,t_burnin:-1,:].T
+            return ssa_solution.time[t_burnin:-1], ssa_int        
+        # Wrapper for the simulated cell
+        def wrapper_SimulatedCell (base_video,video_for_mask=None, ssa=None, target_channel=1, diffusion_coefficient=0.05, step_size=1,spot_size=5, spot_sigma=2,intensity_calculation_method='disk_donut'):
+            if target_channel ==0:
+                ignore_ch0=0; ignore_ch1=1; ignore_ch2=1
+            elif target_channel ==1:
+                ignore_ch0=0; ignore_ch1=0; ignore_ch2=1
+            elif target_channel ==2:
+                ignore_ch0=0; ignore_ch1=1; ignore_ch2=0
+            number_spots_per_cell = ssa.shape[0]
+            simulation_time_in_sec =  ssa.shape[1]  # THIS NEEDS TO BE UPDATED TO ALLOW THE USER TO GIVE DIFFERENT STEP_SIZE
+            tensor_video , _ , _, _, _, DataFrame_particles_intensities = SimulatedCell( base_video=base_video,video_for_mask=video_for_mask, number_spots = number_spots_per_cell, number_frames=simulation_time_in_sec, step_size=step_size, diffusion_coefficient =diffusion_coefficient, simulated_trajectories_ch0=None, size_spot_ch0=spot_size, spot_sigma_ch0=spot_sigma, simulated_trajectories_ch1=ssa, size_spot_ch1=spot_size, spot_sigma_ch1=spot_sigma, simulated_trajectories_ch2=ssa, size_spot_ch2=spot_size, spot_sigma_ch2=spot_sigma, ignore_ch0=ignore_ch0,ignore_ch1=ignore_ch1, ignore_ch2=ignore_ch2,save_as_tif_uint8=0,save_as_tif =0,save_as_gif=0, save_dataframe=0, saved_file_name=None,create_temp_folder = False,intensity_calculation_method=intensity_calculation_method).make_simulation()      
+            return tensor_video, DataFrame_particles_intensities   # [cell_number, particle, frame, red_int_mean, green_int_mean, blue_int_mean, red_int_std, green_int_std, blue_int_std, x, y].     
+        # Runs the SSA and the simulated cell functions
+        list_DataFrame_particles_intensities= []
+        for i in range(0,self.number_genes):
+            _ , ssa_solution = rsnapsim_ssa(self.list_gene_sequences[i],ke =3, ki=0.033,frames=self.simulation_time_in_sec,n_traj=self.list_number_spots[i])
+            if i == 0 :
+                tensor_video , DataFrame_particles_intensities = wrapper_SimulatedCell(self.inial_video, video_for_mask = self.inial_video, ssa=ssa_solution, target_channel=self.list_target_channels[i], diffusion_coefficient=self.list_diffusion_coefficients[i])        
+            else:
+                tensor_video , DataFrame_particles_intensities = wrapper_SimulatedCell(tensor_video, video_for_mask = self.inial_video, ssa=ssa_solution, target_channel=self.list_target_channels[i], diffusion_coefficient=self.list_diffusion_coefficients[i])        
+            list_DataFrame_particles_intensities.append(DataFrame_particles_intensities)
+        
+        # Adding a classification column to all dataframes
+        for i in range(0,self.number_genes):
+            classification = self.list_label_names[i]
+            list_DataFrame_particles_intensities[i]['Classification'] = classification
+        
+            
+        
+        # Increasing the particle number
+        for i in range(0,self.number_genes):
+            if i > 0:
+                number_spots_for_previous_genes = np.sum(self.list_number_spots[0:i])
+                list_DataFrame_particles_intensities[i]['particle'] = list_DataFrame_particles_intensities[i]['particle'] + number_spots_for_previous_genes 
+        
+        # Merging multiple dataframes in a single one.
+        dataframe_simulated_cell = pd.concat(list_DataFrame_particles_intensities)
+        
+        # saving the simulated video and data frame
+        if self.save_as_tif==1:
+            if self.create_temp_folder == True:
+                save_to_path = 'temp/'
+                if not os.path.exists(save_to_path):
+                    os.makedirs(save_to_path)
+                print ("The output is saved in the directory: ./" , save_to_path[0:-1])
+            else:
+                save_to_path=''
+            tifffile.imwrite(save_to_path+self.saved_file_name+'.tif', tensor_video)
+        
+        if self.save_dataframe==1:
+            if self.create_temp_folder == True:
+                save_to_path = 'temp/'
+                if not os.path.exists(save_to_path):
+                    os.makedirs(save_to_path)
+                print ("The output is saved in the directory: ./" , save_to_path[0:-1])
+            else:
+                save_to_path='temp/'
+            dataframe_simulated_cell.to_csv(save_to_path+self.saved_file_name +'_df'+ '.csv', index = True)
+        
+        return tensor_video, dataframe_simulated_cell
+    
 
 class PipelineTracking():
     '''
