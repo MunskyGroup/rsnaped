@@ -59,7 +59,7 @@ ipywidgets (7.5.1) <br />
  Stringer, Carsen, et al. "Cellpose: a generalist algorithm for cellular segmentation." Nature Methods 18.1 (2021): 100-106.
 
 ## Licenses for dependencies
-- License for [rSNAPsim](https://github.com/MunskyGroup/rSNAPsim): [MIT](https://choosealicense.com/licenses/mit/).
+- License for [rSNAPsim](https://github.com/MunskyGroup/rSNAPsim): [MIT](https://choosealicense.com/licenses/mit/). Copyright © 2018 Dr. Luis Aguilera, William Raymond
 - License for [Trackpy](http://soft-matter.github.io/trackpy/dev/index.html): BSD-3-Clause.
 Copyright © 2013-2014 trackpy contributors
    https://github.com/soft-matter/trackpy
