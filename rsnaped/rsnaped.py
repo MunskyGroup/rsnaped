@@ -1932,7 +1932,6 @@ class Trackpy():
         # non-linear filter
         def nl_filter(image):
             temp_image= img_as_float64(image)
-            
             sigma_est = np.mean(estimate_sigma(temp_image, multichannel=True))
             denoise_img = denoise_nl_means(temp_image, h=sigma_est, fast_mode=True,patch_size=10, patch_distance=3, multichannel=False)
             return img_as_uint(denoise_img)
@@ -1949,7 +1948,10 @@ class Trackpy():
             video_removed_mask = np.einsum('ijk,jk->ijk', temp_video_bp_filtered, self.mask)
             f_init = tp.locate(video_removed_mask[0,:,:], self.particle_size, minmass=0, max_iterations=100,preprocess=False, percentile=percentile) 
             #min_int_in_video = np.mean(f_init.mass.values) + self.default_threshold_int_std*np.std(f_init.mass.values)
-            min_int_in_video = np.amax( (0, np.mean(f_init.mass.values) + self.default_threshold_int_std *np.std(f_init.mass.values)))
+            try:
+                min_int_in_video = np.amax( (0, np.mean(f_init.mass.values) + self.default_threshold_int_std *np.std(f_init.mass.values)))
+            except:
+                min_int_in_video = 0 
             f = tp.batch(video_removed_mask[:,:,:],self.particle_size, minmass=min_int_in_video, processes='auto',max_iterations=1000,preprocess=False, percentile=percentile)
             t = tp.link_df(f,(self.max_distance_particle_moves,self.max_distance_particle_moves), memory=self.min_time_particle_vanishes, adaptive_stop = 1,link_strategy='auto') # tp.link_df(data_frame, min_distance_particle_moves, min_time_particle_vanish). 
             t_sel = tp.filter_stubs(t, self.minimal_frames)  # selecting trajectories that appear in at least 10 frames.
@@ -1968,11 +1970,14 @@ class Trackpy():
                     f_init = tp.locate(video_removed_mask[0,:,:], self.particle_size, minmass=0, max_iterations=100,preprocess=False, percentile=percentile) 
                     #print(int_optimization_value)
                     #### OPTIMIZATION VARIABLE:  min_int_in_video
-                    min_int_in_video = np.amax( (0,  np.mean(f_init.mass.values) + int_optimization_value *np.std(f_init.mass.values)))
-                    f = tp.batch(video_removed_mask[:,:,:],self.particle_size, minmass=min_int_in_video, processes='auto',max_iterations=1000,preprocess=False, percentile=percentile)
-                    t = tp.link_df(f,(self.max_distance_particle_moves,self.max_distance_particle_moves), memory=self.min_time_particle_vanishes, adaptive_stop = 1,link_strategy='auto') # tp.link_df(data_frame, min_distance_particle_moves, min_time_particle_vanish). 
-                    t_sel = tp.filter_stubs(t, self.minimal_frames)  # selecting trajectories that appear in at least 10 frames.
-                    num_detected_particles[index_p] = t_sel['particle'].nunique()
+                    try:
+                        min_int_in_video = np.amax( (0,  np.mean(f_init.mass.values) + int_optimization_value *np.std(f_init.mass.values)))
+                        f = tp.batch(video_removed_mask[:,:,:],self.particle_size, minmass=min_int_in_video, processes='auto',max_iterations=1000,preprocess=False, percentile=percentile)
+                        t = tp.link_df(f,(self.max_distance_particle_moves,self.max_distance_particle_moves), memory=self.min_time_particle_vanishes, adaptive_stop = 1,link_strategy='auto') # tp.link_df(data_frame, min_distance_particle_moves, min_time_particle_vanish). 
+                        t_sel = tp.filter_stubs(t, self.minimal_frames)  # selecting trajectories that appear in at least 10 frames.
+                        num_detected_particles[index_p] = t_sel['particle'].nunique()
+                    except:
+                        num_detected_particles[index_p] = 0    
                     #print(num_detected_particles[index_p])
                 except:
                      num_detected_particles[index_p]  = 0
@@ -1993,21 +1998,18 @@ class Trackpy():
                     center_modes =0
                 index_containin_central_mode = np.where(num_detected_particles_with_nans == mode_detected_particles)[0][center_modes]
                 selected_int_optimized = min_int_vector[index_containin_central_mode] 
-                
                 #print(selected_int_optimized)
-                
                 #selected_filter = vector_highpass_filters[index_containin_central_mode] # selecting the intensity for the first instance where the mode appears in the vector_intensities
                 temp_vid_dif_filter = Parallel(n_jobs=self.num_cores)(delayed(bandpass_filter)(self.video[i,:,:],self.low_pass_filter,self.default_highpass) for i in range(0,self.time_points))
                 #temp_vid_dif_filter = Parallel(n_jobs=self.num_cores)(delayed(bandpass_filter)(self.video[i,:,:],self.low_pass_filter,selected_filter) for i in range(0,self.time_points)) 
                 temp_video_bp_filtered = np.asarray(temp_vid_dif_filter)
                 #temp_video_bp_filtered = self.video
                 video_removed_mask = np.einsum('ijk,jk->ijk', temp_video_bp_filtered, self.mask)
-                f_init = tp.locate(video_removed_mask[0,:,:], self.particle_size, minmass=0, max_iterations=100,preprocess=False, percentile=percentile) 
+                #f_init = tp.locate(video_removed_mask[0,:,:], self.particle_size, minmass=0, max_iterations=100,preprocess=False, percentile=percentile) 
                 #### OPTIMIZATION VARIABLE:  min_int_in_video
-                
                 #min_int_in_video = np.mean(f_init.mass.values) + selected_int_optimized*np.std(f_init.mass.values)
-                min_int_in_video = np.amax( (0,  np.mean(f_init.mass.values) + selected_int_optimized *np.std(f_init.mass.values)))
-                f = tp.batch(video_removed_mask[:,:,:],self.particle_size, minmass=min_int_in_video, processes='auto',max_iterations=1000,preprocess=False, percentile=percentile)
+                #min_int_in_video =selected_int_optimized  #np.amax( (0,  np.mean(f_init.mass.values) + selected_int_optimized *np.std(f_init.mass.values)))
+                f = tp.batch(video_removed_mask[:,:,:],self.particle_size, minmass=selected_int_optimized, processes='auto',max_iterations=1000,preprocess=False, percentile=percentile)
                 t = tp.link_df(f,(self.max_distance_particle_moves,self.max_distance_particle_moves), memory=self.min_time_particle_vanishes, adaptive_stop = 1,link_strategy='auto') # tp.link_df(data_frame, min_distance_particle_moves, min_time_particle_vanish). 
                 t_sel = tp.filter_stubs(t, self.minimal_frames)  # selecting trajectories that appear in at least 10 frames.
                 number_particles = t_sel['particle'].nunique()
