@@ -1378,6 +1378,10 @@ class Cellpose():
         selected_masks, _, _, _ = model.eval(self.video,normalize=True,cellprob_threshold =selected_probability, diameter=self.diameter,min_size=-1, channels=self.channels, progress=None)
         selected_masks[0,:]=0;selected_masks[:,0]=0;selected_masks[selected_masks.shape[0]-1,:]=0;selected_masks[:,selected_masks.shape[1]-1]=0#This line of code ensures that the corners are zeros.
         # reactivating outputs
+        
+        if np.amax(selected_masks)==0:
+            selected_masks = None
+            print('No cells detected on the image')
         sys.stdout.close()
         sys.stdout = old_stdout
         return selected_masks
@@ -1629,6 +1633,10 @@ class CellposeSelection():
                 selected_mask = temp_mask + (self.mask==pre_selected_mask) # Selecting a single mask and making this mask equal to one and the background equal to zero.
             else:  # do nothing if only a single mask is detected per image.
                 selected_mask = self.mask
+                
+            if np.amax(selected_mask)==0:
+                selected_mask = None
+                print('No mask was selected in the image.')
         return selected_mask
 
 
@@ -1891,7 +1899,7 @@ class Trackpy():
         self.default_highpass = 10
         self.gaussian_filter_sigma = 0.5
         self.median_filter_size = 5
-        self.perecentile_intensity_slection = 80 #75
+        self.perecentile_intensity_slection = 75 #75
         self.max_highpass = 10
         self.min_highpass = 0.1
         
@@ -1952,11 +1960,15 @@ class Trackpy():
                 min_int_in_video = np.amax( (0, np.mean(f_init.mass.values) + self.default_threshold_int_std *np.std(f_init.mass.values)))
             except:
                 min_int_in_video = 0 
-            f = tp.batch(video_removed_mask[:,:,:],self.particle_size, minmass=min_int_in_video, processes='auto',max_iterations=1000,preprocess=False, percentile=percentile)
-            t = tp.link_df(f,(self.max_distance_particle_moves,self.max_distance_particle_moves), memory=self.min_time_particle_vanishes, adaptive_stop = 1,link_strategy='auto') # tp.link_df(data_frame, min_distance_particle_moves, min_time_particle_vanish). 
-            t_sel = tp.filter_stubs(t, self.minimal_frames)  # selecting trajectories that appear in at least 10 frames.
-            number_particles = t_sel['particle'].nunique()
-            trackpy_dataframe = t_sel
+            try:
+                f = tp.batch(video_removed_mask[:,:,:],self.particle_size, minmass=min_int_in_video, processes='auto',max_iterations=1000,preprocess=False, percentile=percentile)
+                t = tp.link_df(f,(self.max_distance_particle_moves,self.max_distance_particle_moves), memory=self.min_time_particle_vanishes, adaptive_stop = 1,link_strategy='auto') # tp.link_df(data_frame, min_distance_particle_moves, min_time_particle_vanish). 
+                t_sel = tp.filter_stubs(t, self.minimal_frames)  # selecting trajectories that appear in at least 10 frames.
+                number_particles = t_sel['particle'].nunique()
+                trackpy_dataframe = t_sel
+            except:
+                number_particles = []
+                trackpy_dataframe = None
         
         
         else: # This section uses optimization to select the optimal value for the filter size.
@@ -2016,7 +2028,7 @@ class Trackpy():
                 trackpy_dataframe = t_sel
             except:
                 number_particles = 0
-                trackpy_dataframe = []
+                trackpy_dataframe = None
                 self.show_plot = 0
                 selected_int_optimized =0
             
@@ -2992,29 +3004,55 @@ class PipelineTracking():
         '''
         start = timer()
         selected_masks = Cellpose(self.image,num_iterations=10, selection_method='max_cells',diameter=self.average_cell_diameter ).calculate_masks() # options are 'max_area' or 'max_cells'
-        selected_mask  = CellposeSelection(selected_masks,self.video, slection_method = self.mask_selection_method, particle_size=self.particle_size, selected_channel=self.selected_channel).select_mask()
+        if not ( selected_masks is None):
+            selected_mask  = CellposeSelection(selected_masks,self.video, slection_method = self.mask_selection_method, particle_size=self.particle_size, selected_channel=self.selected_channel).select_mask()
+        else:
+            selected_mask= None
         end = timer()
         print('mask time:',round(end - start), ' sec')
-        # Tracking
-        start = timer()
-        if self.num_frames >20:
-            minimal_frames =  int(self.num_frames*0.4) # minimal number of frames to consider a trajectory
+        
+         
+        if not ( selected_mask is None):
+            # Tracking
+            start = timer()
+            if self.num_frames >20:
+                minimal_frames =  int(self.num_frames*0.4) # minimal number of frames to consider a trajectory
+            else:
+                minimal_frames =  int(self.num_frames*0.3) # minimal number of frames to consider a trajectory
+            if self.use_optimization_for_tracking ==1:
+                use_defaul_filter = 0
+            else:
+                use_defaul_filter = 1
+            
+            Dataframe_trajectories, number_detected_trajectories, filtered_video = Trackpy(self.video,selected_mask,particle_size=self.particle_size, selected_channel=self.selected_channel,minimal_frames=minimal_frames,optimization_iterations = 40,use_defaul_filter=use_defaul_filter, show_plot =0).perform_tracking()   
+            end = timer()
+            print('tracking time:',round(end - start), ' sec')         
+            # Intensity calculation
+            start = timer()
+            if not ( Dataframe_trajectories is None):
+                dataframe_particles, array_intensities, time_vector, mean_intensities,std_intensities, mean_intensities_normalized, std_intensities_normalized = Intensity(self.video,self.particle_size,Dataframe_trajectories,method=self.intensity_calculation_method,show_plot=0 ).calculate_intensity()           
+            else:
+                dataframe_particles = None
+                array_intensities = None
+                time_vector = None
+                mean_intensities = None
+                std_intensities = None
+                mean_intensities_normalized = None 
+                std_intensities_normalized = None
+                
+            end = timer()
+            print('intensity calculation time:',round(end - start), ' sec')
+            if (self.show_plot ==1):
+                VisualizerImage(self.video,filtered_video,Dataframe_trajectories,self.file_name,list_mask_array = selected_mask,selected_channel=self.selected_channel,selected_timepoint=0,normalize=False,individual_figure_size=7,list_real_particle_positions=self.real_positions_dataframe).plot()
         else:
-            minimal_frames =  int(self.num_frames*0.3) # minimal number of frames to consider a trajectory
-        if self.use_optimization_for_tracking ==1:
-            use_defaul_filter = 0
-        else:
-            use_defaul_filter = 1
-        Dataframe_trajectories, number_detected_trajectories, filtered_video = Trackpy(self.video,selected_mask,particle_size=self.particle_size, selected_channel=self.selected_channel,minimal_frames=minimal_frames,optimization_iterations = 40,use_defaul_filter=use_defaul_filter, show_plot =0).perform_tracking()   
-        end = timer()
-        print('tracking time:',round(end - start), ' sec')         
-        # Intensity calculation
-        start = timer()
-        dataframe_particles, array_intensities, time_vector, mean_intensities,std_intensities, mean_intensities_normalized, std_intensities_normalized = Intensity(self.video,self.particle_size,Dataframe_trajectories,method=self.intensity_calculation_method,show_plot=0 ).calculate_intensity()           
-        end = timer()
-        print('intensity calculation time:',round(end - start), ' sec')
-        if self.show_plot ==1:
-            VisualizerImage(self.video,filtered_video,Dataframe_trajectories,self.file_name,list_mask_array = selected_mask,selected_channel=self.selected_channel,selected_timepoint=0,normalize=False,individual_figure_size=7,list_real_particle_positions=self.real_positions_dataframe).plot()
+            dataframe_particles = None
+            array_intensities = None
+            time_vector = None
+            mean_intensities = None
+            std_intensities = None
+            mean_intensities_normalized = None 
+            std_intensities_normalized = None
+            
         return dataframe_particles, array_intensities, time_vector, mean_intensities,std_intensities, mean_intensities_normalized, std_intensities_normalized
     
 
