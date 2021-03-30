@@ -1,0 +1,4 @@
+
+git config --global user.email "luisub"
+git config --global user.email "luisubald@gmail.com"
+unset SSH_ASKPASS
