@@ -16,7 +16,7 @@ setup(
     url = "https://github.com/MunskyGroup/rsnaped",
     package_dir ={'':'rsnaped'},
     packages=find_packages(where="rsnaped"),
-    install_requires=['matplotlib','numpy>=1.20.1','numba>=0.52.0','pandas','scikit-image','joblib','bqplot','scipy','cellpose>=0.6.1', 'pyfiglet','tifffile','opencv-python','trackpy','ipywidgets','tqdm','rSANPsim','rsnapsim-ssa-cpp'],
+    install_requires=['matplotlib','numpy>=1.20.1','numba>=0.52.0','pandas','scikit-image','joblib','bqplot','scipy','cellpose>=0.6.1', 'pyfiglet','tifffile','opencv-python','trackpy','ipywidgets','tqdm','rSNAPsim','rsnapsim-ssa-cpp'],
     classifiers=[
         "Development Status :: 2 - Pre-Alpha",
         "Topic :: Scientific/Engineering :: Bio-Informatics",
