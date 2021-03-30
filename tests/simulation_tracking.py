@@ -5,13 +5,9 @@ Created on Tue Mar 30 08:42:24 2021
 
 @author: luisub
 """
-
 ######################################
 ## Importing libraries
-import os
-import sys
-parent_path = os.path.abspath('../rsnaped')
-sys.path.append(parent_path)
+
 import rsnaped as rsp; 
 import argparse
 import os; from os import listdir; from os.path import isfile, join
@@ -26,6 +22,11 @@ import scipy
 import pandas as pd
 import shutil
 import itertools
+
+import os
+import sys
+parent_path = os.path.abspath('../rsnaped')
+sys.path.append(parent_path)
 
 ######################################
 ## User passed arguments
