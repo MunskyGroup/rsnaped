@@ -1,5 +1,3 @@
-#!/usr/bin/env python3
-# -*- coding: utf-8 -*-
 """
 Created on Tue Mar 30 08:42:24 2021
 
@@ -7,6 +5,11 @@ Created on Tue Mar 30 08:42:24 2021
 """
 ######################################
 ## Importing libraries
+import os
+import sys
+parent_path = os.path.abspath('../rsnaped')
+sys.path.append(parent_path)
+import rsnaped as rsp
 
 import argparse
 import os; from os import listdir; from os.path import isfile, join
@@ -22,11 +25,6 @@ import pandas as pd
 import shutil
 import itertools
 
-import os
-import sys
-parent_path = os.path.abspath('../rsnaped')
-sys.path.append(parent_path)
-import rsnaped as rsp
 
 ######################################
 ## User passed arguments
