@@ -56,7 +56,6 @@ if import_libraries ==1:
     from skimage.draw import polygon_perimeter
     from skimage.restoration import denoise_nl_means, estimate_sigma
     # Open cv
-    import cv2
     # Parallel computing
     from joblib import Parallel, delayed
     import multiprocessing
