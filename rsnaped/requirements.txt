@@ -14,5 +14,5 @@ torch >= 1.7.1
 opencv-python-headless >= 4.5.1.48
 natsort >= 7.1.1
 rSNAPsim>=0.0.13
-rsnapsim-ssa-cpp >= 0.0.12
 tqdm >=4.56.2
+rsnapsim-ssa-cpp == 0.0.12

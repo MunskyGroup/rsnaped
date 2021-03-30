@@ -5,6 +5,8 @@ enviroment.yml # txt file that saves the environment
 # this will create an enviroment for rsnaped
 conda env create --file python=3.8 rsnaped_env.yml
 
+conda create rsnaped_env
+
 # ativate
 conda activate rsnaped_env
     # add packages.
