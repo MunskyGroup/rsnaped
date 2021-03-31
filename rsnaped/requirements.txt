@@ -1,17 +1,17 @@
-numpy >= 1.20.0
+eigen
+cmake
 numba >= 0.52.0
-pandas >= 1.2.2
 scikit-image >= 0.18.1
 joblib >= 1.0.1
-bqplot >= 0.12.21
 scipy >= 1.6.0
-cellpose >= 0.6.1
+numpy >= 1.20.0
+pandas >= 1.2.2
+bqplot >= 0.12.21
 tifffile >= 2021.2.1
 trackpy >= 0.4.2
 ipywidgets >= 7.6.3
 llvmlite >= 0.35.0
 torch >= 1.7.1
-opencv-python-headless >= 4.5.1.48
 natsort >= 7.1.1
 rsnapsim>=0.0.13
 tqdm >=4.56.2

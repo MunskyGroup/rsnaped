@@ -21,7 +21,6 @@ from skimage.io import imread
 import pkg_resources
 pkg_resources.require("numpy>=`1.20.1")  #  to use specific numpy version
 import numpy as np
-from tqdm.notebook import tqdm
 import scipy
 import pandas as pd
 import shutil
@@ -33,16 +32,20 @@ import itertools
 parser = argparse.ArgumentParser(description='Pass number of cells, as int.')
 parser.add_argument('integers', metavar='N', type=int, nargs='+')
 args = parser.parse_args().integers
-print(args)
 if len (args) >0:
     number_of_simulated_cells = args[0]
 else:
     number_of_simulated_cells = 10
-print ('The number of simulated cells is: ', number_of_simulated_cells, '\n')
+
+if len (args) >1:
+    number_spots_per_cell = args[1]
+else:
+    number_spots_per_cell = 40    
+print ('################################################## \n')
+print ('Running simulation with number_of_simulated_cells = ', number_of_simulated_cells,  'and number_spots_per_cell = ',number_spots_per_cell, ' \n')
 
 ######################################
 ## Deffining parameters
-number_spots_per_cell = 41      
 simulation_time_in_sec = 30     
 diffusion_coefficient = 0.7 
 sel_timepoint = 0#simulation_time_in_sec-1
@@ -86,7 +89,7 @@ def fun_simulated_cells(number_of_simulated_cells=3,number_spots_per_cell=80,sim
         simulated_trajectories_ch2 =  ssa_trajectories[random_index_ch2,0:simulation_time_in_sec:step_size_in_sec]
         saved_file_name = save_to_path+'/sim_cell_'+str(cell_number)
         tensor_video , tensor_for_image_j , spot_positions_movement, tensor_mean_intensity_in_figure, tensor_std_intensity_in_figure, DataFrame_particles_intensities = rsp.SimulatedCell( base_video=video, number_spots = number_spots_per_cell, number_frames=simulation_time_in_sec, step_size=step_size_in_sec, diffusion_coefficient =diffusion_coefficient, simulated_trajectories_ch0=None, size_spot_ch0=spot_size, spot_sigma_ch0=spot_sigma, simulated_trajectories_ch1=simulated_trajectories_ch1, size_spot_ch1=spot_size, spot_sigma_ch1=spot_sigma, simulated_trajectories_ch2=simulated_trajectories_ch2, size_spot_ch2=spot_size, spot_sigma_ch2=spot_sigma, ignore_ch0=0,ignore_ch1=0, ignore_ch2=1,save_as_tif_uint8=0,save_as_tif =1,save_as_gif=0, save_dataframe=1, saved_file_name=saved_file_name,create_temp_folder = False, intensity_calculation_method=intensity_calculation_method).make_simulation()      
-        print ('The results are saved in folder: ', saved_file_name)
+        #print ('The results are saved in folder: ', saved_file_name)
     return save_to_path
 
 def remove_extrema(vector,min_percentile = 0 ,max_percentile = 100):
@@ -94,7 +97,7 @@ def remove_extrema(vector,min_percentile = 0 ,max_percentile = 100):
     vector = vector [vector>0]
     max_val = np.percentile(vector, max_percentile)
     min_val =  np.percentile(vector, min_percentile)
-    print(round(min_val,2),round(max_val,2))
+    #print(round(min_val,2),round(max_val,2))
     new_vector = vector [vector< max_val] # = np.percentile(vector,max_percentile)
     new_vector = new_vector [new_vector> min_val] # = np.percentile(vector, min_percentile)
     return new_vector
@@ -114,7 +117,7 @@ def running_tracking(number_of_simulated_cells,number_spots_per_cell,simulation_
     list_DataFrame_particles_intensities= []
     list_array_intensities = []
     list_time_vector = []
-    for i in tqdm(range(0,nimg)): 
+    for i in range(0,nimg): 
         DataFrame_particles_intensities, array_intensities, time_vector, mean_intensities,std_intensities, mean_intensities_normalized, std_intensities_normalized = rsp.PipelineTracking(list_videos[i],particle_size=particle_size,file_name=list_files_names[i],selected_channel=0,intensity_calculation_method =intensity_calculation_method, mask_selection_method = mask_selection_method,show_plot=0, use_optimization_for_tracking =use_optimization_for_tracking).run()    
         list_DataFrame_particles_intensities.append(DataFrame_particles_intensities)
         list_array_intensities.append(array_intensities)
@@ -177,6 +180,7 @@ for i in range (0,number_repetitions):
     ks_distance_tracking[i], ks_distance_image[i] = running_tracking(number_of_simulated_cells=number_of_simulated_cells,number_spots_per_cell=number_spots_per_cell,simulation_time_in_sec =simulation_time_in_sec,step_size_in_sec=1,particle_size=particle_size, diffusion_coefficient=diffusion_coefficient,path_to_rSNAPsim= None,intensity_calculation_method=intensity_calculation_method,use_optimization_for_tracking=use_optimization_for_tracking)
 
 ## Printing results
-print('The KS-distance between SSA and tracking is:' , ks_distance_tracking.round(2), '\n')
-print('The KS-distance between SSA and image is:' , ks_distance_image.round(2), '\n', '\n')
+print('The KS-distance between SSA and tracking is:' , ks_distance_tracking.round(2))
+print('The KS-distance between SSA and image is:' , ks_distance_image.round(2), '\n')
+print ('################################################## \n \n')
 

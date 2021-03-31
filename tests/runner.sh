@@ -1,8 +1,8 @@
 #!/bin/sh
-#$ -cwd
-#$ -N rsnaped_job
-#$ -o output_rsnaped.txt
-#$ -e error_rsnaped.err
-#$ -q munsky.q@node*
 
-/usr/local/anaconda3/bin/python3 simulation_tracking.py '$5'
+# Using a bash script to run multiple python codes.
+# This is a command line instructions with the following elements:
+# program -- file to run --  parameters n_cells and n_spots   -- output file
+python3 ./simulation_tracking.py 2 35 >> out.txt
+python3 ./simulation_tracking.py 2 33 >> out.txt
+

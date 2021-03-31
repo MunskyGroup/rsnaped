@@ -2527,17 +2527,17 @@ class PipelineTracking():
             Array with dimensions [S,T,C].
 
         '''
-        start = timer()
+        #start = timer()
         selected_masks = Cellpose(self.image,num_iterations=10, selection_method='max_cells',diameter=self.average_cell_diameter ).calculate_masks() # options are 'max_area' or 'max_cells'
         if not ( selected_masks is None):
             selected_mask  = CellposeSelection(selected_masks,self.video, slection_method = self.mask_selection_method, particle_size=self.particle_size, selected_channel=self.selected_channel).select_mask()
         else:
             selected_mask= None
-        end = timer()
-        print('mask time:',round(end - start), ' sec')         
+        #end = timer()
+        #print('mask time:',round(end - start), ' sec')         
         if not ( selected_mask is None):
             # Tracking
-            start = timer()
+            #start = timer()
             if self.num_frames >20:
                 minimal_frames =  int(self.num_frames*0.4) # minimal number of frames to consider a trajectory
             else:
@@ -2551,10 +2551,10 @@ class PipelineTracking():
             except:
                 Dataframe_trajectories = None
                 filtered_video = self.video
-            end = timer()
-            print('tracking time:',round(end - start), ' sec')         
+            #end = timer()
+            #print('tracking time:',round(end - start), ' sec')         
             # Intensity calculation
-            start = timer()
+            #start = timer()
             if not ( Dataframe_trajectories is None):
                 dataframe_particles, array_intensities, time_vector, mean_intensities,std_intensities, mean_intensities_normalized, std_intensities_normalized = Intensity(self.video,self.particle_size,Dataframe_trajectories,method=self.intensity_calculation_method,show_plot=0 ).calculate_intensity()           
             else:
@@ -2565,8 +2565,8 @@ class PipelineTracking():
                 std_intensities = None
                 mean_intensities_normalized = None 
                 std_intensities_normalized = None
-            end = timer()
-            print('intensity calculation time:',round(end - start), ' sec')
+            #end = timer()
+            #print('intensity calculation time:',round(end - start), ' sec')
             if (self.show_plot ==1):
                 VisualizerImage(self.video,filtered_video,Dataframe_trajectories,self.file_name,list_mask_array = selected_mask,selected_channel=self.selected_channel,selected_timepoint=0,normalize=False,individual_figure_size=7,list_real_particle_positions=self.real_positions_dataframe).plot()
         else:
