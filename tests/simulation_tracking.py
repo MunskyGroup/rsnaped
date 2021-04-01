@@ -26,7 +26,6 @@ import pandas as pd
 import shutil
 import itertools
 
-
 ######################################
 ## User passed arguments
 parser = argparse.ArgumentParser(description='Pass number of cells, as int.')
