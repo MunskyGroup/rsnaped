@@ -6,7 +6,7 @@
 
 # if statement 
 
-python3 ./simulation_tracking.py 50 35 >> out.txt
-python3 ./simulation_tracking.py 50 40 >> out.txt
-python3 ./simulation_tracking.py 50 33 >> out.txt
+#python3 ./simulation_tracking.py 50 35 >> out.txt
+#python3 ./simulation_tracking.py 50 40 >> out.txt
+python3 ./simulation_tracking.py "$1" "$2" >> out.txt
 
