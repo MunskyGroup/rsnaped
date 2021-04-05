@@ -24,7 +24,7 @@ conda env create --file python=3.8 rsnaped_env.yml
 conda activate rsnaped_env
 
 # Submit the job using the following command
-qsub ./test/runner_cluster.sh
+qsub ./tests/runner_cluster.sh
 
 # monitor the job using:
 qstat
@@ -32,3 +32,8 @@ qstat
 # if you need to cancell the job use:
 qdel <Job_Id>
 
+
+# If you need to pull changes from github use:
+git fetch --all
+git reset --hard origin/master
+git pull origin master
