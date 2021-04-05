@@ -1,0 +1,34 @@
+# Start connecting to the VPN
+sudo openconnect --juniper https://secure.colostate.edu
+
+# Connect to the cluster
+ssh bsilagy@ens-hpc.engr.colostate.edu
+
+# check the directory where you are located:
+pwd
+
+# Login to github 
+git config --global user.name "bsilagy"
+git config --global user.email "bsilagy@gmail.com"  # please check if this email address is correct
+unset SSH_ASKPASS
+
+# clone the github repository
+# git clone https://myusername@github.com/ownersusername/repo_name.git
+git clone https://bsilagy@github.com/MunskyGroup/rsnaped.git
+
+# Move to the repository and create a conda environment
+cd rsnaped
+
+# This will create and activate an environment for rsnaped
+conda env create --file python=3.8 rsnaped_env.yml
+conda activate rsnaped_env
+
+# Submit the job using the following command
+qsub ./test/runner_cluster.sh
+
+# monitor the job using:
+qstat
+
+# if you need to cancell the job use:
+qdel <Job_Id>
+

@@ -12,6 +12,7 @@ import sys
 parent_path = os.path.abspath('../rsnaped')
 sys.path.append(parent_path)
 import rsnaped as rsp
+
 import argparse
 import os; from os import listdir; from os.path import isfile, join
 import re  
@@ -24,7 +25,6 @@ import scipy
 import pandas as pd
 import shutil
 import itertools
-import random
 
 ######################################
 ## User passed arguments
@@ -46,7 +46,7 @@ print ('Running simulation with number_of_simulated_cells = ', number_of_simulat
 ######################################
 ## Deffining parameters
 simulation_time_in_sec = 30     
-diffusion_coefficient = 0.7 + round(random.uniform(0.01, 0.09),3) 
+diffusion_coefficient = 0.7 
 sel_timepoint = 0#simulation_time_in_sec-1
 mask_selection_method = 'max_area' # options are : 'max_spots' and 'max_area' 
 particle_size = 5 # spot size for the simulation and tracking.
@@ -63,7 +63,6 @@ def fun_simulated_cells(number_of_simulated_cells=3,number_spots_per_cell=80,sim
     directory_name = '/Simulation_V2__'+'ns_'+str(number_spots_per_cell) +'_diff_'+ diffusion_coefficient_string 
     path_to_save_output = './temp'
     save_to_path =  path_to_save_output + directory_name 
-
     if not os.path.exists(save_to_path):
         os.makedirs(save_to_path)
     else:
@@ -101,8 +100,6 @@ def remove_extrema(vector,min_percentile = 0 ,max_percentile = 100):
     new_vector = vector [vector< max_val] # = np.percentile(vector,max_percentile)
     new_vector = new_vector [new_vector> min_val] # = np.percentile(vector, min_percentile)
     return new_vector
-
-
 
 def running_tracking(number_of_simulated_cells,number_spots_per_cell,simulation_time_in_sec ,step_size_in_sec,particle_size, diffusion_coefficient,path_to_rSNAPsim,intensity_calculation_method,use_optimization_for_tracking):
     # running the simulation
@@ -171,7 +168,7 @@ def running_tracking(number_of_simulated_cells,number_spots_per_cell,simulation_
     # Calculating Kolmogorov distance
     ks_distance_tracking = scipy.stats.kstest(data_sorted_1,data_sorted_2).statistic
     ks_distance_image = scipy.stats.kstest(data_sorted_1,data_sorted_3).statistic
-    return ks_distance_tracking, ks_distance_image, path
+    return ks_distance_tracking, ks_distance_image
 
 ######################################
 ## Running the main function
@@ -179,17 +176,10 @@ intensity_calculation_method = 'disk_donut'  # options are : 'total_intensity' a
 ks_distance_tracking = np.zeros((number_repetitions))
 ks_distance_image = np.zeros((number_repetitions))
 for i in range (0,number_repetitions):
-    ks_distance_tracking[i], ks_distance_image[i],path = running_tracking(number_of_simulated_cells=number_of_simulated_cells,number_spots_per_cell=number_spots_per_cell,simulation_time_in_sec =simulation_time_in_sec,step_size_in_sec=1,particle_size=particle_size, diffusion_coefficient=diffusion_coefficient,path_to_rSNAPsim= None,intensity_calculation_method=intensity_calculation_method,use_optimization_for_tracking=use_optimization_for_tracking)
+    ks_distance_tracking[i], ks_distance_image[i] = running_tracking(number_of_simulated_cells=number_of_simulated_cells,number_spots_per_cell=number_spots_per_cell,simulation_time_in_sec =simulation_time_in_sec,step_size_in_sec=1,particle_size=particle_size, diffusion_coefficient=diffusion_coefficient,path_to_rSNAPsim= None,intensity_calculation_method=intensity_calculation_method,use_optimization_for_tracking=use_optimization_for_tracking)
 
 ## Printing results
 print('The KS-distance between SSA and tracking is:' , ks_distance_tracking.round(2))
 print('The KS-distance between SSA and image is:' , ks_distance_image.round(2), '\n')
 print ('################################################## \n \n')
 
-
-# This section removes the folder		
-try:
-	from shutil import rmtree
-	rmtree(path)
-except: 
-    pass
