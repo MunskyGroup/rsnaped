@@ -1954,8 +1954,14 @@ class SimulatedCell():
         Creates a folder with the simulation output. The default is True.
     intensity_calculation_method : str, optional
         Method to calculate intensity the options are : 'total_intensity' , 'disk_donut' and 'gaussian_fit'. The default is 'disk_donut'.
+    using_for_multiplexing : bool, optional
+        Flag that indicates that multiple genes are simulated per cell.
+    min_int_multiplexing : float or None, optional
+        Indicates the minimal SSA value for all simulated genes in a multplexing experiment. The default is None.
+    max_int_multiplexing : float or None, optional
+        Indicates the maximum SSA value for all simulated genes in a multplexing experiment. The default is None.
     '''
-    def __init__(self, base_video,video_for_mask = None, number_spots=10, number_frames=20, step_size =1, diffusion_coefficient =0.01, simulated_trajectories_ch0=None, size_spot_ch0=5, spot_sigma_ch0=2, simulated_trajectories_ch1=[0], size_spot_ch1=5, spot_sigma_ch1=2, simulated_trajectories_ch2=[0], size_spot_ch2=5, spot_sigma_ch2=2, ignore_ch0=0,ignore_ch1=1, ignore_ch2=1,save_as_tif_uint8 =0, save_as_tif=0, save_as_gif=0, save_dataframe=0, saved_file_name='temp',create_temp_folder = True,intensity_calculation_method='gaussian_fit',using_for_multiplexing=0):        
+    def __init__(self, base_video,video_for_mask = None, number_spots=10, number_frames=20, step_size =1, diffusion_coefficient =0.01, simulated_trajectories_ch0=None, size_spot_ch0=5, spot_sigma_ch0=2, simulated_trajectories_ch1=[0], size_spot_ch1=5, spot_sigma_ch1=2, simulated_trajectories_ch2=[0], size_spot_ch2=5, spot_sigma_ch2=2, ignore_ch0=0,ignore_ch1=1, ignore_ch2=1,save_as_tif_uint8 =0, save_as_tif=0, save_as_gif=0, save_dataframe=0, saved_file_name='temp',create_temp_folder = True,intensity_calculation_method='gaussian_fit',using_for_multiplexing=0,min_int_multiplexing=None, max_int_multiplexing=None):        
         self.intensity_calculation_method = intensity_calculation_method
         #self.base_video = base_video
         MAXIMUM_INTENSITY_IN_BASE_VIDEO = 1000
@@ -1999,6 +2005,9 @@ class SimulatedCell():
         self.save_dataframe = save_dataframe
         self.saved_file_name = saved_file_name
         self.create_temp_folder = create_temp_folder
+        self.min_int_multiplexing = min_int_multiplexing
+        self.max_int_multiplexing = max_int_multiplexing
+        
         # This function is intended to detect the mask and then reduce the mask by a given percentage. This reduction ensures that the simulated spots are inclosed inside the cell.
         def mask_reduction(polygon_array, percentage_reduction= 0.2):
             # Reducing the size of the mask to plot only inside the cell.
@@ -2106,18 +2115,6 @@ class SimulatedCell():
                         tensor_mean_intensity_in_figure[t_p,point_index],tensor_std_intensity_in_figure[t_p,point_index]  = disk_donut(crop_with_extra_area,disk_size)
                     if tensor_mean_intensity_in_figure[t_p,point_index] < 0:
                         tensor_mean_intensity_in_figure[t_p,point_index] = 0
-                    # if tensor_mean_intensity_in_figure[t_p,point_index] > 950:
-                    #     print('High value')
-                    #     plt.figure()
-                    #     plt.imshow(crop_with_extra_area)
-                    #     plt.colorbar()
-                    #     plt.show()
-                    # if (tensor_mean_intensity_in_figure[t_p,point_index] >0) and (tensor_mean_intensity_in_figure[t_p,point_index] <1):
-                    #     print('Low value')
-                    #     plt.figure()
-                    #     plt.imshow(crop_with_extra_area)
-                    #     plt.colorbar()
-                    #     plt.show()
             return tensor_mean_intensity_in_figure, tensor_std_intensity_in_figure
         def make_replacement_pixelated_spots(matrix_background, center_positions_vector, size_spot, spot_sigma, using_ssa, simulated_trajectories_time_point,min_SSA_value,max_SSA_value):
             #This funciton is intended to replace a kernel gaussian matrix for each spot position. The kernel gaussian matrix is scaled with the values obtained from the SSA o with the values given in a range.
@@ -2260,8 +2257,12 @@ class SimulatedCell():
                 if not ( simulated_trajectories is None):
                     using_ssa = 1
                     simulated_trajectories_tp = simulated_trajectories[:,t_p]
-                    max_SSA_value = simulated_trajectories.max()
-                    min_SSA_value = simulated_trajectories.min()
+                    if  not (self.min_int_multiplexing is None):
+                        max_SSA_value=self.max_int_multiplexing 
+                        min_SSA_value=self.min_int_multiplexing
+                    else:
+                        max_SSA_value = simulated_trajectories.max()
+                        min_SSA_value = simulated_trajectories.min()                
                 else:
                     using_ssa = 0
                     simulated_trajectories_tp = 0
@@ -2378,7 +2379,7 @@ class SimulatedCell():
 
 
 class SimulatedCellMultiplexing ():
-    def __init__(self,inial_video,list_gene_sequences,list_number_spots,list_target_channels,list_diffusion_coefficients,list_label_names,simulation_time_in_sec,step_size_in_sec,save_as_tif, save_dataframe, saved_file_name,create_temp_folder):
+    def __init__(self,inial_video,list_gene_sequences,list_number_spots,list_target_channels,list_diffusion_coefficients,list_label_names,simulation_time_in_sec,step_size_in_sec,save_as_tif, save_dataframe, saved_file_name,create_temp_folder,cell_number=0):
         self.inial_video = inial_video
         self.list_gene_sequences = list_gene_sequences
         self.list_number_spots = list_number_spots
@@ -2392,6 +2393,7 @@ class SimulatedCellMultiplexing ():
         self.save_dataframe = save_dataframe
         self.saved_file_name = saved_file_name
         self.create_temp_folder = create_temp_folder
+        self.cell_number = cell_number
         
     def make_simulation (self):
         # FUNCTION THAT RUNS THE SSA IN rSNAPsim
@@ -2408,7 +2410,7 @@ class SimulatedCellMultiplexing ():
             ssa_int =  ssa_solution.intensity_vec[0,t_burnin:-1,:].T
             return ssa_solution.time[t_burnin:-1], ssa_int        
         # Wrapper for the simulated cell
-        def wrapper_SimulatedCell (base_video,video_for_mask=None, ssa=None, target_channel=1, diffusion_coefficient=0.05, step_size=1,spot_size=5, spot_sigma=2,intensity_calculation_method='disk_donut',using_for_multiplexing=0):
+        def wrapper_SimulatedCell (base_video,video_for_mask=None, ssa=None, target_channel=1, diffusion_coefficient=0.05, step_size=1,spot_size=5, spot_sigma=2,intensity_calculation_method='disk_donut',using_for_multiplexing=0,min_int_multiplexing =0 , max_int_multiplexing=0):
             if target_channel ==0:
                 ignore_ch0=0; ignore_ch1=1; ignore_ch2=1
             elif target_channel ==1:
@@ -2417,17 +2419,27 @@ class SimulatedCellMultiplexing ():
                 ignore_ch0=0; ignore_ch1=1; ignore_ch2=0
             number_spots_per_cell = ssa.shape[0]
             simulation_time_in_sec =  ssa.shape[1]  # THIS NEEDS TO BE UPDATED TO ALLOW THE USER TO GIVE DIFFERENT STEP_SIZE
-            tensor_video , _ , _, _, _, DataFrame_particles_intensities = SimulatedCell( base_video=base_video,video_for_mask=video_for_mask, number_spots = number_spots_per_cell, number_frames=simulation_time_in_sec, step_size=step_size, diffusion_coefficient =diffusion_coefficient, simulated_trajectories_ch0=None, size_spot_ch0=spot_size, spot_sigma_ch0=spot_sigma, simulated_trajectories_ch1=ssa, size_spot_ch1=spot_size, spot_sigma_ch1=spot_sigma, simulated_trajectories_ch2=ssa, size_spot_ch2=spot_size, spot_sigma_ch2=spot_sigma, ignore_ch0=ignore_ch0,ignore_ch1=ignore_ch1, ignore_ch2=ignore_ch2,save_as_tif_uint8=0,save_as_tif =0,save_as_gif=0, save_dataframe=0, saved_file_name=None,create_temp_folder = False,intensity_calculation_method=intensity_calculation_method,using_for_multiplexing=using_for_multiplexing).make_simulation()      
+            tensor_video , _ , _, _, _, DataFrame_particles_intensities = SimulatedCell( base_video=base_video,video_for_mask=video_for_mask, number_spots = number_spots_per_cell, number_frames=simulation_time_in_sec, step_size=step_size, diffusion_coefficient =diffusion_coefficient, simulated_trajectories_ch0=None, size_spot_ch0=spot_size, spot_sigma_ch0=spot_sigma, simulated_trajectories_ch1=ssa, size_spot_ch1=spot_size, spot_sigma_ch1=spot_sigma, simulated_trajectories_ch2=ssa, size_spot_ch2=spot_size, spot_sigma_ch2=spot_sigma, ignore_ch0=ignore_ch0,ignore_ch1=ignore_ch1, ignore_ch2=ignore_ch2,save_as_tif_uint8=0,save_as_tif =0,save_as_gif=0, save_dataframe=0, saved_file_name=None,create_temp_folder = False,intensity_calculation_method=intensity_calculation_method,using_for_multiplexing=using_for_multiplexing,min_int_multiplexing=min_int_multiplexing, max_int_multiplexing=max_int_multiplexing).make_simulation()      
+            DataFrame_particles_intensities['cell_number'] = DataFrame_particles_intensities['cell_number'].replace([0],self.cell_number)
             return tensor_video, DataFrame_particles_intensities   # [cell_number, particle, frame, red_int_mean, green_int_mean, blue_int_mean, red_int_std, green_int_std, blue_int_std, x, y].     
         # Runs the SSA and the simulated cell functions
-        list_DataFrame_particles_intensities= []
+        list_ssa = []
+        list_min_ssa =[]
+        list_max_ssa =[]
         for i in range(0,self.number_genes):
             _ , ssa_solution = rsnapsim_ssa(self.list_gene_sequences[i],ke =3, ki=0.033,frames=self.simulation_time_in_sec,n_traj=self.list_number_spots[i])
+            list_ssa.append(ssa_solution)
+            list_min_ssa.append(np.argmin(ssa_solution))
+            list_max_ssa.append(np.argmax(ssa_solution))
+        # Creating the videos 
+        list_DataFrame_particles_intensities= []    
+        for i in range(0,self.number_genes):    
             if i == 0 :
-                tensor_video , DataFrame_particles_intensities = wrapper_SimulatedCell(self.inial_video, video_for_mask = self.inial_video, ssa=ssa_solution, target_channel=self.list_target_channels[i], diffusion_coefficient=self.list_diffusion_coefficients[i])        
+                tensor_video , DataFrame_particles_intensities = wrapper_SimulatedCell(self.inial_video, video_for_mask = self.inial_video, ssa=list_ssa[i], target_channel=self.list_target_channels[i], diffusion_coefficient=self.list_diffusion_coefficients[i],min_int_multiplexing =min(list_min_ssa) , max_int_multiplexing= max(list_max_ssa))        
             else:
-                tensor_video , DataFrame_particles_intensities = wrapper_SimulatedCell(tensor_video, video_for_mask = self.inial_video, ssa=ssa_solution, target_channel=self.list_target_channels[i], diffusion_coefficient=self.list_diffusion_coefficients[i],using_for_multiplexing=1)        
+                tensor_video , DataFrame_particles_intensities = wrapper_SimulatedCell(tensor_video, video_for_mask = self.inial_video, ssa=list_ssa[i], target_channel=self.list_target_channels[i], diffusion_coefficient=self.list_diffusion_coefficients[i],using_for_multiplexing=1,min_int_multiplexing =min(list_min_ssa) , max_int_multiplexing= max(list_max_ssa))        
             list_DataFrame_particles_intensities.append(DataFrame_particles_intensities)
+        
         # Adding a classification column to all dataframes
         for i in range(0,self.number_genes):
             classification = self.list_label_names[i]
