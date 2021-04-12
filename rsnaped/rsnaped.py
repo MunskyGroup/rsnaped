@@ -1632,10 +1632,12 @@ class Intensity():
         Array of images with dimensions [T, S, x_y_positions].  The default is None
     method : str, optional
         Method to calculate intensity the options are : 'total_intensity' , 'disk_donut' and 'gaussian_fit'. The default is 'disk_donut'.
+    step_size : float, optional
+        Frame rate in seconds. The default is 1 frame per second.
     show_plot : bool, optional
         Allows the user to show a plot for the optimization process. The default is 1.
     '''
-    def __init__(self,video,particle_size=5, trackpy_dataframe=None,spot_positions_movement=None, method ='disk_donut',show_plot=1):
+    def __init__(self,video,particle_size=5, trackpy_dataframe=None,spot_positions_movement=None, method ='disk_donut',step_size=1,show_plot=1):
         #print(spot_positions_movement)
         if particle_size <5:
             particle_size = 5 # minimal size allowed for detection
@@ -1661,6 +1663,7 @@ class Intensity():
         if (trackpy_dataframe is None) and (spot_positions_movement is None):
             print ('Error a trackpy_dataframe or spot_positions_movement should be given')
             raise
+        self.step_size =step_size
     def calculate_intensity(self):
         '''
         This method calculates the spot intensity.
@@ -1731,7 +1734,6 @@ class Intensity():
             spot_intensity_disk_donut[spot_intensity_disk_donut<0]=0
             spot_intensity_disk_donut[np.isnan(spot_intensity_disk_donut)] = 0 # replacing nans with zero
             return spot_intensity_disk_donut, spot_intensity_disk_donut_std
-    
 
         def return_crop(image,x_pos,y_pos,crop_size):
             # function that recenters the spots
@@ -1794,7 +1796,7 @@ class Intensity():
         mean_intensities_normalized=np.nan_to_num(mean_intensities_normalized)
         std_intensities_normalized = np.nanstd(array_mean_intensities_normalized, axis = 0, dtype=np.float32) 
         std_intensities_normalized=np.nan_to_num(std_intensities_normalized)
-        time_vector = np.arange(0,time_points,1)
+        time_vector = np.arange(0,time_points,1)*self.step_size
         if self.show_plot ==1:
             fig, ax = plt.subplots(3,1, figsize=(16, 4))        
             for id in range (0,self.n_particles):
@@ -1812,7 +1814,7 @@ class Intensity():
             plt.show()  
             fig, ax = plt.subplots(3,1, figsize=(16, 4))        
             for id in range (0,self.n_particles):
-                time_vector = np.arange(0,time_points,1)
+                time_vector = np.arange(0,time_points,1)*self.step_size
                 ax[0].plot(time_vector,mean_intensities[:,0],'r')
                 ax[1].plot(time_vector,mean_intensities[:,1],'g')
                 ax[2].plot(time_vector,mean_intensities[:,2],'b') 
@@ -1829,7 +1831,7 @@ class Intensity():
             plt.show()  
             fig, ax = plt.subplots(3,1, figsize=(16, 4))        
             for id in range (0,self.n_particles):
-                time_vector = np.arange(0,time_points,1)
+                time_vector = np.arange(0,time_points,1)*self.step_size
                 ax[0].plot(time_vector,mean_intensities_normalized[:,0],'r')
                 ax[1].plot(time_vector,mean_intensities_normalized[:,1],'g')
                 ax[2].plot(time_vector,mean_intensities_normalized[:,2],'b') 
@@ -1866,19 +1868,20 @@ class Intensity():
                 temporal_x_position_vector = self.trackpy_dataframe.loc[self.trackpy_dataframe['particle']==self.trackpy_dataframe['particle'].unique()[id]].x.values
                 temporal_y_position_vector = self.trackpy_dataframe.loc[self.trackpy_dataframe['particle']==self.trackpy_dataframe['particle'].unique()[id]].y.values
             else:
+                counter_time_vector = np.arange(0,time_points,1)
+                time_vector = np.arange(0,time_points,1)*self.step_size
                 temporal_frames_vector = time_vector
+                
                 temporal_x_position_vector = self.spot_positions_movement[:,id,1] 
                 temporal_y_position_vector = self.spot_positions_movement[:,id,0] 
-
-
-            temporal_red_vector = array_intensities_mean[id, temporal_frames_vector,0] # red
-            temporal_green_vector = array_intensities_mean[id,temporal_frames_vector,1] # green
-            temporal_blue_vector = array_intensities_mean[id,temporal_frames_vector,2] # blue
-            temporal_red_vector_std = array_intensities_std[id, temporal_frames_vector,0] # red
-            temporal_green_vector_std = array_intensities_std[id,temporal_frames_vector,1] # green
-            temporal_blue_vector_std = array_intensities_std[id,temporal_frames_vector,2] # blue
-            temporal_spot_number_vector = np.around([counter] * len(temporal_frames_vector))
-            temporal_cell_number_vector = np.around([0] * len(temporal_frames_vector))
+            temporal_red_vector = array_intensities_mean[id, counter_time_vector,0] # red
+            temporal_green_vector = array_intensities_mean[id,counter_time_vector,1] # green
+            temporal_blue_vector = array_intensities_mean[id,counter_time_vector,2] # blue
+            temporal_red_vector_std = array_intensities_std[id, counter_time_vector,0] # red
+            temporal_green_vector_std = array_intensities_std[id,counter_time_vector,1] # green
+            temporal_blue_vector_std = array_intensities_std[id,counter_time_vector,2] # blue
+            temporal_spot_number_vector = np.around([counter] * len(counter_time_vector))
+            temporal_cell_number_vector = np.around([0] * len(counter_time_vector))
                         # Section that append the information for each spots
             temp_data_frame = {'cell_number': temporal_cell_number_vector,
                 'particle': temporal_spot_number_vector,
@@ -1912,7 +1915,7 @@ class SimulatedCell():
         Number of simulated spots in the cell. The default is 10.
     number_frames : int
         The number of frames or time points to simulate. In seconds. The default is 20. 
-    step_size : int, optional
+    step_size : float, optional
         Step size for the simulation. In seconds. The default is 1.
     diffusion_coefficient : float, optional
         The diffusion coefficient for the particles' Brownian motion. The default is 0.01.
@@ -1981,7 +1984,7 @@ class SimulatedCell():
             video_for_mask = base_video
         self.number_spots = number_spots
         self.number_frames = number_frames
-        self.step_size  = step_size
+        self.step_size = step_size
         self.diffusion_coefficient = diffusion_coefficient 
         self.image_size = [base_video.shape[1],base_video.shape[2]]
         self.simulated_trajectories_ch0 = simulated_trajectories_ch0
@@ -1998,7 +2001,10 @@ class SimulatedCell():
         self.ignore_ch2 = ignore_ch2
         self.n_channels = 3
         self.z_slices =1
-        self.time_vector = np.arange(0,number_frames,step_size)
+        #self.time_vector = np.arange(0,number_frames,step_size)
+        self.time_vector = np.linspace(0, number_frames*step_size, num=number_frames)
+        
+        
         self.save_as_tif_uint8 = save_as_tif_uint8
         self.save_as_tif = save_as_tif
         self.save_as_gif = save_as_gif
@@ -2274,8 +2280,6 @@ class SimulatedCell():
             return tensor_image
         # Create the spots for all channels. Return array with 3-dimensions: T,Sop, XY-Coord
         spot_positions_movement = make_spots_movement(self.polygon_array, self.number_spots, self.time_vector, self.step_size, self.image_size, self.diffusion_coefficient,self.base_video[0,:,:,1])
-        
-        
         # This section of the code runs the for each channel    
         if self.ignore_ch0 == 0:
             tensor_image_ch0 = make_simulation(self.base_video[:,:,:,0], self.video_removed_mask[:,:,:,0], spot_positions_movement, self.time_vector, self.polygon_array, self.image_size, self.size_spot_ch0, self.spot_sigma_ch0, self.simulated_trajectories_ch0)
@@ -2363,8 +2367,7 @@ class SimulatedCell():
             else:
                 save_to_path=''
             tifffile.imwrite(save_to_path+self.saved_file_name+'.tif', tensor_video)
-        
-        dataframe_particles, _, _, _,_, _, _ = Intensity(tensor_video,particle_size=self.size_spot_ch0,spot_positions_movement=spot_positions_movement,method=self.intensity_calculation_method,show_plot=0 ).calculate_intensity()    
+        dataframe_particles, _, _, _,_, _, _ = Intensity(tensor_video,particle_size=self.size_spot_ch0,spot_positions_movement=spot_positions_movement,method=self.intensity_calculation_method,step_size =self.step_size,show_plot=0 ).calculate_intensity()    
         
         if self.save_dataframe==1:
             if self.create_temp_folder == True:
@@ -2379,6 +2382,39 @@ class SimulatedCell():
 
 
 class SimulatedCellMultiplexing ():
+    '''
+    This class takes a base video and simulates a multiplexing experiment, and it draws simulated spots on top of the image. The intensity for each simulated spot is proportional to the stochastic simulation given by the user. 
+
+    Parameters
+    ----------
+    inial_video :  NumPy array 
+        Array of images with dimensions [T,Y,X,C].
+    list_gene_sequences : List of strings
+        List where every element is a gene sequence file.
+    list_number_spots : List of int
+        List where every element represents the number of spots to simulate for each gene.
+    list_target_channels : List of int with a range from 0 to 2
+        List where every element represents the specific channel where the spots will be located.
+    list_diffusion_coefficients : List of floats
+        List where every element represents the diffusion coefficient for every gene.
+    list_label_names : List of str
+        List where every element contains the label for each gene.
+    simulation_time_in_sec : int
+        The simulation time in seconds. The default is 20. 
+    step_size_in_sec : float, optional
+        Step size for the simulation. In seconds. The default is 1.
+    save_as_tif : bool, optional
+        If true, it generates and saves a uint16 (High) quality image tif file for the simulation. The default is 0.
+    save_dataframe : bool, optional
+        If true, it generates and saves a pandas dataframe with the simulation. Dataframe with fields [cell_number, particle, frame,red_int_mean, green_int_mean, blue_int_mean, red_int_std, green_int_std, blue_int_std, x, y]. The default is 0.
+    saved_file_name : str, optional
+        The file name for the simulated cell output files (tif images, gif images, data frames). The default is 'temp'.
+    create_temp_folder : bool, optional
+        Creates a folder with the simulation output. The default is True.
+    cell_number : int, optional
+        Cell number used as an index for the data frame. The default is 0.
+        
+    '''
     def __init__(self,inial_video,list_gene_sequences,list_number_spots,list_target_channels,list_diffusion_coefficients,list_label_names,simulation_time_in_sec,step_size_in_sec,save_as_tif, save_dataframe, saved_file_name,create_temp_folder,cell_number=0):
         self.inial_video = inial_video
         self.list_gene_sequences = list_gene_sequences
@@ -2396,21 +2432,33 @@ class SimulatedCellMultiplexing ():
         self.cell_number = cell_number
         
     def make_simulation (self):
+        '''
+        Method that runs the simulations for the multiplexing experiment. 
+
+        Returns
+        -------
+        tensor_video : NumPy array uint16
+            Array with dimensions [T,Y,X,C] 
+        dataframe_particles : pandas dataframe 
+            Dataframe with fields [cell_number, particle, frame, red_int_mean, green_int_mean, blue_int_mean, red_int_std, green_int_std, blue_int_std, x, y].
+
+        '''
         # FUNCTION THAT RUNS THE SSA IN rSNAPsim
-        def rsnapsim_ssa(gene_file,ke =3,ki=0.033,frames=100,n_traj=20):
+        def rsnapsim_ssa(gene_file,ke =3,ki=0.033,simulation_time_in_sec=100,n_traj=20, frame_rate =self.step_size_in_sec):
             poi_strs, poi_objs, tagged_pois,raw_seq = rss.seqmanip.open_seq_file(gene_file)
             gene_obj = tagged_pois['1'][0]
             gene_obj.ke = ke
             rss.solver.protein = gene_obj #pass the protein object
             t_burnin = 1000
-            t = np.linspace(0,t_burnin+frames,t_burnin+frames+1)    # ask Will how to pass the step_size. (start, stop, num)
+            t = np.linspace(0,t_burnin+simulation_time_in_sec, int((t_burnin+simulation_time_in_sec)/frame_rate) )   # ask Will how to pass the step_size. (start, stop, num)
             ssa_solution = rss.solver.solve_ssa(gene_obj.kelong, t, ki=ki, kt = ke, low_memory=False,record_stats=False,n_traj=n_traj)    
-            time_ssa = ssa_solution.time[t_burnin:-1]
+            time_ssa = ssa_solution.time[int(t_burnin/frame_rate):-1]
             time_ssa = time_ssa-t_burnin
-            ssa_int =  ssa_solution.intensity_vec[0,t_burnin:-1,:].T
-            return ssa_solution.time[t_burnin:-1], ssa_int        
+            ssa_int =  ssa_solution.intensity_vec[0,int(t_burnin/frame_rate):-1,:].T
+            return time_ssa, ssa_int
+        
         # Wrapper for the simulated cell
-        def wrapper_SimulatedCell (base_video,video_for_mask=None, ssa=None, target_channel=1, diffusion_coefficient=0.05, step_size=1,spot_size=5, spot_sigma=2,intensity_calculation_method='disk_donut',using_for_multiplexing=0,min_int_multiplexing =0 , max_int_multiplexing=0):
+        def wrapper_SimulatedCell (base_video,video_for_mask=None, ssa=None, target_channel=1, diffusion_coefficient=0.05, step_size=self.step_size_in_sec,spot_size=5, spot_sigma=2,intensity_calculation_method='disk_donut',using_for_multiplexing=0,min_int_multiplexing =0 , max_int_multiplexing=0):
             if target_channel ==0:
                 ignore_ch0=0; ignore_ch1=1; ignore_ch2=1
             elif target_channel ==1:
@@ -2418,8 +2466,7 @@ class SimulatedCellMultiplexing ():
             elif target_channel ==2:
                 ignore_ch0=0; ignore_ch1=1; ignore_ch2=0
             number_spots_per_cell = ssa.shape[0]
-            simulation_time_in_sec =  ssa.shape[1]  # THIS NEEDS TO BE UPDATED TO ALLOW THE USER TO GIVE DIFFERENT STEP_SIZE
-            tensor_video , _ , _, _, _, DataFrame_particles_intensities = SimulatedCell( base_video=base_video,video_for_mask=video_for_mask, number_spots = number_spots_per_cell, number_frames=simulation_time_in_sec, step_size=step_size, diffusion_coefficient =diffusion_coefficient, simulated_trajectories_ch0=None, size_spot_ch0=spot_size, spot_sigma_ch0=spot_sigma, simulated_trajectories_ch1=ssa, size_spot_ch1=spot_size, spot_sigma_ch1=spot_sigma, simulated_trajectories_ch2=ssa, size_spot_ch2=spot_size, spot_sigma_ch2=spot_sigma, ignore_ch0=ignore_ch0,ignore_ch1=ignore_ch1, ignore_ch2=ignore_ch2,save_as_tif_uint8=0,save_as_tif =0,save_as_gif=0, save_dataframe=0, saved_file_name=None,create_temp_folder = False,intensity_calculation_method=intensity_calculation_method,using_for_multiplexing=using_for_multiplexing,min_int_multiplexing=min_int_multiplexing, max_int_multiplexing=max_int_multiplexing).make_simulation()      
+            tensor_video , _ , _, _, _, DataFrame_particles_intensities = SimulatedCell( base_video=base_video,video_for_mask=video_for_mask, number_spots = number_spots_per_cell, number_frames=ssa.shape[1], step_size=step_size, diffusion_coefficient =diffusion_coefficient, simulated_trajectories_ch0=None, size_spot_ch0=spot_size, spot_sigma_ch0=spot_sigma, simulated_trajectories_ch1=ssa, size_spot_ch1=spot_size, spot_sigma_ch1=spot_sigma, simulated_trajectories_ch2=ssa, size_spot_ch2=spot_size, spot_sigma_ch2=spot_sigma, ignore_ch0=ignore_ch0,ignore_ch1=ignore_ch1, ignore_ch2=ignore_ch2,save_as_tif_uint8=0,save_as_tif =0,save_as_gif=0, save_dataframe=0, saved_file_name=None,create_temp_folder = False,intensity_calculation_method=intensity_calculation_method,using_for_multiplexing=using_for_multiplexing,min_int_multiplexing=min_int_multiplexing, max_int_multiplexing=max_int_multiplexing).make_simulation()      
             DataFrame_particles_intensities['cell_number'] = DataFrame_particles_intensities['cell_number'].replace([0],self.cell_number)
             return tensor_video, DataFrame_particles_intensities   # [cell_number, particle, frame, red_int_mean, green_int_mean, blue_int_mean, red_int_std, green_int_std, blue_int_std, x, y].     
         # Runs the SSA and the simulated cell functions
@@ -2427,7 +2474,7 @@ class SimulatedCellMultiplexing ():
         list_min_ssa =[]
         list_max_ssa =[]
         for i in range(0,self.number_genes):
-            _ , ssa_solution = rsnapsim_ssa(self.list_gene_sequences[i],ke =3, ki=0.033,frames=self.simulation_time_in_sec,n_traj=self.list_number_spots[i])
+            _ , ssa_solution = rsnapsim_ssa(self.list_gene_sequences[i],ke =3, ki=0.033,simulation_time_in_sec=self.simulation_time_in_sec,n_traj=self.list_number_spots[i])
             list_ssa.append(ssa_solution)
             list_min_ssa.append(np.argmin(ssa_solution))
             list_max_ssa.append(np.argmax(ssa_solution))
@@ -2439,7 +2486,6 @@ class SimulatedCellMultiplexing ():
             else:
                 tensor_video , DataFrame_particles_intensities = wrapper_SimulatedCell(tensor_video, video_for_mask = self.inial_video, ssa=list_ssa[i], target_channel=self.list_target_channels[i], diffusion_coefficient=self.list_diffusion_coefficients[i],using_for_multiplexing=1,min_int_multiplexing =min(list_min_ssa) , max_int_multiplexing= max(list_max_ssa))        
             list_DataFrame_particles_intensities.append(DataFrame_particles_intensities)
-        
         # Adding a classification column to all dataframes
         for i in range(0,self.number_genes):
             classification = self.list_label_names[i]
@@ -2449,10 +2495,8 @@ class SimulatedCellMultiplexing ():
             if i > 0:
                 number_spots_for_previous_genes = np.sum(self.list_number_spots[0:i])
                 list_DataFrame_particles_intensities[i]['particle'] = list_DataFrame_particles_intensities[i]['particle'] + number_spots_for_previous_genes 
-        
         # Merging multiple dataframes in a single one.
         dataframe_simulated_cell = pd.concat(list_DataFrame_particles_intensities)
-        
         # saving the simulated video and data frame
         if self.save_as_tif==1:
             if self.create_temp_folder == True:
@@ -2463,7 +2507,6 @@ class SimulatedCellMultiplexing ():
             else:
                 save_to_path=''
             tifffile.imwrite(save_to_path+self.saved_file_name+'.tif', tensor_video)
-        
         if self.save_dataframe==1:
             if self.create_temp_folder == True:
                 save_to_path = 'temp/'
@@ -2473,9 +2516,7 @@ class SimulatedCellMultiplexing ():
             else:
                 save_to_path='temp/'
             dataframe_simulated_cell.to_csv(save_to_path+self.saved_file_name +'_df'+ '.csv', index = True)
-        
         return tensor_video, dataframe_simulated_cell
-    
 
 class PipelineTracking():
     '''
