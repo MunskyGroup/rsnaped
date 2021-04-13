@@ -764,8 +764,10 @@ class VisualizerVideo():
        Allows the user to display the projection of all detected spots for all time points on the current image. The default is 0.
     normalize : bool, optional
         Option to normalize the data by removing outliers. The code removes the 1 and 99 percentiles from the image. The default is False.
+    step_size_in_sec : float, optional
+        Step size in seconds. The default is 1.
     '''
-    def __init__(self,list_videos,dataframe_particles=None,list_mask_array=None,show_time_projection_spots=0,normalize=False ):
+    def __init__(self,list_videos,dataframe_particles=None,list_mask_array=None,show_time_projection_spots=0,normalize=False, step_size_in_sec=1):
         self.particle_size =7
         self.show_time_projection_spots = show_time_projection_spots
         # Checking if the video is a list or a single video.
@@ -802,6 +804,7 @@ class VisualizerVideo():
             self.list_videos = self.list_videos
         n_channels = [self.list_videos[i].shape[3] for i in range(0,self.number_videos)][0]
         self.min_num_channels = np.amin((n_channels))
+        self.step_size_in_sec = step_size_in_sec
     def make_video_app(self):
         '''
         This method returns two objects (controls and output) that can be used to display a widget.
@@ -813,10 +816,11 @@ class VisualizerVideo():
         output : object
             Output values from from interactive to use with ipywidgets **display**.
         '''
-        def figure_viewer(drop_cell,index_time,drop_channel):
+        def figure_viewer(drop_cell,index_time_slider,drop_channel):
             video = self.list_videos[drop_cell]
             selected_particles_dataframe = self.dataframe_particles[drop_cell]
             drop_size = self.particle_size
+            index_time = int(index_time_slider/self.step_size_in_sec)
             plt.figure(1)
             ax = plt.gca()
             if drop_channel == 'Ch_0':
@@ -880,7 +884,7 @@ class VisualizerVideo():
             options_channels = ['Ch_0', 'Ch_1', 'Ch_2', 'Ch_3','All_Channels']    
         options_cells = list(range(0, self.number_videos))
         interactive_plot = interactive(figure_viewer,drop_cell= widgets.Dropdown(options=options_cells,description='Cell'),
-                                       index_time = widgets.IntSlider(min=0,max=self.min_time_all_cells-1,step=1,value=0,description='Time'), 
+                                       index_time_slider = widgets.IntSlider(min=0,max=(self.min_time_all_cells-1)*self.step_size_in_sec ,step=self.step_size_in_sec,value=0,description='Time'), 
                                        drop_channel = widgets.Dropdown(options=options_channels,description='Channel'))
         controls = HBox(interactive_plot.children[:-1], layout = Layout(flex_flow='row wrap'))
         output = interactive_plot.children[-1]
@@ -1867,25 +1871,26 @@ class Intensity():
                 temporal_frames_vector = np.around(self.trackpy_dataframe.loc[self.trackpy_dataframe['particle']==self.trackpy_dataframe['particle'].unique()[id]].frame.values)  # time_(sec)
                 temporal_x_position_vector = self.trackpy_dataframe.loc[self.trackpy_dataframe['particle']==self.trackpy_dataframe['particle'].unique()[id]].x.values
                 temporal_y_position_vector = self.trackpy_dataframe.loc[self.trackpy_dataframe['particle']==self.trackpy_dataframe['particle'].unique()[id]].y.values
+            
             else:
                 counter_time_vector = np.arange(0,time_points,1)
-                time_vector = np.arange(0,time_points,1)*self.step_size
-                temporal_frames_vector = time_vector
-                
+                #time_vector = np.arange(0,time_points,1)*self.step_size
+                temporal_frames_vector = counter_time_vector
                 temporal_x_position_vector = self.spot_positions_movement[:,id,1] 
-                temporal_y_position_vector = self.spot_positions_movement[:,id,0] 
-            temporal_red_vector = array_intensities_mean[id, counter_time_vector,0] # red
-            temporal_green_vector = array_intensities_mean[id,counter_time_vector,1] # green
-            temporal_blue_vector = array_intensities_mean[id,counter_time_vector,2] # blue
-            temporal_red_vector_std = array_intensities_std[id, counter_time_vector,0] # red
-            temporal_green_vector_std = array_intensities_std[id,counter_time_vector,1] # green
-            temporal_blue_vector_std = array_intensities_std[id,counter_time_vector,2] # blue
-            temporal_spot_number_vector = np.around([counter] * len(counter_time_vector))
-            temporal_cell_number_vector = np.around([0] * len(counter_time_vector))
+                temporal_y_position_vector = self.spot_positions_movement[:,id,0]
+            
+            temporal_red_vector = array_intensities_mean[id, temporal_frames_vector,0] # red
+            temporal_green_vector = array_intensities_mean[id,temporal_frames_vector,1] # green
+            temporal_blue_vector = array_intensities_mean[id,temporal_frames_vector,2] # blue
+            temporal_red_vector_std = array_intensities_std[id, temporal_frames_vector,0] # red
+            temporal_green_vector_std = array_intensities_std[id,temporal_frames_vector,1] # green
+            temporal_blue_vector_std = array_intensities_std[id,temporal_frames_vector,2] # blue
+            temporal_spot_number_vector = np.around([counter] * len(temporal_frames_vector))
+            temporal_cell_number_vector = np.around([0] * len(temporal_frames_vector))
                         # Section that append the information for each spots
             temp_data_frame = {'cell_number': temporal_cell_number_vector,
                 'particle': temporal_spot_number_vector,
-                'frame': temporal_frames_vector,
+                'frame': temporal_frames_vector*self.step_size,
                 'red_int_mean': temporal_red_vector,
                 'green_int_mean': temporal_green_vector,
                 'blue_int_mean': temporal_blue_vector,
@@ -2001,10 +2006,7 @@ class SimulatedCell():
         self.ignore_ch2 = ignore_ch2
         self.n_channels = 3
         self.z_slices =1
-        #self.time_vector = np.arange(0,number_frames,step_size)
-        self.time_vector = np.linspace(0, number_frames*step_size, num=number_frames)
-        
-        
+        self.time_vector = np.linspace(0, number_frames*step_size, num=number_frames)        
         self.save_as_tif_uint8 = save_as_tif_uint8
         self.save_as_tif = save_as_tif
         self.save_as_gif = save_as_gif
@@ -2071,7 +2073,6 @@ class SimulatedCell():
                 size_spot = size_spot + 1
             disk_size =  int(size_spot/2)
             crop_size = disk_size+2
-            
             tensor_mean_intensity_in_figure = np.zeros((len(time_vector),number_spots),dtype='float')
             tensor_std_intensity_in_figure = np.zeros((len(time_vector),number_spots),dtype='float')
             
@@ -2147,7 +2148,6 @@ class SimulatedCell():
                 pixel_size_arround_spot = size_spot + 20
                 #try:
                 # this section calculates the basal intensity arround an spots
-
                 temp_int_arround_spot = pixelated_image_no_spots[center_position[0]-int(pixel_size_arround_spot/2): center_position[0]+int(pixel_size_arround_spot/2)+1 ,center_position[1]-int(pixel_size_arround_spot/2): center_position[1]+int(pixel_size_arround_spot/2)+1 ]
                 temp_int_arround_spot.flatten()
                 temp_mean = np.mean(temp_int_arround_spot)
