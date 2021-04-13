@@ -2454,9 +2454,9 @@ class SimulatedCellMultiplexing ():
             t_burnin = 1000
             t = np.linspace(0,t_burnin+simulation_time_in_sec, int((t_burnin+simulation_time_in_sec)/frame_rate) )   # ask Will how to pass the step_size. (start, stop, num)
             ssa_solution = rss.solver.solve_ssa(gene_obj.kelong, t, ki=ki, kt = ke, low_memory=False,record_stats=False,n_traj=n_traj)    
-            time_ssa = ssa_solution.time[int(t_burnin/frame_rate):-1]
+            time_ssa = ssa_solution.time[int(t_burnin/frame_rate)-1:-1]
             time_ssa = time_ssa-t_burnin
-            ssa_int =  ssa_solution.intensity_vec[0,int(t_burnin/frame_rate):-1,:].T
+            ssa_int =  ssa_solution.intensity_vec[0,int(t_burnin/frame_rate) -1 :-1,:].T
             return time_ssa, ssa_int
         
         # Wrapper for the simulated cell
