@@ -653,6 +653,7 @@ Authors: Luis U. Aguilera, William Raymond, Brooke Silagy, Brian Munsky.</p>
 <dd class="field-odd"><p><ul class="simple">
 <li><p><strong>tensor_video</strong> (<em>NumPy array uint16</em>) – Array with dimensions [T,Y,X,C]</p></li>
 <li><p><strong>dataframe_particles</strong> (<em>pandas dataframe</em>) – Dataframe with fields [cell_number, particle, frame, red_int_mean, green_int_mean, blue_int_mean, red_int_std, green_int_std, blue_int_std, x, y].</p></li>
+<li><p><strong>list_ssa</strong> (<em>List of NumPy arrays</em>) – List of numpy arrays with the stochastic simulations for each gene. The format is [S,T], where the dimentsions are S = spots and T = time.</p></li>
 </ul>
 </p>
 </dd>
@@ -766,7 +767,7 @@ Authors: Luis U. Aguilera, William Raymond, Brooke Silagy, Brian Munsky.</p>
 
 <dl class="py class">
 <dt id="rsnaped.rsnaped.VisualizerVideo">
-<em class="property"><span class="pre">class</span> </em><code class="sig-prename descclassname"><span class="pre">rsnaped.rsnaped.</span></code><code class="sig-name descname"><span class="pre">VisualizerVideo</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">list_videos</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">dataframe_particles</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">list_mask_array</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">show_time_projection_spots</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">normalize</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#rsnaped.rsnaped.VisualizerVideo" title="Permalink to this definition">¶</a></dt>
+<em class="property"><span class="pre">class</span> </em><code class="sig-prename descclassname"><span class="pre">rsnaped.rsnaped.</span></code><code class="sig-name descname"><span class="pre">VisualizerVideo</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">list_videos</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">dataframe_particles</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">list_mask_array</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">show_time_projection_spots</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">normalize</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">step_size_in_sec</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">1</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#rsnaped.rsnaped.VisualizerVideo" title="Permalink to this definition">¶</a></dt>
 <dd><p>This class is intended to visualize videos as interactive widgets. This class has the option to mark the particles that previously were selected by trackPy.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters</dt>
@@ -776,6 +777,7 @@ Authors: Luis U. Aguilera, William Raymond, Brooke Silagy, Brian Munsky.</p>
 <li><p><strong>list_mask_array</strong> (<em>List of NumPy arrays</em><em> or </em><em>a single NumPy array</em><em>, </em><em>with Boolean values</em><em>, </em><em>where 1 represents the masked area</em><em>, </em><em>and 0 represents the area outside the mask.</em>) – An array of images with dimensions [Y,X].</p></li>
 <li><p><strong>show_time_projection_spots</strong> (<em>int</em><em>, </em><em>optional</em>) – Allows the user to display the projection of all detected spots for all time points on the current image. The default is 0.</p></li>
 <li><p><strong>normalize</strong> (<em>bool</em><em>, </em><em>optional</em>) – Option to normalize the data by removing outliers. The code removes the 1 and 99 percentiles from the image. The default is False.</p></li>
+<li><p><strong>step_size_in_sec</strong> (<em>float</em><em>, </em><em>optional</em>) – Step size in seconds. The default is 1.</p></li>
 </ul>
 </dd>
 </dl>

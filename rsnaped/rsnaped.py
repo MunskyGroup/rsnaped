@@ -2441,6 +2441,8 @@ class SimulatedCellMultiplexing ():
             Array with dimensions [T,Y,X,C] 
         dataframe_particles : pandas dataframe 
             Dataframe with fields [cell_number, particle, frame, red_int_mean, green_int_mean, blue_int_mean, red_int_std, green_int_std, blue_int_std, x, y].
+        list_ssa : List of NumPy arrays
+            List of numpy arrays with the stochastic simulations for each gene. The format is [S,T], where the dimentsions are S = spots and T = time. 
 
         '''
         # FUNCTION THAT RUNS THE SSA IN rSNAPsim
@@ -2468,7 +2470,7 @@ class SimulatedCellMultiplexing ():
             number_spots_per_cell = ssa.shape[0]
             tensor_video , _ , _, _, _, DataFrame_particles_intensities = SimulatedCell( base_video=base_video,video_for_mask=video_for_mask, number_spots = number_spots_per_cell, number_frames=ssa.shape[1], step_size=step_size, diffusion_coefficient =diffusion_coefficient, simulated_trajectories_ch0=None, size_spot_ch0=spot_size, spot_sigma_ch0=spot_sigma, simulated_trajectories_ch1=ssa, size_spot_ch1=spot_size, spot_sigma_ch1=spot_sigma, simulated_trajectories_ch2=ssa, size_spot_ch2=spot_size, spot_sigma_ch2=spot_sigma, ignore_ch0=ignore_ch0,ignore_ch1=ignore_ch1, ignore_ch2=ignore_ch2,save_as_tif_uint8=0,save_as_tif =0,save_as_gif=0, save_dataframe=0, saved_file_name=None,create_temp_folder = False,intensity_calculation_method=intensity_calculation_method,using_for_multiplexing=using_for_multiplexing,min_int_multiplexing=min_int_multiplexing, max_int_multiplexing=max_int_multiplexing).make_simulation()      
             DataFrame_particles_intensities['cell_number'] = DataFrame_particles_intensities['cell_number'].replace([0],self.cell_number)
-            return tensor_video, DataFrame_particles_intensities   # [cell_number, particle, frame, red_int_mean, green_int_mean, blue_int_mean, red_int_std, green_int_std, blue_int_std, x, y].     
+            return tensor_video, DataFrame_particles_intensities  # [cell_number, particle, frame, red_int_mean, green_int_mean, blue_int_mean, red_int_std, green_int_std, blue_int_std, x, y].     
         # Runs the SSA and the simulated cell functions
         list_ssa = []
         list_min_ssa =[]
@@ -2516,7 +2518,7 @@ class SimulatedCellMultiplexing ():
             else:
                 save_to_path='temp/'
             dataframe_simulated_cell.to_csv(save_to_path+self.saved_file_name +'_df'+ '.csv', index = True)
-        return tensor_video, dataframe_simulated_cell
+        return tensor_video, dataframe_simulated_cell, list_ssa
 
 class PipelineTracking():
     '''
