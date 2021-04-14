@@ -1651,7 +1651,6 @@ class Intensity():
             print('particle_size must be an odd number, this was automatically changed to: ', particle_size)
         self.video = video
         self.trackpy_dataframe = trackpy_dataframe
-        
         self.disk_size = int(particle_size/2) # size of the half of the crop
         self.crop_size = int(particle_size/2)+1
         
@@ -1969,7 +1968,7 @@ class SimulatedCell():
     max_int_multiplexing : float or None, optional
         Indicates the maximum SSA value for all simulated genes in a multplexing experiment. The default is None.
     '''
-    def __init__(self, base_video,video_for_mask = None, number_spots=10, number_frames=20, step_size =1, diffusion_coefficient =0.01, simulated_trajectories_ch0=None, size_spot_ch0=5, spot_sigma_ch0=2, simulated_trajectories_ch1=[0], size_spot_ch1=5, spot_sigma_ch1=2, simulated_trajectories_ch2=[0], size_spot_ch2=5, spot_sigma_ch2=2, ignore_ch0=0,ignore_ch1=1, ignore_ch2=1,save_as_tif_uint8 =0, save_as_tif=0, save_as_gif=0, save_dataframe=0, saved_file_name='temp',create_temp_folder = True,intensity_calculation_method='gaussian_fit',using_for_multiplexing=0,min_int_multiplexing=None, max_int_multiplexing=None):        
+    def __init__(self, base_video,video_for_mask = None, number_spots=10, number_frames=20, step_size =1, diffusion_coefficient =0.01, simulated_trajectories_ch0=None, size_spot_ch0=5, spot_sigma_ch0=2, simulated_trajectories_ch1=[0], size_spot_ch1=5, spot_sigma_ch1=2, simulated_trajectories_ch2=[0], size_spot_ch2=5, spot_sigma_ch2=2, ignore_ch0=0,ignore_ch1=1, ignore_ch2=1,save_as_tif_uint8 =0, save_as_tif=0, save_as_gif=0, save_dataframe=0, saved_file_name='temp',create_temp_folder = True,intensity_calculation_method='disk_donut',using_for_multiplexing=0,min_int_multiplexing=None, max_int_multiplexing=None):        
         self.intensity_calculation_method = intensity_calculation_method
         #self.base_video = base_video
         MAXIMUM_INTENSITY_IN_BASE_VIDEO = 1000
@@ -2117,9 +2116,9 @@ class SimulatedCell():
                     center_position = center_positions_vector[point_index]
                     crop_with_extra_area = return_crop(temp_tensor_image,center_position[1],center_position[0],crop_size)
                     #mean_intensity_donut = np.mean(crop_with_extra_area)
-                    tensor_mean_intensity_in_figure[t_p,point_index],tensor_std_intensity_in_figure[t_p,point_index]  = gaussian_fit(crop_with_extra_area)
-                    if tensor_mean_intensity_in_figure[t_p,point_index] < 0:
-                        tensor_mean_intensity_in_figure[t_p,point_index],tensor_std_intensity_in_figure[t_p,point_index]  = disk_donut(crop_with_extra_area,disk_size)
+                    #tensor_mean_intensity_in_figure[t_p,point_index],tensor_std_intensity_in_figure[t_p,point_index]  = gaussian_fit(crop_with_extra_area)
+                    #if tensor_mean_intensity_in_figure[t_p,point_index] < 0:
+                    tensor_mean_intensity_in_figure[t_p,point_index],tensor_std_intensity_in_figure[t_p,point_index]  = disk_donut(crop_with_extra_area,disk_size)
                     if tensor_mean_intensity_in_figure[t_p,point_index] < 0:
                         tensor_mean_intensity_in_figure[t_p,point_index] = 0
             return tensor_mean_intensity_in_figure, tensor_std_intensity_in_figure
@@ -2135,8 +2134,8 @@ class SimulatedCell():
             MAX_INTENSITY_ALL_SPOTS = 5000 # maximum allowed intensity for a given spot
             MAX_INTENSITY_IN_UINT16 = 65535 # maximum value in a unint16 image
             # The following two constants are weights used to define a range of intensities for the simulated spots.
-            MIN_INTENSITY_SPOT_WEIGHT = 1.1 # 1.05 lower weight that multiplays the mean intensity value in the image to define the simulated spot intensity.
-            MAX_INTENSITY_SPOT_WEIGHT = 1.6 # 1.5 higher weight that multiplays the mean intensity value in the image to define the simulated spot intensity.
+            MIN_INTENSITY_SPOT_WEIGHT = 1.2 # 1.05 lower weight that multiplays the mean intensity value in the image to define the simulated spot intensity.
+            MAX_INTENSITY_SPOT_WEIGHT = 1.8 # 1.5 higher weight that multiplays the mean intensity value in the image to define the simulated spot intensity.
             for point_index in range(0,len(center_positions_vector)):
                 # Section that creates the Gaussian Kernel Matrix
                 ax = np.linspace(-(size_spot - 1) / 2., (size_spot - 1) / 2., size_spot)        
@@ -2201,7 +2200,6 @@ class SimulatedCell():
                     MAX_STD=3.5
                     #max_allowed_int_image = np.amin( (np.mean(selected_image) + MAX_STD*np.std(selected_image),MAX_INTENSITY_TO_DRAW_SPOT))
                     max_allowed_int_image = np.mean(selected_image) + MAX_STD*np.std(selected_image)
-
                     min_allowed_int_image = np.mean(selected_image) - MAX_STD*np.std(selected_image)
                     size_spot =5
                     pixel_size_arround_spot = size_spot + 2
@@ -2245,7 +2243,6 @@ class SimulatedCell():
                     newPosition_y[i_p]= temp_Position_y[i_p]
                     newPosition_x[i_p]= temp_Position_x[i_p]
                 spot_positions_movement [t_p,:,:]= np.vstack((newPosition_y, newPosition_x)).T
-                
                 #print(spot_positions_movement)
             return spot_positions_movement # vector with dimensions (time, spot, y, x )
         def make_simulation(base_video_slected_channel,masked_video_slected_channel, spot_positions_movement, time_vector, polygon_array, image_size,size_spot, spot_sigma, simulated_trajectories):
@@ -2268,7 +2265,7 @@ class SimulatedCell():
                         min_SSA_value=self.min_int_multiplexing
                     else:
                         max_SSA_value = simulated_trajectories.max()
-                        min_SSA_value = simulated_trajectories.min()                
+                        min_SSA_value = simulated_trajectories.min()    
                 else:
                     using_ssa = 0
                     simulated_trajectories_tp = 0
@@ -2456,7 +2453,7 @@ class SimulatedCellMultiplexing ():
             ssa_solution = rss.solver.solve_ssa(gene_obj.kelong, t, ki=ki, kt = ke, low_memory=False,record_stats=False,n_traj=n_traj)    
             time_ssa = ssa_solution.time[int(t_burnin/frame_rate)-1:-1]
             time_ssa = time_ssa-t_burnin
-            ssa_int =  ssa_solution.intensity_vec[0,int(t_burnin/frame_rate) -1 :-1,:].T
+            ssa_int =  ssa_solution.intensity_vec[0,int(t_burnin/frame_rate)-1 :-1,:].T
             return time_ssa, ssa_int
         
         # Wrapper for the simulated cell
@@ -2478,10 +2475,10 @@ class SimulatedCellMultiplexing ():
         for i in range(0,self.number_genes):
             _ , ssa_solution = rsnapsim_ssa(self.list_gene_sequences[i],ke =3, ki=0.033,simulation_time_in_sec=self.simulation_time_in_sec,n_traj=self.list_number_spots[i])
             list_ssa.append(ssa_solution)
-            list_min_ssa.append(np.argmin(ssa_solution))
-            list_max_ssa.append(np.argmax(ssa_solution))
+            list_min_ssa.append(ssa_solution.min())
+            list_max_ssa.append(ssa_solution.max())
         # Creating the videos 
-        list_DataFrame_particles_intensities= []    
+        list_DataFrame_particles_intensities= []   
         for i in range(0,self.number_genes):    
             if i == 0 :
                 tensor_video , DataFrame_particles_intensities = wrapper_SimulatedCell(self.inial_video, video_for_mask = self.inial_video, ssa=list_ssa[i], target_channel=self.list_target_channels[i], diffusion_coefficient=self.list_diffusion_coefficients[i],min_int_multiplexing =min(list_min_ssa) , max_int_multiplexing= max(list_max_ssa))        
