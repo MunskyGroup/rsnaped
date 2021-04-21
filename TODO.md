@@ -3,6 +3,8 @@
 ## Top priority
 
 - [x] Add class for photo-bleaching
+- [ ] Add spot classification using ML
+- [ ] Create empty cell rotations to augment data.
 - [ ] Organize notebooks.
 - [ ] Start writing a publication.
 - [ ] Machine learning notebooks
