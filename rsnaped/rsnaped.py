@@ -2134,8 +2134,8 @@ class SimulatedCell():
             MAX_INTENSITY_ALL_SPOTS = 5000 # maximum allowed intensity for a given spot
             MAX_INTENSITY_IN_UINT16 = 65535 # maximum value in a unint16 image
             # The following two constants are weights used to define a range of intensities for the simulated spots.
-            MIN_INTENSITY_SPOT_WEIGHT = 1.2 # 1.05 lower weight that multiplays the mean intensity value in the image to define the simulated spot intensity.
-            MAX_INTENSITY_SPOT_WEIGHT = 1.8 # 1.5 higher weight that multiplays the mean intensity value in the image to define the simulated spot intensity.
+            MIN_INTENSITY_SPOT_WEIGHT = 1.1 # 1.05 lower weight that multiplays the mean intensity value in the image to define the simulated spot intensity.
+            MAX_INTENSITY_SPOT_WEIGHT = 1.6 # 1.5 higher weight that multiplays the mean intensity value in the image to define the simulated spot intensity.
             for point_index in range(0,len(center_positions_vector)):
                 # Section that creates the Gaussian Kernel Matrix
                 ax = np.linspace(-(size_spot - 1) / 2., (size_spot - 1) / 2., size_spot)        
@@ -2349,11 +2349,12 @@ class SimulatedCell():
                     normalized_tensor[i,:,:,ch] = image 
             if self.save_as_tif_uint8==1:
                 tifffile.imwrite(save_to_path+self.saved_file_name+'_unit8_'+'.tif', normalized_tensor)
+            
             if self.save_as_gif==1:
                 # Saving the simulation as a gif. Complete image
                 with imageio.get_writer(save_to_path+self.saved_file_name+'_unit8_'+'.gif', mode='I') as writer:
                     for i in range(0,num_images_for_gif):
-                        image = normalized_tensor[i,:,:,:]
+                        image = normalized_tensor[i,:,:,0:1]
                         writer.append_data(image)
         if self.save_as_tif==1:
             if self.create_temp_folder == True:
@@ -2410,9 +2411,11 @@ class SimulatedCellMultiplexing ():
         Creates a folder with the simulation output. The default is True.
     cell_number : int, optional
         Cell number used as an index for the data frame. The default is 0.
+    save_as_gif : bool, optional
+        If true, it generates and saves a .gif with the simulation. The default is 0.
         
     '''
-    def __init__(self,inial_video,list_gene_sequences,list_number_spots,list_target_channels,list_diffusion_coefficients,list_label_names,simulation_time_in_sec,step_size_in_sec,save_as_tif, save_dataframe, saved_file_name,create_temp_folder,cell_number=0):
+    def __init__(self,inial_video,list_gene_sequences,list_number_spots,list_target_channels,list_diffusion_coefficients,list_label_names,simulation_time_in_sec,step_size_in_sec,save_as_tif, save_dataframe, saved_file_name,create_temp_folder,cell_number=0,save_as_gif=0):
         self.inial_video = inial_video
         self.list_gene_sequences = list_gene_sequences
         self.list_number_spots = list_number_spots
@@ -2427,6 +2430,7 @@ class SimulatedCellMultiplexing ():
         self.saved_file_name = saved_file_name
         self.create_temp_folder = create_temp_folder
         self.cell_number = cell_number
+        self.save_as_gif=save_as_gif
         
     def make_simulation (self):
         '''
@@ -2457,7 +2461,7 @@ class SimulatedCellMultiplexing ():
             return time_ssa, ssa_int
         
         # Wrapper for the simulated cell
-        def wrapper_SimulatedCell (base_video,video_for_mask=None, ssa=None, target_channel=1, diffusion_coefficient=0.05, step_size=self.step_size_in_sec,spot_size=5, spot_sigma=2,intensity_calculation_method='disk_donut',using_for_multiplexing=0,min_int_multiplexing =0 , max_int_multiplexing=0):
+        def wrapper_SimulatedCell (base_video,video_for_mask=None, ssa=None, target_channel=1, diffusion_coefficient=0.05, step_size=self.step_size_in_sec,spot_size=5, spot_sigma=2,intensity_calculation_method='disk_donut',using_for_multiplexing=0,min_int_multiplexing =0 , max_int_multiplexing=0,save_as_gif=0):
             if target_channel ==0:
                 ignore_ch0=0; ignore_ch1=1; ignore_ch2=1
             elif target_channel ==1:
@@ -2465,7 +2469,7 @@ class SimulatedCellMultiplexing ():
             elif target_channel ==2:
                 ignore_ch0=0; ignore_ch1=1; ignore_ch2=0
             number_spots_per_cell = ssa.shape[0]
-            tensor_video , _ , _, _, _, DataFrame_particles_intensities = SimulatedCell( base_video=base_video,video_for_mask=video_for_mask, number_spots = number_spots_per_cell, number_frames=ssa.shape[1], step_size=step_size, diffusion_coefficient =diffusion_coefficient, simulated_trajectories_ch0=None, size_spot_ch0=spot_size, spot_sigma_ch0=spot_sigma, simulated_trajectories_ch1=ssa, size_spot_ch1=spot_size, spot_sigma_ch1=spot_sigma, simulated_trajectories_ch2=ssa, size_spot_ch2=spot_size, spot_sigma_ch2=spot_sigma, ignore_ch0=ignore_ch0,ignore_ch1=ignore_ch1, ignore_ch2=ignore_ch2,save_as_tif_uint8=0,save_as_tif =0,save_as_gif=0, save_dataframe=0, saved_file_name=None,create_temp_folder = False,intensity_calculation_method=intensity_calculation_method,using_for_multiplexing=using_for_multiplexing,min_int_multiplexing=min_int_multiplexing, max_int_multiplexing=max_int_multiplexing).make_simulation()      
+            tensor_video , _ , _, _, _, DataFrame_particles_intensities = SimulatedCell( base_video=base_video,video_for_mask=video_for_mask, number_spots = number_spots_per_cell, number_frames=ssa.shape[1], step_size=step_size, diffusion_coefficient =diffusion_coefficient, simulated_trajectories_ch0=None, size_spot_ch0=spot_size, spot_sigma_ch0=spot_sigma, simulated_trajectories_ch1=ssa, size_spot_ch1=spot_size, spot_sigma_ch1=spot_sigma, simulated_trajectories_ch2=ssa, size_spot_ch2=spot_size, spot_sigma_ch2=spot_sigma, ignore_ch0=ignore_ch0,ignore_ch1=ignore_ch1, ignore_ch2=ignore_ch2,save_as_tif_uint8=0,save_as_tif =0,save_as_gif=save_as_gif, save_dataframe=0,create_temp_folder = 1,intensity_calculation_method=intensity_calculation_method,using_for_multiplexing=using_for_multiplexing,min_int_multiplexing=min_int_multiplexing, max_int_multiplexing=max_int_multiplexing).make_simulation()      
             DataFrame_particles_intensities['cell_number'] = DataFrame_particles_intensities['cell_number'].replace([0],self.cell_number)
             return tensor_video, DataFrame_particles_intensities  # [cell_number, particle, frame, red_int_mean, green_int_mean, blue_int_mean, red_int_std, green_int_std, blue_int_std, x, y].     
         # Runs the SSA and the simulated cell functions
@@ -2481,9 +2485,9 @@ class SimulatedCellMultiplexing ():
         list_DataFrame_particles_intensities= []   
         for i in range(0,self.number_genes):    
             if i == 0 :
-                tensor_video , DataFrame_particles_intensities = wrapper_SimulatedCell(self.inial_video, video_for_mask = self.inial_video, ssa=list_ssa[i], target_channel=self.list_target_channels[i], diffusion_coefficient=self.list_diffusion_coefficients[i],min_int_multiplexing =min(list_min_ssa) , max_int_multiplexing= max(list_max_ssa))        
+                tensor_video , DataFrame_particles_intensities = wrapper_SimulatedCell(self.inial_video, video_for_mask = self.inial_video, ssa=list_ssa[i], target_channel=self.list_target_channels[i], diffusion_coefficient=self.list_diffusion_coefficients[i],min_int_multiplexing =min(list_min_ssa) , max_int_multiplexing= max(list_max_ssa),save_as_gif=self.save_as_gif)        
             else:
-                tensor_video , DataFrame_particles_intensities = wrapper_SimulatedCell(tensor_video, video_for_mask = self.inial_video, ssa=list_ssa[i], target_channel=self.list_target_channels[i], diffusion_coefficient=self.list_diffusion_coefficients[i],using_for_multiplexing=1,min_int_multiplexing =min(list_min_ssa) , max_int_multiplexing= max(list_max_ssa))        
+                tensor_video , DataFrame_particles_intensities = wrapper_SimulatedCell(tensor_video, video_for_mask = self.inial_video, ssa=list_ssa[i], target_channel=self.list_target_channels[i], diffusion_coefficient=self.list_diffusion_coefficients[i],using_for_multiplexing=1,min_int_multiplexing =min(list_min_ssa) , max_int_multiplexing= max(list_max_ssa),save_as_gif=self.save_as_gif)        
             list_DataFrame_particles_intensities.append(DataFrame_particles_intensities)
         # Adding a classification column to all dataframes
         for i in range(0,self.number_genes):
