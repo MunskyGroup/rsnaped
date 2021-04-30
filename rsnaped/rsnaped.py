@@ -576,8 +576,8 @@ class VisualizerImage():
         None.
         '''
         # Plotting only the cells 
+        NUM_COLUMNS = 5
         if ( self.list_selected_particles_dataframe[0] is None):
-            NUM_COLUMNS = 3
             NUM_ROWS = int(math.ceil(len(self.list_videos) / NUM_COLUMNS))
             # Loop to plot multiple cells in a grid
             gs = gridspec.GridSpec(NUM_ROWS, NUM_COLUMNS)
@@ -594,7 +594,6 @@ class VisualizerImage():
                     ax.set(title='Cell_'+str(index_video))
         # Plotting the cells and the detected spots
         if not ( self.list_selected_particles_dataframe[0] is None) and ( ( self.list_videos_filtered[0] is None)):
-            NUM_COLUMNS = 3
             NUM_ROWS = int(math.ceil(len(self.list_videos) / NUM_COLUMNS))
             # Loop to plot multiple cells in a grid
             gs = gridspec.GridSpec(NUM_ROWS, NUM_COLUMNS)
@@ -615,41 +614,43 @@ class VisualizerImage():
                 frames_part = None
                 x_pos = None
                 y_pos = None
-                selected_particles_dataframe = self.list_selected_particles_dataframe[counter]
-                if not len (self.list_selected_particles_dataframe[counter]) == 0:
-                    number_particles = selected_particles_dataframe['particle'].nunique()
-                    for k in range (0,number_particles):
-                        frames_part =selected_particles_dataframe.loc[selected_particles_dataframe['particle']==selected_particles_dataframe['particle'].unique()[k]].frame.values  
-                        index_time = self.selected_timepoint
-                        if index_time in frames_part: # plotting the circles for each detected particle at a given time point
-                            index_val=np.where(frames_part == index_time)
-                            x_pos=int(selected_particles_dataframe.loc[selected_particles_dataframe['particle']==selected_particles_dataframe['particle'].unique()[k]].x.values[index_val])
-                            y_pos=int(selected_particles_dataframe.loc[selected_particles_dataframe['particle']==selected_particles_dataframe['particle'].unique()[k]].y.values[index_val])
-                        try:
-                            circle = plt.Circle((x_pos, y_pos), self.particle_size/2, color='yellow', fill=False)
-                            ax.add_artist(circle)
-                        except:
-                            pass
+                if not (self.list_selected_particles_dataframe[0] is None):
+                    selected_particles_dataframe = self.list_selected_particles_dataframe[counter]
+                    if not len (self.list_selected_particles_dataframe[counter]) == 0:
+                        number_particles = selected_particles_dataframe['particle'].nunique()
+                        for k in range (0,number_particles):
+                            frames_part =selected_particles_dataframe.loc[selected_particles_dataframe['particle']==selected_particles_dataframe['particle'].unique()[k]].frame.values  
+                            index_time = self.selected_timepoint
+                            if index_time in frames_part: # plotting the circles for each detected particle at a given time point
+                                index_val=np.where(frames_part == index_time)
+                                x_pos=int(selected_particles_dataframe.loc[selected_particles_dataframe['particle']==selected_particles_dataframe['particle'].unique()[k]].x.values[index_val])
+                                y_pos=int(selected_particles_dataframe.loc[selected_particles_dataframe['particle']==selected_particles_dataframe['particle'].unique()[k]].y.values[index_val])
+                            try:
+                                circle = plt.Circle((x_pos, y_pos), self.particle_size/2, color='yellow', fill=False)
+                                ax.add_artist(circle)
+                            except:
+                                pass
                 # main loop to mark spots ==> REAL SPOTS. USE FOR SIMULATED CELL
                 number_particles  = None
                 frames_part = None
                 x_pos = None
                 y_pos = None
-                selected_particles_dataframe = self.list_real_particle_positions[counter]
-                if not len (self.list_real_particle_positions[counter]) == 0:
-                    number_particles = selected_particles_dataframe['particle'].nunique()
-                    for k in range (0,number_particles):
-                        frames_part =selected_particles_dataframe.loc[selected_particles_dataframe['particle']==selected_particles_dataframe['particle'].unique()[k]].frame.values  
-                        index_time = self.selected_timepoint
-                        if index_time in frames_part: # plotting the circles for each detected particle at a given time point
-                            index_val=np.where(frames_part == index_time)
-                            x_pos=int(selected_particles_dataframe.loc[selected_particles_dataframe['particle']==selected_particles_dataframe['particle'].unique()[k]].x.values[index_val])
-                            y_pos=int(selected_particles_dataframe.loc[selected_particles_dataframe['particle']==selected_particles_dataframe['particle'].unique()[k]].y.values[index_val])
-                        try:
-                            circle = plt.Circle((x_pos, y_pos), 2, color='orangered', fill=False)
-                            ax.add_artist(circle)
-                        except:
-                            pass
+                if not (self.list_real_particle_positions[0] is None):
+                    selected_particles_dataframe = self.list_real_particle_positions[counter]
+                    if not len (self.list_real_particle_positions[counter]) == 0:
+                        number_particles = selected_particles_dataframe['particle'].nunique()
+                        for k in range (0,number_particles):
+                            frames_part =selected_particles_dataframe.loc[selected_particles_dataframe['particle']==selected_particles_dataframe['particle'].unique()[k]].frame.values  
+                            index_time = self.selected_timepoint
+                            if index_time in frames_part: # plotting the circles for each detected particle at a given time point
+                                index_val=np.where(frames_part == index_time)
+                                x_pos=int(selected_particles_dataframe.loc[selected_particles_dataframe['particle']==selected_particles_dataframe['particle'].unique()[k]].x.values[index_val])
+                                y_pos=int(selected_particles_dataframe.loc[selected_particles_dataframe['particle']==selected_particles_dataframe['particle'].unique()[k]].y.values[index_val])
+                            try:
+                                circle = plt.Circle((x_pos, y_pos), 2, color='orangered', fill=False)
+                                ax.add_artist(circle)
+                            except:
+                                pass
                 # Plots the mask contour on the video
                 if not ( self.list_mask_array[0] is None):
                     mask_array = self.list_mask_array[index_video]
@@ -663,7 +664,6 @@ class VisualizerImage():
                 counter +=1
         # Plotting the cells and the detected spots and the filtered video.
         if (not ( self.list_selected_particles_dataframe[0] is None)) and (not ( self.list_videos_filtered[0] is None)) :
-            NUM_COLUMNS = 3
             NUM_ROWS = self.number_videos
             gs = gridspec.GridSpec(NUM_ROWS, NUM_COLUMNS)
             gs.update(wspace=0.1, hspace=0.1) # set the spacing between axes.
@@ -2397,6 +2397,10 @@ class SimulatedCellMultiplexing ():
         List where every element represents the diffusion coefficient for every gene.
     list_label_names : List of str
         List where every element contains the label for each gene.
+    list_elongation_rates : List of floats
+        List where every element represents the elongation rate for every gene.
+    list_initation_rates : List of floats
+        List where every element represents the initation rate for every gene.
     simulation_time_in_sec : int
         The simulation time in seconds. The default is 20. 
     step_size_in_sec : float, optional
@@ -2415,13 +2419,15 @@ class SimulatedCellMultiplexing ():
         If true, it generates and saves a .gif with the simulation. The default is 0.
         
     '''
-    def __init__(self,inial_video,list_gene_sequences,list_number_spots,list_target_channels,list_diffusion_coefficients,list_label_names,simulation_time_in_sec,step_size_in_sec,save_as_tif, save_dataframe, saved_file_name,create_temp_folder,cell_number=0,save_as_gif=0):
+    def __init__(self,inial_video,list_gene_sequences,list_number_spots,list_target_channels,list_diffusion_coefficients,list_label_names,list_elongation_rates,list_initation_rates,simulation_time_in_sec,step_size_in_sec,save_as_tif, save_dataframe, saved_file_name,create_temp_folder,cell_number=0,save_as_gif=0):
         self.inial_video = inial_video
         self.list_gene_sequences = list_gene_sequences
         self.list_number_spots = list_number_spots
         self.list_target_channels = list_target_channels
         self.list_diffusion_coefficients = list_diffusion_coefficients
         self.list_label_names = list_label_names
+        self.list_elongation_rates = list_elongation_rates
+        self.list_initation_rates = list_initation_rates
         self.simulation_time_in_sec = simulation_time_in_sec
         self.step_size_in_sec = step_size_in_sec
         self.number_genes = len(list_gene_sequences)
@@ -2447,7 +2453,7 @@ class SimulatedCellMultiplexing ():
 
         '''
         # FUNCTION THAT RUNS THE SSA IN rSNAPsim
-        def rsnapsim_ssa(gene_file,ke =3,ki=0.033,simulation_time_in_sec=100,n_traj=20, frame_rate =self.step_size_in_sec):
+        def rsnapsim_ssa(gene_file,ke ,ki,simulation_time_in_sec=100,n_traj=20, frame_rate =self.step_size_in_sec):
             poi_strs, poi_objs, tagged_pois,raw_seq = rss.seqmanip.open_seq_file(gene_file)
             gene_obj = tagged_pois['1'][0]
             gene_obj.ke = ke
@@ -2477,7 +2483,7 @@ class SimulatedCellMultiplexing ():
         list_min_ssa =[]
         list_max_ssa =[]
         for i in range(0,self.number_genes):
-            _ , ssa_solution = rsnapsim_ssa(self.list_gene_sequences[i],ke =3, ki=0.033,simulation_time_in_sec=self.simulation_time_in_sec,n_traj=self.list_number_spots[i])
+            _ , ssa_solution = rsnapsim_ssa(self.list_gene_sequences[i],ke =self.list_elongation_rates[i], ki=self.list_initation_rates[i],simulation_time_in_sec=self.simulation_time_in_sec,n_traj=self.list_number_spots[i])
             list_ssa.append(ssa_solution)
             list_min_ssa.append(ssa_solution.min())
             list_max_ssa.append(ssa_solution.max())
@@ -2547,8 +2553,11 @@ class PipelineTracking():
         A pandas data frame containing the position of each spot in the image. This dataframe is generated with class SimulatedCell, and it contains the true position for each spot. This option is only intended to be used to train algorithms for tracking and visualize real vs detected spots. The default is None.
     average_cell_diameter : float, optional
         Average cell size. The default is 120.
+    print_process_times : bool, optional
+        Allows the user the times taken during each process. The default is 0.
+    
     '''
-    def __init__(self,video,particle_size=5,file_name='Cell.tif',selected_channel=0,intensity_calculation_method ='disk_donut', mask_selection_method = 'max_spots',show_plot=1, use_optimization_for_tracking =1,real_positions_dataframe = None,average_cell_diameter=120):
+    def __init__(self,video,particle_size=5,file_name='Cell.tif',selected_channel=0,intensity_calculation_method ='disk_donut', mask_selection_method = 'max_spots',show_plot=1, use_optimization_for_tracking =1,real_positions_dataframe = None,average_cell_diameter=120,print_process_times=0):
         self.video = video
         self.particle_size = particle_size
         self.image = video[1,:,:,:]
@@ -2561,6 +2570,7 @@ class PipelineTracking():
         self.use_optimization_for_tracking = use_optimization_for_tracking
         self.real_positions_dataframe = real_positions_dataframe
         self.average_cell_diameter = average_cell_diameter
+        self.print_process_times = print_process_times
     def run(self):
         '''
         Runs the pipeline.
@@ -2583,17 +2593,18 @@ class PipelineTracking():
             Array with dimensions [S,T,C].
 
         '''
-        #start = timer()
+        start = timer()
         selected_masks = Cellpose(self.image,num_iterations=10, selection_method='max_cells',diameter=self.average_cell_diameter ).calculate_masks() # options are 'max_area' or 'max_cells'
         if not ( selected_masks is None):
             selected_mask  = CellposeSelection(selected_masks,self.video, slection_method = self.mask_selection_method, particle_size=self.particle_size, selected_channel=self.selected_channel).select_mask()
         else:
             selected_mask= None
-        #end = timer()
-        #print('mask time:',round(end - start), ' sec')         
+        end = timer()
+        if self.print_process_times ==1:
+            print('mask time:',round(end - start), ' sec')         
         if not ( selected_mask is None):
             # Tracking
-            #start = timer()
+            start = timer()
             if self.num_frames >20:
                 minimal_frames =  int(self.num_frames*0.4) # minimal number of frames to consider a trajectory
             else:
@@ -2603,14 +2614,15 @@ class PipelineTracking():
             else:
                 use_defaul_filter = 1
             try:
-                Dataframe_trajectories, number_detected_trajectories, filtered_video = Trackpy(self.video,selected_mask,particle_size=self.particle_size, selected_channel=self.selected_channel,minimal_frames=minimal_frames,optimization_iterations = 50,use_defaul_filter=use_defaul_filter, show_plot =0).perform_tracking()   
+                Dataframe_trajectories, number_detected_trajectories, filtered_video = Trackpy(self.video,selected_mask,particle_size=self.particle_size, selected_channel=self.selected_channel,minimal_frames=minimal_frames,optimization_iterations = 60,use_defaul_filter=use_defaul_filter, show_plot =0).perform_tracking()   
             except:
                 Dataframe_trajectories = None
                 filtered_video = self.video
-            #end = timer()
-            #print('tracking time:',round(end - start), ' sec')         
+            end = timer()
+            if self.print_process_times ==1:
+                print('tracking time:',round(end - start), ' sec')         
             # Intensity calculation
-            #start = timer()
+            start = timer()
             if not ( Dataframe_trajectories is None):
                 dataframe_particles, array_intensities, time_vector, mean_intensities,std_intensities, mean_intensities_normalized, std_intensities_normalized = Intensity(self.video,self.particle_size,Dataframe_trajectories,method=self.intensity_calculation_method,show_plot=0 ).calculate_intensity()           
             else:
@@ -2621,8 +2633,9 @@ class PipelineTracking():
                 std_intensities = None
                 mean_intensities_normalized = None 
                 std_intensities_normalized = None
-            #end = timer()
-            #print('intensity calculation time:',round(end - start), ' sec')
+            end = timer()
+            if self.print_process_times ==1:
+                print('intensity calculation time:',round(end - start), ' sec')
             if (self.show_plot ==1):
                 VisualizerImage(self.video,filtered_video,Dataframe_trajectories,self.file_name,list_mask_array = selected_mask,selected_channel=self.selected_channel,selected_timepoint=0,normalize=False,individual_figure_size=7,list_real_particle_positions=self.real_positions_dataframe).plot()
         else:
