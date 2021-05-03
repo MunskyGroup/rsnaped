@@ -2,9 +2,12 @@
 
 ## Top priority
 
-- [x] Add class for photo-bleaching
-- [ ] Add spot classification using ML
-- [ ] Create empty cell rotations to augment data.
+
+- [X] Create empty cell rotations to augment data.
+- [ ] Shuffle, constant, and loop images for simulated cell
+- [ ] Add class for photo-bleaching
+- [X] Add spot classification using ML
+
 - [ ] Organize notebooks.
 - [ ] Start writing a publication.
 - [ ] Machine learning notebooks
