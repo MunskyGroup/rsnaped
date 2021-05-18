@@ -80,6 +80,7 @@ if import_libraries ==1:
     # to create gifs
     import imageio
     # time libraries
+    import pathlib
     from timeit import default_timer as timer
     import time
     # Cellpose
@@ -2423,14 +2424,15 @@ class SimulatedCell():
         tensor_std_intensity_in_figure[:,:,0] = tensor_std_intensity_in_figure_ch0
         tensor_std_intensity_in_figure[:,:,1] = tensor_std_intensity_in_figure_ch1
         tensor_std_intensity_in_figure[:,:,2] = tensor_std_intensity_in_figure_ch2
+        
         if (self.save_as_tif_uint8==1) or (self.save_as_gif==1):
             if self.create_temp_folder == True:
-                save_to_path = 'temp'
-                if not os.path.exists(save_to_path):
-                    os.makedirs(save_to_path)
-                print ("The output is saved in the directory: ." , save_to_path)
+                save_to_path = pathlib.Path().absolute().joinpath('temp')
+                if not os.path.exists(str(save_to_path)):
+                    os.makedirs(str(save_to_path))
+                print ("The output is saved in the directory: " , str(save_to_path))
             else:
-                save_to_path=''
+                save_to_path== pathlib.Path().absolute()
             tensor_video_copy = tensor_video.copy()
             normalized_tensor = np.zeros_like(tensor_video_copy,dtype='uint8')
             num_images_for_gif = tensor_video_copy.shape[0]
@@ -2445,34 +2447,34 @@ class SimulatedCell():
                     image = np.asarray(np.round(image_float), 'uint8')
                     normalized_tensor[i,:,:,ch] = image
             if self.save_as_tif_uint8==1:
-                tifffile.imwrite(save_to_path+self.saved_file_name+'_unit8_'+'.tif', normalized_tensor)
+                tifffile.imwrite(str(save_to_path.joinpath(self.saved_file_name+'_unit8_'+'.tif')), normalized_tensor)
 
             if self.save_as_gif==1:
                 # Saving the simulation as a gif. Complete image
-                with imageio.get_writer(save_to_path+self.saved_file_name+'_unit8_'+'.gif', mode='I') as writer:
+                with imageio.get_writer(str(save_to_path.joinpath(self.saved_file_name+'_unit8_'+'.gif')), mode='I') as writer:
                     for i in range(0,num_images_for_gif):
                         image = normalized_tensor[i,:,:,0:1]
                         writer.append_data(image)
         if self.save_as_tif==1:
             if self.create_temp_folder == True:
-                save_to_path = 'temp'
-                if not os.path.exists(save_to_path):
-                    os.makedirs(save_to_path)
-                print ("The output is saved in the directory: ." , save_to_path)
+                save_to_path = pathlib.Path().absolute().joinpath('temp')
+                if not os.path.exists(str(save_to_path)):
+                    os.makedirs(str(save_to_path))
+                print ("The output is saved in the directory: " , str(save_to_path))
             else:
-                save_to_path=''
-            tifffile.imwrite(save_to_path+self.saved_file_name+'.tif', tensor_video)
+                save_to_path= pathlib.Path().absolute()
+            tifffile.imwrite(str(save_to_path.joinpath(self.saved_file_name+'.tif')), tensor_video)
         dataframe_particles, _, _, _,_, _, _ = Intensity(tensor_video,particle_size=self.size_spot_ch0,spot_positions_movement=spot_positions_movement,method=self.intensity_calculation_method,step_size =self.step_size,show_plot=0 ).calculate_intensity()
 
         if self.save_dataframe==1:
             if self.create_temp_folder == True:
-                save_to_path = 'temp'
-                if not os.path.exists(save_to_path):
-                    os.makedirs(save_to_path)
-                print ("The output is saved in the directory: ." , save_to_path)
+                save_to_path = pathlib.Path().absolute().joinpath('temp')
+                if not os.path.exists(str(save_to_path)):
+                    os.makedirs(str(save_to_path))
+                print ("The output is saved in the directory: " , str(save_to_path))
             else:
-                save_to_path=''
-            dataframe_particles.to_csv(save_to_path+self.saved_file_name +'_df'+ '.csv', index = True)
+                save_to_path=pathlib.Path().absolute()
+            dataframe_particles.to_csv(str(save_to_path.joinpath(self.saved_file_name +'_df'+ '.csv')), index = True)
         return tensor_video , tensor_for_image_j , spot_positions_movement, tensor_mean_intensity_in_figure, tensor_std_intensity_in_figure, dataframe_particles
 
 
@@ -2609,26 +2611,28 @@ class SimulatedCellMultiplexing ():
                 number_spots_for_previous_genes = np.sum(self.list_number_spots[0:i])
                 list_DataFrame_particles_intensities[i]['particle'] = list_DataFrame_particles_intensities[i]['particle'] + number_spots_for_previous_genes
         # Merging multiple dataframes in a single one.
-        dataframe_simulated_cell = pd.concat(list_DataFrame_particles_intensities)
+        dataframe_simulated_cell = pd.concat(list_DataFrame_particles_intensities)        
+        
         # saving the simulated video and data frame
+        
         if self.save_as_tif==1:
             if self.create_temp_folder == True:
-                save_to_path = 'temp'
-                if not os.path.exists(save_to_path):
-                    os.makedirs(save_to_path)
-                print ("The output is saved in the directory: ." , save_to_path)
+                save_to_path = pathlib.Path().absolute().joinpath('temp')
+                if not os.path.exists(str(save_to_path)):
+                    os.makedirs(str(save_to_path))
+                print ("The output is saved in the directory: " , str(save_to_path))
             else:
-                save_to_path=''
-            tifffile.imwrite(save_to_path+self.saved_file_name+'.tif', tensor_video)
+                save_to_path=pathlib.Path().absolute()
+            tifffile.imwrite(str(save_to_path.joinpath(self.saved_file_name+'.tif')), tensor_video)
         if self.save_dataframe==1:
             if self.create_temp_folder == True:
-                save_to_path = 'temp'
-                if not os.path.exists(save_to_path):
-                    os.makedirs(save_to_path)
-                print ("The output is saved in the directory: ." , save_to_path)
+                save_to_path = pathlib.Path().absolute().joinpath('temp')
+                if not os.path.exists(str(save_to_path)):
+                    os.makedirs(str(save_to_path))
+                print ("The output is saved in the directory: " , str(save_to_path))
             else:
-                save_to_path='temp'
-            dataframe_simulated_cell.to_csv(save_to_path+self.saved_file_name +'_df'+ '.csv', index = True)
+                save_to_path=pathlib.Path().absolute()
+            dataframe_simulated_cell.to_csv(str(save_to_path.joinpath(self.saved_file_name +'_df'+ '.csv')), index = True)
         return tensor_video, dataframe_simulated_cell, list_ssa
 
 class PipelineTracking():
