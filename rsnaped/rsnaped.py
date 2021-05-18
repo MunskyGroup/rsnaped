@@ -2125,9 +2125,7 @@ class SimulatedCell():
             plt.imshow(selected_mask)
             dilated_image = dilation(selected_mask, square(20))
             dilated_image[0,:]=0;dilated_image[:,0]=0;dilated_image[dilated_image.shape[0]-1,:]=0;dilated_image[:,dilated_image.shape[1]-1]=0#This line of code ensures that the corners are zeros.
-
             contours = np.array(find_contours(dilated_image, 0.5),dtype = int)
-
         polygon_array = contours[0]
         self.polygon_array = mask_reduction(polygon_array, percentage_reduction= 0.2)
         # Removing mask to the video
@@ -2427,10 +2425,10 @@ class SimulatedCell():
         tensor_std_intensity_in_figure[:,:,2] = tensor_std_intensity_in_figure_ch2
         if (self.save_as_tif_uint8==1) or (self.save_as_gif==1):
             if self.create_temp_folder == True:
-                save_to_path = 'temp/'
+                save_to_path = 'temp'
                 if not os.path.exists(save_to_path):
                     os.makedirs(save_to_path)
-                print ("The output is saved in the directory: ./" , save_to_path[0:-1])
+                print ("The output is saved in the directory: ." , save_to_path)
             else:
                 save_to_path=''
             tensor_video_copy = tensor_video.copy()
@@ -2457,10 +2455,10 @@ class SimulatedCell():
                         writer.append_data(image)
         if self.save_as_tif==1:
             if self.create_temp_folder == True:
-                save_to_path = 'temp/'
+                save_to_path = 'temp'
                 if not os.path.exists(save_to_path):
                     os.makedirs(save_to_path)
-                print ("The output is saved in the directory: ./" , save_to_path[0:-1])
+                print ("The output is saved in the directory: ." , save_to_path)
             else:
                 save_to_path=''
             tifffile.imwrite(save_to_path+self.saved_file_name+'.tif', tensor_video)
@@ -2468,10 +2466,10 @@ class SimulatedCell():
 
         if self.save_dataframe==1:
             if self.create_temp_folder == True:
-                save_to_path = 'temp/'
+                save_to_path = 'temp'
                 if not os.path.exists(save_to_path):
                     os.makedirs(save_to_path)
-                print ("The output is saved in the directory: ./" , save_to_path[0:-1])
+                print ("The output is saved in the directory: ." , save_to_path)
             else:
                 save_to_path=''
             dataframe_particles.to_csv(save_to_path+self.saved_file_name +'_df'+ '.csv', index = True)
@@ -2615,21 +2613,21 @@ class SimulatedCellMultiplexing ():
         # saving the simulated video and data frame
         if self.save_as_tif==1:
             if self.create_temp_folder == True:
-                save_to_path = 'temp/'
+                save_to_path = 'temp'
                 if not os.path.exists(save_to_path):
                     os.makedirs(save_to_path)
-                print ("The output is saved in the directory: ./" , save_to_path[0:-1])
+                print ("The output is saved in the directory: ." , save_to_path)
             else:
                 save_to_path=''
             tifffile.imwrite(save_to_path+self.saved_file_name+'.tif', tensor_video)
         if self.save_dataframe==1:
             if self.create_temp_folder == True:
-                save_to_path = 'temp/'
+                save_to_path = 'temp'
                 if not os.path.exists(save_to_path):
                     os.makedirs(save_to_path)
-                print ("The output is saved in the directory: ./" , save_to_path[0:-1])
+                print ("The output is saved in the directory: ." , save_to_path)
             else:
-                save_to_path='temp/'
+                save_to_path='temp'
             dataframe_simulated_cell.to_csv(save_to_path+self.saved_file_name +'_df'+ '.csv', index = True)
         return tensor_video, dataframe_simulated_cell, list_ssa
 
