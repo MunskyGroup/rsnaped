@@ -2113,7 +2113,7 @@ class SimulatedCell():
             return mask_coordinates
         # section that uses cellpose to calculate the mask
         selected_image = self.video_for_mask[0,:,:,1] # selecting for the mask the first time point
-        selected_masks = Cellpose(selected_image,num_iterations=10, channels=[0],diameter=200,model_type='cyto',selection_method = 'max_area').calculate_masks() # options are 'max_area' or 'max_cells'
+        selected_masks = Cellpose(selected_image,num_iterations=10, channels=[0,0],diameter=200,model_type='cyto',selection_method = 'max_area').calculate_masks() # options are 'max_area' or 'max_cells'
         if np.amax(selected_masks) ==0:
             print('Error, no masks were found on the image')
             raise
