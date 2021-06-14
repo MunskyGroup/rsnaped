@@ -2760,3 +2760,5 @@ class PipelineTracking():
             mean_intensities_normalized = None
             std_intensities_normalized = None
         return dataframe_particles, array_intensities, time_vector, mean_intensities,std_intensities, mean_intensities_normalized, std_intensities_normalized
+
+
