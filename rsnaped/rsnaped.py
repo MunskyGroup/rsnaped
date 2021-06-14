@@ -55,7 +55,7 @@ if import_libraries ==1:
     from skimage.draw import polygon_perimeter
     from skimage.restoration import denoise_nl_means, estimate_sigma
     from skimage.morphology import square, dilation
-    # Open cv
+    # Open cv6
 
     # Parallel computing
     from joblib import Parallel, delayed
@@ -2432,7 +2432,7 @@ class SimulatedCell():
                     os.makedirs(str(save_to_path))
                 print ("The output is saved in the directory: " , str(save_to_path))
             else:
-                save_to_path== pathlib.Path().absolute()
+                save_to_path= pathlib.Path().absolute()
             tensor_video_copy = tensor_video.copy()
             normalized_tensor = np.zeros_like(tensor_video_copy,dtype='uint8')
             num_images_for_gif = tensor_video_copy.shape[0]
