@@ -2665,7 +2665,7 @@ class PipelineTracking():
         Allows the user the times taken during each process. The default is 0.
 
     '''
-    def __init__(self,video,particle_size=5,file_name='Cell.tif',selected_channel=0,intensity_calculation_method ='disk_donut', mask_selection_method = 'max_spots',show_plot=1, use_optimization_for_tracking =1,real_positions_dataframe = None,average_cell_diameter=120,print_process_times=0):
+    def __init__(self,video,particle_size:int=5,file_name:str='Cell.tif',selected_channel:int=0,intensity_calculation_method:str='disk_donut', mask_selection_method:str= 'max_spots',show_plot:bool=1, use_optimization_for_tracking: bool=1,real_positions_dataframe= None,average_cell_diameter: float=120,print_process_times:bool=0):
         self.video = video
         self.particle_size = particle_size
         self.image = video[1,:,:,:]
@@ -2760,5 +2760,4 @@ class PipelineTracking():
             mean_intensities_normalized = None
             std_intensities_normalized = None
         return dataframe_particles, array_intensities, time_vector, mean_intensities,std_intensities, mean_intensities_normalized, std_intensities_normalized
-
 
