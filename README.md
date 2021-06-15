@@ -32,22 +32,8 @@ Open the terminal and use [pip](https://pip.pypa.io/en/stable/) for the installa
 ```bash
 pip install rsnaped
 ```
-## Dependencies
-cellpose (0.5.1) <br />
-trackpy (0.4.2) <br />
-matplotlib (3.2.2) <br />
-numpy (1.20.1) <br />
-pandas (1.0.5) <br />
-scikit-image (0.18.0) <br />
-joblib (0.16.0) <br />
-bqplot (0.12.17) <br />
-scipy (1.5.0) <br />
-pyfiglet (0.8.post1) <br />
-tifffile (2020.10.1) <br />
-opencv-python (4.4.0.42) <br />
-ipywidgets (7.5.1) <br />
 
-## References
+## References and main dependencies
 
 - [rSNAPsim](https://github.com/MunskyGroup/rSNAPsim):
  Aguilera, Luis U., et al. "Computational design and interpretation of single-RNA translation experiments." PLoS computational biology 15.10 (2019): e1007425.
