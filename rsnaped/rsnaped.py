@@ -2692,5 +2692,4 @@ class PipelineTracking():
 
 # Classes for 3D trakcing and FISH
 
-
 # Autoflorescence removal    
