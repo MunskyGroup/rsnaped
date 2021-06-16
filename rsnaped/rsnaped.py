@@ -2688,9 +2688,6 @@ class PipelineTracking():
 
 # Statistics
 
-
-
-
 # Class to simulate 3D FISH and sm-translation
 
 # Classes for 3D trakcing and FISH
