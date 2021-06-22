@@ -2482,7 +2482,7 @@ class SimulatedCellMultiplexing ():
         def rsnapsim_ssa(gene_file, ke , ki, simulation_time_in_sec = 100, n_traj = 20, frame_rate = self.step_size_in_sec):
             _, _, tagged_pois, _ = rss.seqmanip.open_seq_file(gene_file)
             gene_obj = tagged_pois['1'][0]
-            gene_obj.ke = ke
+            gene_obj.ke_mu = ke
             rss.solver.protein = gene_obj #pass the protein object
             t_burnin = 1000
             t = np.linspace(0, t_burnin+simulation_time_in_sec, int((t_burnin+simulation_time_in_sec)/frame_rate) )   # ask Will how to pass the step_size. (start, stop, num)
