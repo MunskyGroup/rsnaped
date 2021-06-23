@@ -373,7 +373,7 @@ class MaskingImage():
         video_removed_mask : np.uint16
             Video with zero values outside the area delimited by the mask. Array with format [T, Y, X, C].
         '''
-        video_removed_mask = np.einsum('ijkl, jk- > ijkl', self.video, self.mask)
+        video_removed_mask = np.einsum('ijkl, jk -> ijkl', self.video, self.mask)
         return video_removed_mask
 
 
@@ -1178,7 +1178,7 @@ class CellposeFISH():
     Parameters
     --  --  --  --  -- 
     video : NumPy array
-        Array of images with dimensions [Z, Y, X, C].
+        Array of images with dimensions [Z, Y, X, C] or maximum projection with dimenssions [Y,X,C].
     channel_with_cytosol : int, optional
         DESCRIPTION. The default is [0, 1].
     channel_with_nucleus : list or int, optional
@@ -1307,12 +1307,19 @@ class CellposeFISH():
             return list_mask_joined, new_index_paired_masks
         ##### IMPLEMENTATION #####
         # Correcting the 3D video to 2D and normalized
-        video_correct_order = np.zeros((1, self.video.shape[1], self.video.shape[2], self.video.shape[3]) , dtype = np.uint16)
-        video_correct_order[0, :, :, :] = self.video[self.selected_z_slice, :, :, :]
-        video_normalized = RemoveExtrema(video_correct_order, 1, 99).remove_outliers()
-        # Cellpose
-        masks_cyto = Cellpose(video_normalized[0, :, :, self.channel_with_cytosol], diameter = self.diameter_cytosol, model_type = 'cyto', selection_method = 'max_cells' ).calculate_masks()
-        masks_nuclei = Cellpose(video_normalized[0, :, :, self.channel_with_nucleus], diameter = self.diamter_nucleus, model_type = 'nuclei', selection_method = 'max_cells').calculate_masks()
+        if len(self.video.shape) > 3:
+            video_correct_order = np.zeros((1, self.video.shape[1], self.video.shape[2], self.video.shape[3]) , dtype = np.uint16)
+            video_correct_order[0, :, :, :] = self.video[self.selected_z_slice, :, :, :]
+            video_normalized = RemoveExtrema(video_correct_order, 1, 99).remove_outliers()
+            # Cellpose
+            masks_cyto = Cellpose(video_normalized[0, :, :, self.channel_with_cytosol], diameter = self.diameter_cytosol, model_type = 'cyto', selection_method = 'max_cells' ).calculate_masks()
+            masks_nuclei = Cellpose(video_normalized[0, :, :, self.channel_with_nucleus], diameter = self.diamter_nucleus, model_type = 'nuclei', selection_method = 'max_cells').calculate_masks()
+        else:
+            video_normalized = self.video
+            # Cellpose
+            masks_cyto = Cellpose(self.video[:, :, self.channel_with_cytosol], diameter = self.diameter_cytosol, model_type = 'cyto', selection_method = 'max_cells' ).calculate_masks()
+            masks_nuclei = Cellpose(self.video[:, :, self.channel_with_nucleus], diameter = self.diamter_nucleus, model_type = 'nuclei', selection_method = 'max_cells').calculate_masks()
+
         # Implementation
         list_separated_masks_nuclei = separate_masks(masks_nuclei)
         list_separated_masks_cyto = separate_masks(masks_cyto)
@@ -1329,7 +1336,12 @@ class CellposeFISH():
         list_masks_cytosol_no_nuclei = generate_masks_cytosol_no_nuclei(index_paired_masks, list_masks_complete_cells, list_masks_nuclei)
         if self.show_plot == 1:
             _, axes = plt.subplots(nrows = 1, ncols = 4, figsize = (20, 10))
-            im = video_normalized[0, :, :, 0:3].copy()
+            
+            if len(self.video.shape) > 3:
+                im = video_normalized[0, :, :, 0:3].copy()
+            else:
+                im = video_normalized[ :, :, 0:3].copy()
+            
             imin, imax = np.min(im), np.max(im); im -= imin;
             imf = np.array(im, 'float32');
             imf *= 255./(imax-imin);
@@ -1549,7 +1561,7 @@ class Trackpy():
             temp_vid_dif_filter = Parallel(n_jobs = self.num_cores)(delayed(bandpass_filter)(self.video[i, :, :], self.low_pass_filter, self.default_highpass) for i in range(0, self.time_points))
             temp_video_bp_filtered = np.asarray(temp_vid_dif_filter)
             #temp_video_bp_filtered = self.video
-            video_removed_mask = np.einsum('ijk, jk- > ijk', temp_video_bp_filtered, self.mask)
+            video_removed_mask = np.einsum('ijk, jk -> ijk', temp_video_bp_filtered, self.mask)
             f_init = tp.locate(video_removed_mask[0, :, :], self.particle_size, minmass = 0, max_iterations = 100, preprocess = False, percentile = percentile)
             try:
                 min_int_in_video = np.amax( (0, np.mean(f_init.mass.values) + self.default_threshold_int_std *np.std(f_init.mass.values)))
@@ -1568,7 +1580,7 @@ class Trackpy():
             #for index_p, highpass_filters in enumerate(vector_highpass_filters):
             temp_vid_dif_filter = Parallel(n_jobs = self.num_cores)(delayed(bandpass_filter)(self.video[i, :, :], self.low_pass_filter, self.default_highpass) for i in range(0, self.time_points))
             temp_video_bp_filtered = np.asarray(temp_vid_dif_filter)
-            video_removed_mask = np.einsum('ijk, jk- > ijk', temp_video_bp_filtered, self.mask)
+            video_removed_mask = np.einsum('ijk, jk -> ijk', temp_video_bp_filtered, self.mask)
             f_init = tp.locate(video_removed_mask[0, :, :], self.particle_size, minmass = 0, max_iterations = 100, preprocess = False, percentile = percentile)
             for index_p, int_optimization_value in enumerate(min_int_vector):
                 #### OPTIMIZATION VARIABLE:  min_int_in_video
@@ -1605,7 +1617,7 @@ class Trackpy():
                 #temp_vid_dif_filter = Parallel(n_jobs = self.num_cores)(delayed(bandpass_filter)(self.video[i, :, :], self.low_pass_filter, selected_filter) for i in range(0, self.time_points))
                 #temp_video_bp_filtered = np.asarray(temp_vid_dif_filter)
                 #temp_video_bp_filtered = self.video
-                #video_removed_mask = np.einsum('ijk, jk- > ijk', temp_video_bp_filtered, self.mask)
+                #video_removed_mask = np.einsum('ijk, jk -> ijk', temp_video_bp_filtered, self.mask)
                 #f_init = tp.locate(video_removed_mask[0, :, :], self.particle_size, minmass = 0, max_iterations = 100, preprocess = False, percentile = percentile)
                 #### OPTIMIZATION VARIABLE:  min_int_in_video
                 min_int_in_video = np.amax( (0,  np.mean(f_init.mass.values) + selected_int_optimized *np.std(f_init.mass.values)))
@@ -2583,7 +2595,7 @@ class PipelineTracking():
         Allows the user the times taken during each process. The default is 0.
 
     '''
-    def __init__(self, video, particle_size:int = 5, file_name:str = 'Cell.tif', selected_channel:int = 0, intensity_calculation_method:str = 'disk_donut', mask_selection_method:str = 'max_spots', show_plot:bool = 1, use_optimization_for_tracking: bool = 1, real_positions_dataframe = None, average_cell_diameter: float = 120, print_process_times:bool = 0):
+    def __init__(self, video:np.ndarray, particle_size:int = 5, file_name:str = 'Cell.tif', selected_channel:int = 0, intensity_calculation_method:str = 'disk_donut', mask_selection_method:str = 'max_spots', show_plot:bool = 1, use_optimization_for_tracking: bool = 1, real_positions_dataframe = None, average_cell_diameter: float = 120, print_process_times:bool = 0):
         self.video = video
         self.particle_size = particle_size
         self.image = video[1, :, :, :]
@@ -2709,7 +2721,7 @@ class PhotobleachingCalculation():
     show_plot : bool, optional
         Allows the user to show a plot for the optimization process. The default is 1.
     '''
-    def __init__(self, video:np.narray,mask:np.narray,step_size:int=1, selected_channel:int =1,show_plot:bool =1):
+    def __init__(self, video:np.ndarray,mask:np.ndarray,step_size:int=1, selected_channel:int =1,show_plot:bool =1):
         self.video = video
         self.show_plot = show_plot
         self.mask = mask
@@ -2784,7 +2796,7 @@ class PhotobleachingCalculation():
         
 
 class PhotobleachingCorrection():
-    def __init__(self, video:np.narray,mask:np.narray,step_size:int=1, selected_channel:int=1,show_plot:bool=1):
+    def __init__(self, video:np.ndarray,mask:np.ndarray,step_size:int=1, selected_channel:int=1,show_plot:bool=1):
         self.video = video
         self.show_plot = show_plot
         self.mask = mask
