@@ -57,7 +57,7 @@ if import_libraries == 1:
     from skimage.filters import difference_of_gaussians
     from skimage.filters import gaussian
     from skimage.draw import polygon_perimeter
-    from skimage.restoration import denoise_nl_means, estimate_sigma
+    from skimage.restoration import denoise_nl_means, estimate_sigma, denoise_wavelet
     from skimage.morphology import square, dilation
     # Parallel computing
     from joblib import Parallel, delayed
@@ -1557,8 +1557,16 @@ class Trackpy():
             temp_image = img_as_float64(image)
             filtered_image = nd.median_filter(temp_image, size = size)
             return img_as_uint(filtered_image)
+
+        def wavelet_filter(image: np.ndarray):
+            temp_image = img_as_float64(image)
+            filtered_image = denoise_wavelet(temp_image, rescale_sigma=True,method='BayesShrink', mode='soft')
+            return img_as_uint(filtered_image)
+
+
         if self.use_defaul_filter == 1: # This section uses a default value for the filter size.
             temp_vid_dif_filter = Parallel(n_jobs = self.num_cores)(delayed(bandpass_filter)(self.video[i, :, :], self.low_pass_filter, self.default_highpass) for i in range(0, self.time_points))
+            #temp_vid_dif_filter = Parallel(n_jobs = self.num_cores)(delayed(wavelet_filter)(self.video[i, :, :]) for i in range(0, self.time_points))
             temp_video_bp_filtered = np.asarray(temp_vid_dif_filter)
             #temp_video_bp_filtered = self.video
             video_removed_mask = np.einsum('ijk, jk -> ijk', temp_video_bp_filtered, self.mask)
@@ -1579,6 +1587,7 @@ class Trackpy():
         else: # This section uses optimization to select the optimal value for the filter size.
             #for index_p, highpass_filters in enumerate(vector_highpass_filters):
             temp_vid_dif_filter = Parallel(n_jobs = self.num_cores)(delayed(bandpass_filter)(self.video[i, :, :], self.low_pass_filter, self.default_highpass) for i in range(0, self.time_points))
+            #temp_vid_dif_filter = Parallel(n_jobs = self.num_cores)(delayed(wavelet_filter)(self.video[i, :, :]) for i in range(0, self.time_points))
             temp_video_bp_filtered = np.asarray(temp_vid_dif_filter)
             video_removed_mask = np.einsum('ijk, jk -> ijk', temp_video_bp_filtered, self.mask)
             f_init = tp.locate(video_removed_mask[0, :, :], self.particle_size, minmass = 0, max_iterations = 100, preprocess = False, percentile = percentile)
@@ -2054,7 +2063,8 @@ class SimulatedCell():
             mask_coordinates.shape
             return mask_coordinates
         # section that uses cellpose to calculate the mask
-        selected_image = self.video_for_mask[0, :, :, 1] # selecting for the mask the first time point
+        #selected_image = self.video_for_mask[0, :, :, 1] # selecting for the mask the first time point
+        selected_image = np.max(self.video_for_mask[:, :, :, 1],axis=0) # selecting for the mask the first time point
         selected_masks = Cellpose(selected_image, num_iterations = 10, channels = [0, 0], diameter = 200, model_type = 'cyto', selection_method = 'max_area').calculate_masks() # options are 'max_area' or 'max_cells'
         if np.amax(selected_masks) == 0:
             print('Error, no masks were found on the image')
@@ -2598,7 +2608,8 @@ class PipelineTracking():
     def __init__(self, video:np.ndarray, particle_size:int = 5, file_name:str = 'Cell.tif', selected_channel:int = 0, intensity_calculation_method:str = 'disk_donut', mask_selection_method:str = 'max_spots', show_plot:bool = 1, use_optimization_for_tracking: bool = 1, real_positions_dataframe = None, average_cell_diameter: float = 120, print_process_times:bool = 0):
         self.video = video
         self.particle_size = particle_size
-        self.image = video[1, :, :, :]
+        #self.image = video[1, :, :, :]
+        self.image = np.max(video,axis=0)
         self.num_frames = video.shape[0]
         self.file_name = file_name
         self.intensity_calculation_method = intensity_calculation_method  # options are : 'total_intensity' and 'disk_donut'
@@ -2636,7 +2647,7 @@ class PipelineTracking():
 
         '''
         start = timer()
-        selected_masks = Cellpose(self.image, num_iterations = self.NUM_ITERATIONS_CELLPOSE, selection_method = 'max_cells', diameter = self.average_cell_diameter ).calculate_masks() # options are 'max_area' or 'max_cells'
+        selected_masks = Cellpose(self.image, num_iterations = self.NUM_ITERATIONS_CELLPOSE, selection_method = 'max_area', diameter = self.average_cell_diameter ).calculate_masks() # options are 'max_area' or 'max_cells'
         if not ( selected_masks is None):
             selected_mask  = CellposeSelection(selected_masks, self.video, slection_method = self.mask_selection_method, particle_size = self.particle_size, selected_channel = self.selected_channel).select_mask()
         else:
