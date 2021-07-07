@@ -71,7 +71,7 @@ if import_libraries == 1:
     from ipywidgets import interactive, HBox, Layout, GridspecLayout #, interact, fixed, interact_manual, Button, VBox
     import bqplot as bq
     from bqplot import LinearScale, ColorScale, HeatMap
-    # Scipy
+    # scipy
     import scipy.stats as sps
     from scipy.signal import find_peaks #, peak_prominences, find_peaks_cwt
     from scipy.spatial import Delaunay
@@ -94,7 +94,7 @@ if import_libraries == 1:
     plt.style.use("dark_background")
 
 
-class ConverToStandardFormat():
+class ConvertToStandardFormat():
     '''
     This class contains two methods to:
 
@@ -173,7 +173,7 @@ class ConverToStandardFormat():
 
 class AugmentationVideo():
     '''
-    This class is inteded to be used for data augmentation. It takes a video and perform random rotations in the X and Y axis.
+    This class is intended to be used for data augmentation. It takes a video and perform random rotations in the X and Y axis.
     Parameters
     --  --  --  --  -- 
     video : NumPy array
@@ -207,7 +207,7 @@ class RemoveExtrema():
     Parameters
     --  --  --  --  -- 
     video : NumPy array
-        Array of images with dimensions [T, Y, X, C] or single image with diemnsions [Y, X].
+        Array of images with dimensions [T, Y, X, C] or single image with dimensions [Y, X].
     min_percentile : float, optional
         Lower bound to normalize intensity. The default is 1.
     max_percentile : float, optional
@@ -228,7 +228,7 @@ class RemoveExtrema():
         Returns
         --  --  -- -
         normalized_video : np.uint16
-            Normalized video. Array with dimensions [T, Y, X, C] or iamge with format [Y, X].
+            Normalized video. Array with dimensions [T, Y, X, C] or image with format [Y, X].
         '''
         normalized_video = np.copy(self.video)
         normalized_video = np.array(normalized_video, 'float32');
@@ -411,11 +411,11 @@ class BeadsAlignment():
         # Locating beads in the image using "tp.locate" function from trackpy.
         f_red = tp.locate(self.image_beads[0, :, :], self.spot_size, self.min_intensity, maxsize = 7, percentile = 60) # data frame for the red channel
         f_green = tp.locate(self.image_beads[1, :, :], self.spot_size, self.min_intensity, maxsize = 7, percentile = 60)  # data frame for the green channel
-        # Converting coordenates to float32 array for the red channel
+        # Converting coordinates to float32 array for the red channel
         x_coord_red = np.array(f_red.x.values, np.float32)
         y_coord_red = np.array(f_red.y.values, np.float32)
         positions_red = np.column_stack((x_coord_red, y_coord_red ))
-        # Converting coordenates to float32 array for the green channel
+        # Converting coordinates to float32 array for the green channel
         x_coord_green = np.array(f_green.x.values, np.float32)
         y_coord_green = np.array(f_green.y.values, np.float32)
         positions_green = np.column_stack(( x_coord_green, y_coord_green ))
@@ -529,7 +529,7 @@ class VisualizerImage():
         self.selected_timepoint = selected_timepoint
         self.selected_channel = selected_channel
         self.individual_figure_size = individual_figure_size
-        # Checkiing if the video is a list or a single video.
+        # Checking if the video is a list or a single video.
         if not (type(list_videos) is list):
             list_videos = [list_videos]
             self.list_videos = list_videos
@@ -1059,7 +1059,7 @@ class VisualizerCrops():
                 index_val = np.where(frames_part == index_time)
                 x_pos = int(selected_particles_dataframe.loc[selected_particles_dataframe['particle'] == selected_particles_dataframe['particle'].unique()[track]].x.values[index_val])
                 y_pos = int(selected_particles_dataframe.loc[selected_particles_dataframe['particle'] == selected_particles_dataframe['particle'].unique()[track]].y.values[index_val])
-            else: #in case the code doesnt find a position it uses the closes time point value.
+            else: #in case the code doesn't find a position it uses the closes time point value.
                 index_closest = np.abs(frames_part - index_time).argmin()
                 x_pos = int(selected_particles_dataframe.loc[selected_particles_dataframe['particle'] == selected_particles_dataframe['particle'].unique()[track]].x.values[index_closest])
                 y_pos = int(selected_particles_dataframe.loc[selected_particles_dataframe['particle'] == selected_particles_dataframe['particle'].unique()[track]].y.values[index_closest])
@@ -1112,8 +1112,8 @@ class Cellpose():
     def __init__(self, video:np.ndarray, num_iterations:int = 5, channels:list = [0, 0], diameter:float = 120, model_type:str = 'cyto', selection_method:str = 'max_area'):
         self.video = video
         self.num_iterations = num_iterations
-        self.minimumm_probaility = 0
-        self.maximum_probaility = 4
+        self.minimumm_probability = 0
+        self.maximum_probability = 4
         self.channels = channels
         self.diameter = diameter
         self.model_type = model_type # options are 'cyto' or 'nuclei'
@@ -1125,14 +1125,14 @@ class Cellpose():
         Returns
         --  --  -- -
         selected_masks : List of NumPy arrays
-            List of NumPy arrays with values between 0 and the number of detected cels in the image, where a number larger than zero represents the masked area for each cell, and 0 represents the area where no cells are detected.
+            List of NumPy arrays with values between 0 and the number of detected cells in the image, where a number larger than zero represents the masked area for each cell, and 0 represents the area where no cells are detected.
         '''
         # Next two lines suppressing output from cellpose
         old_stdout = sys.stdout
         sys.stdout = open(os.devnull, "w")
         model = models.Cellpose(gpu = 0, model_type = self.model_type) # model_type = 'cyto' or model_type = 'nuclei'
         # Loop that test multiple probabilities in cell pose and returns the masks with the longest area.
-        tested_probabilities = np.round(np.linspace(self.minimumm_probaility, self.maximum_probaility, self.num_iterations), 2)
+        tested_probabilities = np.round(np.linspace(self.minimumm_probability, self.maximum_probability, self.num_iterations), 2)
         area_longest_mask = np.zeros(self.num_iterations)
         if self.selection_method == 'max_area':
             # Loop that iterates in the selected probabilities
@@ -1178,7 +1178,7 @@ class CellposeFISH():
     Parameters
     --  --  --  --  -- 
     video : NumPy array
-        Array of images with dimensions [Z, Y, X, C] or maximum projection with dimenssions [Y,X,C].
+        Array of images with dimensions [Z, Y, X, C] or maximum projection with dimensions [Y,X,C].
     channel_with_cytosol : int, optional
         DESCRIPTION. The default is [0, 1].
     channel_with_nucleus : list or int, optional
@@ -1228,10 +1228,10 @@ class CellposeFISH():
             else:  # do nothing if only a single mask is detected per image.
                 list_masks.append(masks)
             return list_masks
-        # function that determines if the nuclus is in the cytosol
-        def is_nucleous_in_cytosol(mask_nucleus, mask_cyto):
-            nucleousInCell = []
-            nucleousInCell.append(0) # Appending an empty value, to avoid errors
+        # function that determines if the nucleus is in the cytosol
+        def is_nucleus_in_cytosol(mask_nucleus, mask_cyto):
+            nucleusInCell = []
+            nucleusInCell.append(0) # Appending an empty value, to avoid errors
             contuour_n = find_contours(mask_nucleus, 0.5)
             contuour_c = find_contours(mask_cyto, 0.5)
             path = mpltPath.Path(contuour_c[0])
@@ -1247,14 +1247,14 @@ class CellposeFISH():
                 return 1
             else:
                 return 0
-        # This funciton takes two list of images for masks and returns a list of lists with pairs indicating the nucleus masks that are contained in a cytosol
+        # This function takes two list of images for masks and returns a list of lists with pairs indicating the nucleus masks that are contained in a cytosol
         def paired_masks(list_masks_nuclei:list, list_masks_cyto:list):
             n_masks_nuclei = len (list_masks_nuclei)
             n_masks_cyto = len(list_masks_cyto)
             array_paired_masks = np.zeros((n_masks_cyto, n_masks_nuclei)) # This array has dimensions n_masks_cyto, n_masks_nuclei and each entry indicate if the masks are paired
             for i in range(0, n_masks_cyto):
                 for j in range (0, n_masks_nuclei):
-                    array_paired_masks[i, j] = is_nucleous_in_cytosol(list_masks_nuclei[j], list_masks_cyto[i])
+                    array_paired_masks[i, j] = is_nucleus_in_cytosol(list_masks_nuclei[j], list_masks_cyto[i])
             # vertical array with paired masks
             itemindex = np.where(array_paired_masks == 1)
             index_paired_masks = np.vstack((itemindex[0], itemindex[1])).T
@@ -1284,7 +1284,7 @@ class CellposeFISH():
                 substraction[substraction < 0] = 0
                 list_masks_cytosol_no_nuclei.append(substraction)
             return list_masks_cytosol_no_nuclei
-        def join_nulcei_maks(index_paired_masks:np.ndarray, list_masks_nuclei:list):
+        def join_nulcei_masks(index_paired_masks:np.ndarray, list_masks_nuclei:list):
             # this code detects duplicated mask for the nucleus in the same cell and replaces with a joined mask. Also deletes from the list the duplicated elements.
             index_masks_cytosol = index_paired_masks[:, 0]
             idxs_to_delete = []
@@ -1295,7 +1295,7 @@ class CellposeFISH():
                     for j in range(0, len(duplicated_masks_idx)):
                         joined_mask = joined_mask + list_masks_nuclei[duplicated_masks_idx[j]]
                         joined_mask[joined_mask > 0] = 1
-                    list_masks_nuclei[duplicated_masks_idx[0]] = joined_mask # replacing the first duplication occurence with the joined mask
+                    list_masks_nuclei[duplicated_masks_idx[0]] = joined_mask # replacing the first duplication occurrence with the joined mask
                     idxs_to_delete.append(duplicated_masks_idx[1::][0])
             # creating a new list with the joined masks
             list_mask_joined = []
@@ -1329,7 +1329,7 @@ class CellposeFISH():
         id_c = index_paired_masks[:, 0].tolist()
         duplicated_nuclei_in_masks = any(id_c.count(x) > 1 for x in id_c)
         if duplicated_nuclei_in_masks == True:
-            list_masks_nuclei, index_paired_masks = join_nulcei_maks(index_paired_masks, list_separated_masks_nuclei)
+            list_masks_nuclei, index_paired_masks = join_nulcei_masks(index_paired_masks, list_separated_masks_nuclei)
         # List of mask
         list_masks_complete_cells = generate_masks_complete_cell(index_paired_masks, list_separated_masks_cyto)
         list_masks_nuclei = generate_masks_nuclei(index_paired_masks, list_separated_masks_nuclei)
@@ -1373,20 +1373,20 @@ class CellposeSelection():
         Arrays with values between 0 and the number of detected cells in the image, where a number larger than zero represents the masked area for each cell, and 0 represents the area where no cells are detected. An array of images with dimensions [Y, X].
     video : NumPy array
         An array of images with dimensions [T, Y, X, C].
-    slection_method : str, optional
+    selection_method : str, optional
         Options used by the optimization algorithm to select a cell based on the number of cells or the number of spots. The options are: 'max_area' or 'max_spots'. The default is 'maximum_area'.
     particle_size : int, optional
         Average particle size. The default is 5.
     selected_channel : int, optional
         Channel where the particles are detected and tracked. The default is 0.
     '''
-    def __init__(self, mask:np.ndarray, video:np.ndarray, slection_method:str = 'max_area', particle_size:int = 5, selected_channel:int = 0):
+    def __init__(self, mask:np.ndarray, video:np.ndarray, selection_method:str = 'max_area', particle_size:int = 5, selected_channel:int = 0):
         self.mask = mask
         self.video = video
         self.num_frames = video.shape[0]
         self.selected_channel = selected_channel      # selected channel
         self.particle_size = particle_size            # according to the documentation it must be an even number 3, 5, 7, 9 etc.
-        self.slection_method = slection_method
+        self.selection_method = selection_method
         self.minimal_frames = int(video.shape[0]*0.9)
 
     def select_mask(self):
@@ -1398,7 +1398,7 @@ class CellposeSelection():
         selected_mask : NumPy array, with Boolean values, where 1 represents the masked area, and 0 represents the area outside the mask.
             An array of images with dimensions [Y, X].
         '''
-        if self.slection_method == 'max_area':
+        if self.selection_method == 'max_area':
             # Iterating for each mask to select the mask with the largest area.
             n_masks = np.amax(self.mask)
             if n_masks > 1: # detecting if more than 1 mask are detected per cell
@@ -1410,7 +1410,7 @@ class CellposeSelection():
                 selected_mask = temp_mask + (self.mask == largest_mask) # Selecting a single mask and making this mask equal to one and the background equal to zero.
             else: # do nothing if only a single mask is detected per image.
                 selected_mask = self.mask
-        if self.slection_method == 'max_spots':
+        if self.selection_method == 'max_spots':
             # Iterating for each mask to select the mask with the largest area.
             n_masks = np.amax(self.mask)
             if n_masks > 1: # detecting if more than 1 mask are detected per cell
@@ -1457,14 +1457,14 @@ class Trackpy():
         This parameter defines the minimal number of frames that a particle should appear on the video to be considered on the final count. The default is 5.
     optimization_iterations : int, optional
         Number of iterations for the optimization process to select the best filter. The default is 30.
-    use_defaul_filter : bool, optional
+    use_default_filter : bool, optional
         This option allows the user to use a default filter if TRUE. Else, it uses an optimization process to select the best filter for the image. The default is = 1.
     show_plot : bool, optional
         Allows the user to show a plot for the optimization process. The default is 1.
     FISH_image : bool, optional.
         This parameter allows the user to use FISH images and connect spots detected along multiple z-slices. The default is 0.
     '''
-    def __init__(self, video:np.ndarray, mask:np.ndarray, particle_size:int = 5, selected_channel:int = 0, minimal_frames:int = 5, optimization_iterations:int = 40, use_defaul_filter:int = 1, FISH_image: bool = 0, show_plot:bool = 1):
+    def __init__(self, video:np.ndarray, mask:np.ndarray, particle_size:int = 5, selected_channel:int = 0, minimal_frames:int = 5, optimization_iterations:int = 40, use_default_filter:int = 1, FISH_image: bool = 0, show_plot:bool = 1):
         self.num_cores = multiprocessing.cpu_count()
         self.time_points = video.shape[0]
         self.selected_channel = selected_channel
@@ -1494,7 +1494,7 @@ class Trackpy():
         self.minimal_frames = minimal_frames
         self.optimization_iterations = optimization_iterations
         self.show_plot = show_plot
-        self.use_defaul_filter =  use_defaul_filter
+        self.use_default_filter =  use_default_filter
         # parameters for the filters
         self.low_pass_filter = 0.1
         self.default_highpass = 10
@@ -1502,7 +1502,7 @@ class Trackpy():
         #self.median_filter_size = 5
         #self.max_highpass = 20 #10
         #self.min_highpass = 0.1
-        self.perecentile_intensity_slection = 70 #Not modify
+        self.perecentile_intensity_selection = 70 #Not modify
         self.default_threshold_int_std = 1.5
         self.MAX_NUM_STD_OPTIMIZATION = 1.5
         # This section detects if a FISH image is passed and it adjust accordingly.
@@ -1527,7 +1527,7 @@ class Trackpy():
         num_detected_particles = np.zeros((self.optimization_iterations), dtype = np.float)
         #vector_highpass_filters = np.linspace(self.min_highpass, self.max_highpass, self.optimization_iterations).astype(np.uint16)
         min_int_vector = np.round(np.linspace(0, self.MAX_NUM_STD_OPTIMIZATION, self.optimization_iterations), 1) # range of std to test for optimization
-        percentile = self.perecentile_intensity_slection
+        percentile = self.perecentile_intensity_selection
         # Function that rounds an array to the nearest multiple of five
         def round_to_5(num):
             if num > 3:
@@ -1539,7 +1539,7 @@ class Trackpy():
                      return int(num + (5 - num % 5))
             else:
                 return int(0)
-        # Funtions with the bandpass and gaussian filters
+        # Functions with the bandpass and gaussian filters
         def bandpass_filter (image: np.ndarray, lowfilter, highpass):
             temp_vid = difference_of_gaussians(image, lowfilter, highpass, truncate = 3.0)
             return img_as_uint(temp_vid)
@@ -1564,7 +1564,7 @@ class Trackpy():
             return img_as_uint(filtered_image)
 
 
-        if self.use_defaul_filter == 1: # This section uses a default value for the filter size.
+        if self.use_default_filter == 1: # This section uses a default value for the filter size.
             temp_vid_dif_filter = Parallel(n_jobs = self.num_cores)(delayed(bandpass_filter)(self.video[i, :, :], self.low_pass_filter, self.default_highpass) for i in range(0, self.time_points))
             #temp_vid_dif_filter = Parallel(n_jobs = self.num_cores)(delayed(wavelet_filter)(self.video[i, :, :]) for i in range(0, self.time_points))
             temp_video_bp_filtered = np.asarray(temp_vid_dif_filter)
@@ -1607,21 +1607,21 @@ class Trackpy():
                 window_size = 3
             else:
                 window_size = 4
-            conv_num_detected_particles = np.round( np.convolve(num_detected_particles, np.ones(window_size)/window_size, mode = 'same'))
-            rounded_num_particules = np.array([round_to_5(conv_num_detected_particles[x]) for x in range(len(conv_num_detected_particles))], dtype = np.float32)
+            convoluted_num_detected_particles = np.round( np.convolve(num_detected_particles, np.ones(window_size)/window_size, mode = 'same'))
+            rounded_num_particules = np.array([round_to_5(convoluted_num_detected_particles[x]) for x in range(len(convoluted_num_detected_particles))], dtype = np.float32)
             try:
                 threshold = 3 # threshold to reject if
                 num_detected_particles_with_nans = rounded_num_particules.copy()
                 num_detected_particles_with_nans[num_detected_particles_with_nans <= threshold] = np.nan
-                mode_detected_particles = sps.mode(num_detected_particles_with_nans, nan_policy = 'omit')[0][0] # calculaitng the mode of nonzero num_detected_particles.
+                mode_detected_particles = sps.mode(num_detected_particles_with_nans, nan_policy = 'omit')[0][0] # calculating the mode of nonzero num_detected_particles.
                 center_modes = int (len(np.where(num_detected_particles_with_nans == mode_detected_particles)[0])/2)-1 #
                 if center_modes < 0:
                     center_modes = 0
-                index_containin_central_mode = np.where(num_detected_particles_with_nans == mode_detected_particles)[0][center_modes]
-                selected_int_optimized = min_int_vector[index_containin_central_mode]
-                #print(index_containin_central_mode)
+                index_contains_central_mode = np.where(num_detected_particles_with_nans == mode_detected_particles)[0][center_modes]
+                selected_int_optimized = min_int_vector[index_contains_central_mode]
+                #print(index_contains_central_mode)
                 #print(selected_int_optimized)
-                #selected_filter = vector_highpass_filters[index_containin_central_mode] # selecting the intensity for the first instance where the mode appears in the vector_intensities
+                #selected_filter = vector_highpass_filters[index_contains_central_mode] # selecting the intensity for the first instance where the mode appears in the vector_intensities
                 #temp_vid_dif_filter = Parallel(n_jobs = self.num_cores)(delayed(bandpass_filter)(self.video[i, :, :], self.low_pass_filter, self.default_highpass) for i in range(0, self.time_points))
                 #temp_vid_dif_filter = Parallel(n_jobs = self.num_cores)(delayed(bandpass_filter)(self.video[i, :, :], self.low_pass_filter, selected_filter) for i in range(0, self.time_points))
                 #temp_video_bp_filtered = np.asarray(temp_vid_dif_filter)
@@ -1643,7 +1643,7 @@ class Trackpy():
             if self.show_plot == 1:
                 plt.figure(figsize = (7, 7))
                 plt.plot(min_int_vector, num_detected_particles, 'w-', linewidth = 2, label = 'real')
-                plt.plot(min_int_vector[1:-1], conv_num_detected_particles[1:-1], 'g-', linewidth = 1, label = 'smoothed')
+                plt.plot(min_int_vector[1:-1], convoluted_num_detected_particles[1:-1], 'g-', linewidth = 1, label = 'smoothed')
                 plt.plot([selected_int_optimized, selected_int_optimized], [np.amin(num_detected_particles), np.amax(num_detected_particles)], 'r-', linewidth = 2, label = 'Automatic selection')
                 #plt.plot([vector_intensities[0], vector_intensities[-1]], [threshold, threshold], 'k -- ', linewidth = 1, label = 'min. selection threshold')
                 plt.legend(loc = 'best')
@@ -1738,24 +1738,24 @@ class Intensity():
                 kernel =  offset *(np.exp(-0.5 * (np.square(xx) + np.square(yy)) / np.square(sigma)))
                 return kernel.ravel()
             p0 = (np.mean(image_flat) , int(size_spot/2))
-            popt, _ = curve_fit(gaussian_function, size_spot, image_flat, p0 = p0)
-            spot_intensity_gaussian = popt[0] # Amplitude
-            spot_intensity_gaussian_std = popt[1]
+            optimized_parameters, _ = curve_fit(gaussian_function, size_spot, image_flat, p0 = p0)
+            spot_intensity_gaussian = optimized_parameters[0] # Amplitude
+            spot_intensity_gaussian_std = optimized_parameters[1]
             return spot_intensity_gaussian, spot_intensity_gaussian_std
         def disk_donut(test_im:np.ndarray, disk_size:int):
                 # Function that calculates intensity using the disk and donut method
-                center_coordenates = int(test_im.shape[0]/2)
+                center_coordinates = int(test_im.shape[0]/2)
                 recentered_image_donut = test_im.copy().astype(np.float32)
                 # mean intensity in disk
-                image_in_disk = test_im[center_coordenates-disk_size:center_coordenates+disk_size+1, center_coordenates-disk_size:center_coordenates+disk_size+1]
+                image_in_disk = test_im[center_coordinates-disk_size:center_coordinates+disk_size+1, center_coordinates-disk_size:center_coordinates+disk_size+1]
                 #mean_intensity_disk = image_in_disk.mean() # mean calculation ignoring zeros
                 mean_intensity_disk = np.amax(image_in_disk.flatten())
                 #mean_intensity_disk = np.mean(image_in_disk)
                 spot_intensity_disk_donut_std = np.std(image_in_disk)
                 # mean intensity in donut.  The center is set to zeros and then the mean is calculated ignoring the zeros.
-                #recentered_image_donut[center_coordenates-disk_size:center_coordenates+disk_size+1, center_coordenates-disk_size:center_coordenates+disk_size+1] = 0
+                #recentered_image_donut[center_coordinates-disk_size:center_coordinates+disk_size+1, center_coordinates-disk_size:center_coordinates+disk_size+1] = 0
                 #mean_intensity_donut = recentered_image_donut[recentered_image_donut != 0].mean() # mean calculation ignoring zeros
-                recentered_image_donut[center_coordenates-disk_size:center_coordenates+disk_size+1, center_coordenates-disk_size:center_coordenates+disk_size+1] = np.nan
+                recentered_image_donut[center_coordinates-disk_size:center_coordinates+disk_size+1, center_coordinates-disk_size:center_coordinates+disk_size+1] = np.nan
                 mean_intensity_donut = np.nanmedian(recentered_image_donut.flatten()) # mean calculation ignoring zeros
                 # substracting background minus center intensity
                 spot_intensity_disk_donut = np.array( mean_intensity_disk - mean_intensity_donut, dtype = np.float32)
@@ -1986,9 +1986,9 @@ class SimulatedCell():
     using_for_multiplexing : bool, optional
         Flag that indicates that multiple genes are simulated per cell.
     min_int_multiplexing : float or None, optional
-        Indicates the minimal SSA value for all simulated genes in a multplexing experiment. The default is None.
+        Indicates the minimal SSA value for all simulated genes in a multiplexing experiment. The default is None.
     max_int_multiplexing : float or None, optional
-        Indicates the maximum SSA value for all simulated genes in a multplexing experiment. The default is None.
+        Indicates the maximum SSA value for all simulated genes in a multiplexing experiment. The default is None.
     perform_video_augmentation : bool, optional
         If true, it performs random rotations the initial video. The default is 1.
     frame_selection_empty_video : str, optional
@@ -2043,7 +2043,7 @@ class SimulatedCell():
         # The following two constants are weights used to define a range of intensities for the simulated spots.
         self.MIN_INTENSITY_SPOT_WEIGHT = 1.5 # 1.05 lower weight that multiplays the mean intensity value in the image to define the simulated spot intensity.
         self.MAX_INTENSITY_SPOT_WEIGHT = 3 # 1.6 higher weight that multiplays the mean intensity value in the image to define the simulated spot intensity.
-        self.MAX_STD_INT_IMAGE = 4 # maximum number of standard deviations avobe the mean that are permited to draw an spot.
+        self.MAX_STD_INT_IMAGE = 4 # maximum number of standard deviations above the mean that are allowed to draw an spot.
         # This function is intended to detect the mask and then reduce the mask by a given percentage. This reduction ensures that the simulated spots are inclosed inside the cell.
         def mask_reduction(polygon_array, percentage_reduction:float = 0.2):
             # Reducing the size of the mask to plot only inside the cell.
@@ -2069,12 +2069,12 @@ class SimulatedCell():
         if np.amax(selected_masks) == 0:
             print('Error, no masks were found on the image')
             raise
-        selected_mask  = CellposeSelection(selected_masks, selected_image, slection_method = 'max_area').select_mask()
+        selected_mask  = CellposeSelection(selected_masks, selected_image, selection_method = 'max_area').select_mask()
         # section that converts the mask in contours and resduces the size of the mask to ensure the spots are generated inside the cell.
         try:
             contours = np.array(find_contours(selected_mask, 0.5), dtype = int)
         except:
-            # this section extends the mask to conect isolated areas in the mask
+            # this section extends the mask to connect isolated areas in the mask
             plt.imshow(selected_mask)
             dilated_image = dilation(selected_mask, square(20))
             dilated_image[0, :] = 0;dilated_image[:, 0] = 0;dilated_image[dilated_image.shape[0]-1, :] = 0;dilated_image[:, dilated_image.shape[1]-1] = 0#This line of code ensures that the corners are zeros.
@@ -2120,20 +2120,20 @@ class SimulatedCell():
                     kernel =  offset *(np.exp(-0.5 * (np.square(xx) + np.square(yy)) / np.square(sigma)))
                     return kernel.ravel()
                 p0 = (np.mean(image_flat) , int(size_spot/2))
-                popt, _ = curve_fit(gaussian_function, size_spot, image_flat, p0 = p0)
-                spot_intensity_gaussian = popt[0] # Amplitude
-                std_intensity_gaussian = popt[1] # sigma
+                optimized_parameters, _ = curve_fit(gaussian_function, size_spot, image_flat, p0 = p0)
+                spot_intensity_gaussian = optimized_parameters[0] # Amplitude
+                std_intensity_gaussian = optimized_parameters[1] # sigma
                 return spot_intensity_gaussian, std_intensity_gaussian
             def disk_donut(test_im:np.ndarray, disk_size:int):
                 # Function that calculates intensity using the disk and donut method
-                center_coordenates = int(test_im.shape[0]/2)
+                center_coordinates = int(test_im.shape[0]/2)
                 # mean intensity in disk
-                image_in_disk = test_im[center_coordenates-disk_size:center_coordenates+disk_size+1, center_coordenates-disk_size:center_coordenates+disk_size+1]
+                image_in_disk = test_im[center_coordinates-disk_size:center_coordinates+disk_size+1, center_coordinates-disk_size:center_coordinates+disk_size+1]
                 mean_intensity_disk = np.mean(image_in_disk)
                 std_intensity_disk = np.std(image_in_disk)
                 # mean intensity in donut.  The center is set to zeros and then the mean is calculated ignoring the zeros.
                 recentered_image_donut = test_im.copy()
-                recentered_image_donut[center_coordenates-disk_size:center_coordenates+disk_size+1, center_coordenates-disk_size:center_coordenates+disk_size+1] = 0
+                recentered_image_donut[center_coordinates-disk_size:center_coordinates+disk_size+1, center_coordinates-disk_size:center_coordinates+disk_size+1] = 0
                 mean_intensity_donut = recentered_image_donut[recentered_image_donut != 0].mean() # mean calculation ignoring zeros
                 # substracting background minus center intensity
                 spot_intensity_disk_donut = np.array( mean_intensity_disk - mean_intensity_donut, dtype = np.float32)
@@ -2141,7 +2141,7 @@ class SimulatedCell():
                 spot_intensity_disk_donut[np.isnan(spot_intensity_disk_donut)] = 0 # replacing nans with zero
                 return spot_intensity_disk_donut, std_intensity_disk
             def return_crop(image:np.ndarray, x_pos:int, y_pos:int, crop_size:int):
-                # Function that return the crop from a given image and coordenates
+                # Function that return the crop from a given image and coordinates
                 crop_image = image[y_pos-(crop_size):y_pos+(crop_size+1), x_pos-(crop_size):x_pos+(crop_size+1)]
                 return crop_image
             for t_p, _ in enumerate(time_vector):
@@ -2159,7 +2159,7 @@ class SimulatedCell():
             return tensor_mean_intensity_in_figure, tensor_std_intensity_in_figure
 
         def make_replacement_pixelated_spots(matrix_background:np.ndarray, center_positions_vector:np.ndarray, size_spot:int, spot_sigma:int, using_ssa:bool, simulated_trajectories_time_point:np.ndarray, min_SSA_value:float, max_SSA_value:float):
-            #This funciton is intended to replace a kernel gaussian matrix for each spot position. The kernel gaussian matrix is scaled with the values obtained from the SSA o with the values given in a range.
+            #This function is intended to replace a kernel gaussian matrix for each spot position. The kernel gaussian matrix is scaled with the values obtained from the SSA o with the values given in a range.
             if size_spot%2 == 0:
                 size_spot = size_spot+1
             # Copy the matrix_background
@@ -2168,44 +2168,44 @@ class SimulatedCell():
             # Defining constant values
             MIN_INTENSITY_ALL_SPOTS = 4000 # basal value for each spot
             MAX_INTENSITY_ALL_SPOTS = 5000 # maximum allowed intensity for a given spot
-            MAX_INTENSITY_IN_UINT16 = 65535 # maximum value in a unint16 image
+            MAX_INTENSITY_IN_UINT16 = 65535 # maximum value in a uint16 image
 
             for point_index in range(0, len(center_positions_vector)):
                 # Section that creates the Gaussian Kernel Matrix
                 ax = np.linspace(-(size_spot - 1) / 2., (size_spot - 1) / 2., size_spot)
                 xx, yy = np.meshgrid(ax, ax)
                 kernel = np.exp(-0.5 * (np.square(xx) + np.square(yy)) / np.square(spot_sigma))
-                #kernel = kernel / np.sum(kernel) # nrrmalized to one
+                #kernel = kernel / np.sum(kernel) # normalized to one
                 # creating a position for each spot
                 center_position = center_positions_vector[point_index]
-                pixel_size_arround_spot = size_spot + 5
+                pixel_size_around_spot = size_spot + 5
                 #try:
-                # this section calculates the basal intensity arround an spots
-                temp_int_arround_spot = pixelated_image_no_spots[center_position[0]-int(pixel_size_arround_spot/2): center_position[0]+int(pixel_size_arround_spot/2)+1 , center_position[1]-int(pixel_size_arround_spot/2): center_position[1]+int(pixel_size_arround_spot/2)+1 ]
-                temp_int_arround_spot.flatten()
-                temp_mean = np.mean(temp_int_arround_spot)
-                #temp_std = np.std(temp_int_arround_spot)
-                #dist_mean = abs(temp_int_arround_spot - temp_mean)
+                # this section calculates the basal intensity around an spots
+                temp_int_around_spot = pixelated_image_no_spots[center_position[0]-int(pixel_size_around_spot/2): center_position[0]+int(pixel_size_around_spot/2)+1 , center_position[1]-int(pixel_size_around_spot/2): center_position[1]+int(pixel_size_around_spot/2)+1 ]
+                temp_int_around_spot.flatten()
+                temp_mean = np.mean(temp_int_around_spot)
+                #temp_std = np.std(temp_int_around_spot)
+                #dist_mean = abs(temp_int_around_spot - temp_mean)
                 #max_dev = 4
                 #idx_inside_elements = dist_mean < max_dev * temp_std
-                #inside_elements = temp_int_arround_spot[idx_inside_elements]
-                #mean_int_arround_spot = np.mean(inside_elements)
-                mean_int_arround_spot = temp_mean
+                #inside_elements = temp_int_around_spot[idx_inside_elements]
+                #mean_int_around_spot = np.mean(inside_elements)
+                mean_int_around_spot = temp_mean
                 # except:
-                #     mean_int_arround_spot = pixelated_image_no_spots[center_position[0], center_position[1]]
+                #     mean_int_around_spot = pixelated_image_no_spots[center_position[0], center_position[1]]
                 if using_ssa == 1 :
-                    min_int = np.amin((mean_int_arround_spot *self.MIN_INTENSITY_SPOT_WEIGHT, MIN_INTENSITY_ALL_SPOTS))
-                    max_int = np.amin((mean_int_arround_spot *self.MAX_INTENSITY_SPOT_WEIGHT, MAX_INTENSITY_ALL_SPOTS))  # 65535 is the maximum value for np.uint16   # bast value 1.5
+                    min_int = np.amin((mean_int_around_spot *self.MIN_INTENSITY_SPOT_WEIGHT, MIN_INTENSITY_ALL_SPOTS))
+                    max_int = np.amin((mean_int_around_spot *self.MAX_INTENSITY_SPOT_WEIGHT, MAX_INTENSITY_ALL_SPOTS))  # 65535 is the maximum value for np.uint16   # bast value 1.5
                     if max_int == MAX_INTENSITY_IN_UINT16:
-                         print('Warning! Spot genrated in an area with high intensity, mean_int = ', mean_int_arround_spot)
+                         print('Warning! Spot genrated in an area with high intensity, mean_int = ', mean_int_around_spot)
                     # Scaling the spot kernel matrix with the intensity value form the SSA.
                     int_ssa = (simulated_trajectories_time_point[point_index] - min_SSA_value) / (max_SSA_value-min_SSA_value) # intensity normalized to min and max values in the SSA
                     int_tp = min_int + (int_ssa * (max_int-min_int)) # Scaling to the min and max values in the image
                     spot_intensity = np.amax((0, int_tp))
                     kernel_value_intensity = (kernel*spot_intensity)
                 else:
-                    min_int = np.amin((mean_int_arround_spot *self.MIN_INTENSITY_SPOT_WEIGHT, MIN_INTENSITY_ALL_SPOTS))
-                    max_int = np.amin((mean_int_arround_spot *self.MAX_INTENSITY_SPOT_WEIGHT, MAX_INTENSITY_ALL_SPOTS))
+                    min_int = np.amin((mean_int_around_spot *self.MIN_INTENSITY_SPOT_WEIGHT, MIN_INTENSITY_ALL_SPOTS))
+                    max_int = np.amin((mean_int_around_spot *self.MAX_INTENSITY_SPOT_WEIGHT, MAX_INTENSITY_ALL_SPOTS))
                     # Scaling the spot kernel matrix with a mean value obtained from uniformly random distribution.
                     spot_intensity = int(random.uniform(min_int, max_int))
                     kernel_value_intensity = (kernel*spot_intensity)
@@ -2237,9 +2237,9 @@ class SimulatedCell():
                     max_allowed_int_image = np.mean(selected_image) + self.MAX_STD_INT_IMAGE*np.std(selected_image)
                     min_allowed_int_image = np.mean(selected_image) #- self.MAX_STD_INT_IMAGE*np.std(selected_image)
                     size_spot = 5
-                    pixel_size_arround_spot = size_spot + 5
-                    temp_crop_arround_spot = selected_image[test_points[0]-int(pixel_size_arround_spot/2): test_points[0]+int(pixel_size_arround_spot/2)+1 , test_points[1]-int(pixel_size_arround_spot/2): test_points[1]+int(pixel_size_arround_spot/2)+1 ]
-                    mean_int_tested_spot = np.mean(temp_crop_arround_spot)
+                    pixel_size_around_spot = size_spot + 5
+                    temp_crop_around_spot = selected_image[test_points[0]-int(pixel_size_around_spot/2): test_points[0]+int(pixel_size_around_spot/2)+1 , test_points[1]-int(pixel_size_around_spot/2): test_points[1]+int(pixel_size_around_spot/2)+1 ]
+                    mean_int_tested_spot = np.mean(temp_crop_around_spot)
                     if (mean_int_tested_spot > min_allowed_int_image) and (mean_int_tested_spot < max_allowed_int_image):
                         int_test = 1
                     else:
@@ -2255,7 +2255,7 @@ class SimulatedCell():
             ## Brownian motion
             # scaling factor for Brownian motion.
             brownian_movement = math.sqrt(2*diffusion_coefficient*step_size)
-            # Prealocating memory
+            # Preallocating memory
             y_positions = np.array(initial_points_in_polygon[:, 0], dtype = 'int') #  x_position for selected spots inside the polygon
             x_positions = np.array(initial_points_in_polygon[:, 1], dtype = 'int') #  y_position for selected spots inside the polygon
             temp_Position_y = np.zeros_like(y_positions, dtype = 'int')
@@ -2281,15 +2281,15 @@ class SimulatedCell():
                 #print(spot_positions_movement)
             return spot_positions_movement # vector with dimensions (time, spot, y, x )
 
-        def make_simulation(base_video_slected_channel:np.ndarray, masked_video_slected_channel:np.ndarray, spot_positions_movement:np.ndarray, time_vector:np.ndarray, polygon_array, image_size:np.ndarray, size_spot:int, spot_sigma:int, simulated_trajectories, frame_selection_empty_video):
+        def make_simulation(base_video_selected_channel:np.ndarray, masked_video_selected_channel:np.ndarray, spot_positions_movement:np.ndarray, time_vector:np.ndarray, polygon_array, image_size:np.ndarray, size_spot:int, spot_sigma:int, simulated_trajectories, frame_selection_empty_video):
             # Main function that makes the simulated cell by calling multiple function.
-            temp_image = masked_video_slected_channel[0, :, :]
+            temp_image = masked_video_selected_channel[0, :, :]
             temp_image_nonzeros = temp_image.copy()
             temp_image_nonzeros.flatten
-            base_video_slected_channel_copy = base_video_slected_channel.copy()
+            base_video_selected_channel_copy = base_video_selected_channel.copy()
             # Calculate initial background intensity for each spot.
             tensor_image = np.zeros((len(time_vector), image_size[0], image_size[1]), dtype = np.uint32)
-            len_empty_video = base_video_slected_channel.shape[0]
+            len_empty_video = base_video_selected_channel.shape[0]
             empty_video_index = np.arange(len_empty_video, dtype = np.int32)
             # array that stores the frames to be selected from the empty vector
             if frame_selection_empty_video ==  'constant': # selects the first time point
@@ -2299,7 +2299,7 @@ class SimulatedCell():
             if frame_selection_empty_video ==  'shuffle':
                 index_frame_selection = np.random.randint(0, high = len_empty_video, size = len(time_vector), dtype = np.int32)
             for t_p, _ in enumerate(time_vector):
-                matrix_background = base_video_slected_channel_copy[index_frame_selection[t_p], :, :]
+                matrix_background = base_video_selected_channel_copy[index_frame_selection[t_p], :, :]
                 if not ( simulated_trajectories is None):
                     using_ssa = 1
                     simulated_trajectories_tp = simulated_trajectories[:, t_p]
@@ -2427,7 +2427,7 @@ class SimulatedCellMultiplexing ():
 
     Parameters
     --  --  --  --  -- 
-    inial_video :  NumPy array
+    initial_video :  NumPy array
         Array of images with dimensions [T, Y, X, C].
     list_gene_sequences : List of strings
         List where every element is a gene sequence file.
@@ -2441,8 +2441,8 @@ class SimulatedCellMultiplexing ():
         List where every element contains the label for each gene.
     list_elongation_rates : List of floats
         List where every element represents the elongation rate for every gene.
-    list_initation_rates : List of floats
-        List where every element represents the initation rate for every gene.
+    list_initiation_rates : List of floats
+        List where every element represents the initiation rate for every gene.
     simulation_time_in_sec : int
         The simulation time in seconds. The default is 20.
     step_size_in_sec : float, optional
@@ -2464,18 +2464,18 @@ class SimulatedCellMultiplexing ():
     frame_selection_empty_video : str, optional
         Method to select the frames from the empty video, the options are : 'constant' , 'shuffle' and 'loop'. The default is 'shuffle'.
     '''
-    def __init__(self, inial_video:np.ndarray, list_gene_sequences:list, list_number_spots:list, list_target_channels:list, list_diffusion_coefficients:list, list_label_names:list, list_elongation_rates:list, list_initation_rates:list, simulation_time_in_sec:float, step_size_in_sec:float, save_as_tif:bool, save_dataframe:bool, saved_file_name:str, create_temp_folder:bool, cell_number:int = 0, save_as_gif:bool = 0, perform_video_augmentation:bool = 1, frame_selection_empty_video:str = 'shuffle'):
+    def __init__(self, initial_video:np.ndarray, list_gene_sequences:list, list_number_spots:list, list_target_channels:list, list_diffusion_coefficients:list, list_label_names:list, list_elongation_rates:list, list_initiation_rates:list, simulation_time_in_sec:float, step_size_in_sec:float, save_as_tif:bool, save_dataframe:bool, saved_file_name:str, create_temp_folder:bool, cell_number:int = 0, save_as_gif:bool = 0, perform_video_augmentation:bool = 1, frame_selection_empty_video:str = 'shuffle'):
         if perform_video_augmentation == 1:
-            self.inial_video = AugmentationVideo(inial_video).random_rotation()
+            self.initial_video = AugmentationVideo(initial_video).random_rotation()
         else:
-            self.inial_video = inial_video
+            self.initial_video = initial_video
         self.list_gene_sequences = list_gene_sequences
         self.list_number_spots = list_number_spots
         self.list_target_channels = list_target_channels
         self.list_diffusion_coefficients = list_diffusion_coefficients
         self.list_label_names = list_label_names
         self.list_elongation_rates = list_elongation_rates
-        self.list_initation_rates = list_initation_rates
+        self.list_initiation_rates = list_initiation_rates
         self.simulation_time_in_sec = simulation_time_in_sec
         self.step_size_in_sec = step_size_in_sec
         self.number_genes = len(list_gene_sequences)
@@ -2497,7 +2497,7 @@ class SimulatedCellMultiplexing ():
         dataframe_particles : pandas dataframe
             Dataframe with fields [cell_number, particle, frame, red_int_mean, green_int_mean, blue_int_mean, red_int_std, green_int_std, blue_int_std, x, y].
         list_ssa : List of NumPy arrays
-            List of numpy arrays with the stochastic simulations for each gene. The format is [S, T], where the dimentsions are S = spots and T = time.
+            List of numpy arrays with the stochastic simulations for each gene. The format is [S, T], where the dimensions are S = spots and T = time.
 
         '''
         # FUNCTION THAT RUNS THE SSA IN rSNAPsim
@@ -2531,7 +2531,7 @@ class SimulatedCellMultiplexing ():
         list_min_ssa = []
         list_max_ssa = []
         for i in range(0, self.number_genes):
-            _ , ssa_solution = rsnapsim_ssa(self.list_gene_sequences[i], ke = self.list_elongation_rates[i], ki = self.list_initation_rates[i], simulation_time_in_sec = self.simulation_time_in_sec, n_traj = self.list_number_spots[i])
+            _ , ssa_solution = rsnapsim_ssa(self.list_gene_sequences[i], ke = self.list_elongation_rates[i], ki = self.list_initiation_rates[i], simulation_time_in_sec = self.simulation_time_in_sec, n_traj = self.list_number_spots[i])
             list_ssa.append(ssa_solution)
             list_min_ssa.append(ssa_solution.min())
             list_max_ssa.append(ssa_solution.max())
@@ -2539,9 +2539,9 @@ class SimulatedCellMultiplexing ():
         list_DataFrame_particles_intensities = []
         for i in range(0, self.number_genes):
             if i == 0 :
-                tensor_video , DataFrame_particles_intensities = wrapper_simulated_cell(self.inial_video, video_for_mask = self.inial_video, ssa = list_ssa[i], target_channel = self.list_target_channels[i], diffusion_coefficient = self.list_diffusion_coefficients[i], min_int_multiplexing = min(list_min_ssa) , max_int_multiplexing = max(list_max_ssa), save_as_gif = self.save_as_gif, frame_selection_empty_video = self.frame_selection_empty_video)
+                tensor_video , DataFrame_particles_intensities = wrapper_simulated_cell(self.initial_video, video_for_mask = self.initial_video, ssa = list_ssa[i], target_channel = self.list_target_channels[i], diffusion_coefficient = self.list_diffusion_coefficients[i], min_int_multiplexing = min(list_min_ssa) , max_int_multiplexing = max(list_max_ssa), save_as_gif = self.save_as_gif, frame_selection_empty_video = self.frame_selection_empty_video)
             else:
-                tensor_video , DataFrame_particles_intensities = wrapper_simulated_cell(tensor_video, video_for_mask = self.inial_video, ssa = list_ssa[i], target_channel = self.list_target_channels[i], diffusion_coefficient = self.list_diffusion_coefficients[i], using_for_multiplexing = 1, min_int_multiplexing = min(list_min_ssa) , max_int_multiplexing = max(list_max_ssa), save_as_gif = self.save_as_gif, frame_selection_empty_video = 'loop') # notice that for the multiplexing frame_selection_empty_video has to be 'loop', becuase the intial video deffines the inital background image.
+                tensor_video , DataFrame_particles_intensities = wrapper_simulated_cell(tensor_video, video_for_mask = self.initial_video, ssa = list_ssa[i], target_channel = self.list_target_channels[i], diffusion_coefficient = self.list_diffusion_coefficients[i], using_for_multiplexing = 1, min_int_multiplexing = min(list_min_ssa) , max_int_multiplexing = max(list_max_ssa), save_as_gif = self.save_as_gif, frame_selection_empty_video = 'loop') # notice that for the multiplexing frame_selection_empty_video has to be 'loop', because the initial video deffines the initial background image.
             list_DataFrame_particles_intensities.append(DataFrame_particles_intensities)
         # Adding a classification column to all dataframes
         for i in range(0, self.number_genes):
@@ -2596,7 +2596,7 @@ class PipelineTracking():
     show_plot : bool, optional
         Allows the user to show a plot for the optimization process. The default is 1.
     use_optimization_for_tracking : bool, optional
-        Option to run an optimization process to slect the best filter for the tracking process. The default is 0.
+        Option to run an optimization process to select the best filter for the tracking process. The default is 0.
     real_positions_dataframe : Pandas dataframe.
         A pandas data frame containing the position of each spot in the image. This dataframe is generated with class SimulatedCell, and it contains the true position for each spot. This option is only intended to be used to train algorithms for tracking and visualize real vs detected spots. The default is None.
     average_cell_diameter : float, optional
@@ -2649,7 +2649,7 @@ class PipelineTracking():
         start = timer()
         selected_masks = Cellpose(self.image, num_iterations = self.NUM_ITERATIONS_CELLPOSE, selection_method = 'max_area', diameter = self.average_cell_diameter ).calculate_masks() # options are 'max_area' or 'max_cells'
         if not ( selected_masks is None):
-            selected_mask  = CellposeSelection(selected_masks, self.video, slection_method = self.mask_selection_method, particle_size = self.particle_size, selected_channel = self.selected_channel).select_mask()
+            selected_mask  = CellposeSelection(selected_masks, self.video, selection_method = self.mask_selection_method, particle_size = self.particle_size, selected_channel = self.selected_channel).select_mask()
         else:
             selected_mask = None
         end = timer()
@@ -2663,11 +2663,11 @@ class PipelineTracking():
             else:
                 minimal_frames =  int(self.num_frames*0.2) # minimal number of frames to consider a trajectory
             if self.use_optimization_for_tracking == 1:
-                use_defaul_filter = 0
+                use_default_filter = 0
             else:
-                use_defaul_filter = 1
+                use_default_filter = 1
             try:
-                Dataframe_trajectories, _, filtered_video = Trackpy(self.video, selected_mask, particle_size = self.particle_size, selected_channel = self.selected_channel, minimal_frames = minimal_frames, optimization_iterations = self.NUM_ITERATIONS_TRACKING, use_defaul_filter = use_defaul_filter, show_plot = 0).perform_tracking()
+                Dataframe_trajectories, _, filtered_video = Trackpy(self.video, selected_mask, particle_size = self.particle_size, selected_channel = self.selected_channel, minimal_frames = minimal_frames, optimization_iterations = self.NUM_ITERATIONS_TRACKING, use_default_filter = use_default_filter, show_plot = 0).perform_tracking()
             except:
                 Dataframe_trajectories = None
                 filtered_video = self.video
@@ -2700,7 +2700,6 @@ class PipelineTracking():
             mean_intensities_normalized = None
             std_intensities_normalized = None
         return dataframe_particles, array_intensities, time_vector, mean_intensities, std_intensities, mean_intensities_normalized, std_intensities_normalized
-
 
 
 
@@ -2755,29 +2754,29 @@ class PhotobleachingCalculation():
                 temp_cell_int = self.video[k,:,:,i]*self.mask
                 mean_cell_intensity[i,k] = temp_cell_int[np.nonzero(temp_cell_int)].mean()
         # Optimization routine to fit data to an exponential 
-        num_inital_guesses = 50
-        p0_vector_exp = np.logspace(np.log10(0.0001), np.log10(1), num=num_inital_guesses, endpoint=True, base=10) # vector of inital guesses
-        p0_vector_basal = np.linspace(1,1000, num=num_inital_guesses, endpoint=True) # vector of inital guesses
+        num_initial_guesses = 50
+        p0_vector_exp = np.logspace(np.log10(0.0001), np.log10(1), num=num_initial_guesses, endpoint=True, base=10) # vector of initial guesses
+        p0_vector_basal = np.linspace(1,1000, num=num_initial_guesses, endpoint=True) # vector of initial guesses
         rmse_list = []
         opt_param_list = np.zeros((len(p0_vector_exp),2))
-        for i in range(len(p0_vector_exp)): # the optimization is tested for all intial guesses
+        for i in range(len(p0_vector_exp)): # the optimization is tested for all initial guesses
             try:
                 opt_parameters, _ = curve_fit(fun_model_exp,t_p,mean_cell_intensity[self.selected_channel,:],p0=[p0_vector_basal[i],p0_vector_exp[i]]) # curve_fit is used to fit the model to the function "fun_model_exp"
             except:
-                opt_parameters = [0,0] # and expetion is generated in case the method cannot fit the data.
+                opt_parameters = [0,0] # and exception is generated in case the method cannot fit the data.
             # Model evaluation
             model_data = fun_model_exp(t_p, opt_parameters[0],  opt_parameters[1]) # model data are generated by using "fun_model_exp" with the selected parameter value  opt_parameters[0,0] notice that we only have a single parameter
-            # obnjective funtion
+            # objective function
             rmse_list.append(np.sqrt(np.mean(np.square(model_data - mean_cell_intensity[self.selected_channel,:])))) # rmse is calculated comparing model and data.
             opt_param_list[i,:] = opt_parameters 
         index_selected_parameter  = np.argmin(rmse_list)
         selected_parameters =  opt_param_list[index_selected_parameter,:]   # selecting the parameter set that minimizes the rmse            
         model_data_sel_parameter = fun_model_exp(t_p, selected_parameters[0],selected_parameters[1])
-        photobleaching_necesary =0
+        photobleaching_necessary =0
         if rmse_list[index_selected_parameter]  < 5:
-            photobleaching_necesary = 1
+            photobleaching_necessary = 1
         if abs(selected_parameters[1]) < 1e-4:
-            photobleaching_necesary = 0        
+            photobleaching_necessary = 0        
         if self.show_plot == 1:
             if len(t_p)> 1000:
                 downsample = 50
@@ -2796,7 +2795,7 @@ class PhotobleachingCalculation():
                 col_line = 'g'
             else:
                 col_line = 'b'
-            if photobleaching_necesary  ==1:
+            if photobleaching_necessary  ==1:
                 plt.plot(t_p[::downsample], model_data_sel_parameter[::downsample], color='black', marker='o', markerfacecolor='black',linestyle='None', markersize=10, label='fit: $f(t) = %.1f * e^{-%.3f t}$' % (selected_parameters[0],selected_parameters[1]))
             else:
                 plt.plot(t_p[::downsample], model_data_sel_parameter[::downsample], color='black', marker='o', markerfacecolor='black',linestyle='None', markersize=10, label='No meaningful fit was possible.' )
@@ -2831,11 +2830,7 @@ class PhotobleachingCorrection():
 
 
 
-
-
-
 # Class spot classification
-
 
 # Class to calculate tracking quality
 
@@ -2843,6 +2838,6 @@ class PhotobleachingCorrection():
 
 # Class to simulate 3D FISH and sm-translation
 
-# Classes for 3D trakcing and FISH
+# Classes for 3D tracking and FISH
 
 # Autoflorescence removal    
