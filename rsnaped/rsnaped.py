@@ -1130,7 +1130,7 @@ class Cellpose():
         # Next two lines suppressing output from cellpose
         old_stdout = sys.stdout
         sys.stdout = open(os.devnull, "w")
-        model = models.Cellpose(gpu = 0, model_type = self.model_type) # model_type = 'cyto' or model_type = 'nuclei'
+        model = models.Cellpose(gpu = 1, model_type = self.model_type) # model_type = 'cyto' or model_type = 'nuclei'
         # Loop that test multiple probabilities in cell pose and returns the masks with the longest area.
         tested_probabilities = np.round(np.linspace(self.minimumm_probability, self.maximum_probability, self.num_iterations), 2)
         area_longest_mask = np.zeros(self.num_iterations)
@@ -1704,6 +1704,7 @@ class Intensity():
             print ('Error a trackpy_dataframe or spot_positions_movement should be given')
             raise
         self.step_size = step_size
+        self.NUMBER_OF_CORES = multiprocessing.cpu_count()
     def calculate_intensity(self):
         '''
         This method calculates the spot intensity.
@@ -1770,25 +1771,34 @@ class Intensity():
 
         if not ( self.spot_positions_movement is None):
             frames_part = self.spot_positions_movement.shape[0]
+            
+            
+
+
+
+            
             for k in range (0, self.n_particles):
                 for j in range(0, frames_part):
                     for i in range(0, number_channels):
                         x_pos = self.spot_positions_movement[j, k, 1]
                         y_pos = self.spot_positions_movement[j, k, 0]
-                        #x_pos = self.spot_positions_movement[j, k, 0]
-                        #y_pos = self.spot_positions_movement[j, k, 1]
+
                         crop_image = return_crop(self.video[j, :, :, i], x_pos, y_pos, self.crop_size) # NOT RECENTERING IMAGE
                         if self.method == 'disk_donut':
-                            #print('self_crop', self.crop_size)
-                            #print('self_particle_size', self.particle_size)
-                            #print(' --  --  --  --  --  --  --  --  --  --  --  --  -- ')
                             array_intensities_mean[k, j, i], array_intensities_std[k, j, i] = disk_donut(crop_image, self.disk_size)
                         elif self.method == 'total_intensity':
                             array_intensities_mean[k, j, i] = np.amax((0, np.mean(crop_image)))# mean intensity in the crop
                             array_intensities_std[k, j, i] = np.amax((0, np.std(crop_image)))# std intensity in the crop
                         elif self.method == 'gaussian_fit':
                             array_intensities_mean[k, j, i], array_intensities_std[k, j, i] = gaussian_fit(crop_image)# disk_donut(crop_image, self.disk_size)
+        
+        
+        
+        
+        
         if not ( self.trackpy_dataframe is None):
+            
+            
             for k in range (0, self.n_particles):
                 frames_part = self.trackpy_dataframe.loc[self.trackpy_dataframe['particle'] == self.trackpy_dataframe['particle'].unique()[k]].frame.values
                 for j in range(0, len(frames_part)):
@@ -2508,7 +2518,7 @@ class SimulatedCellMultiplexing ():
             rss.solver.protein = gene_obj #pass the protein object
             t_burnin = 1000
             t = np.linspace(0, t_burnin+simulation_time_in_sec, int((t_burnin+simulation_time_in_sec)/frame_rate) )   # ask Will how to pass the step_size. (start, stop, num)
-            ssa_solution = rss.solver.solve_ssa(gene_obj.kelong, t, ki = ki, kt = ke, low_memory = False, record_stats = False, n_traj = n_traj)
+            ssa_solution = rss.solver.solve_ssa(gene_obj.kelong, t, ki = ki, kt = ke, low_memory = True, record_stats = False, n_traj = n_traj)
             time_ssa = ssa_solution.time[int(t_burnin/frame_rate)-1:-1]
             time_ssa = time_ssa-t_burnin
             ssa_int =  ssa_solution.intensity_vec[0, int(t_burnin/frame_rate)-1 :-1, :].T
