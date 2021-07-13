@@ -1763,26 +1763,74 @@ class Intensity():
                 spot_intensity_disk_donut[spot_intensity_disk_donut < 0] = 0
                 spot_intensity_disk_donut[np.isnan(spot_intensity_disk_donut)] = 0 # replacing nans with zero
                 return spot_intensity_disk_donut, spot_intensity_disk_donut_std
+        
         def return_crop(image:np.ndarray, x_pos:int, y_pos:int, crop_size:int):
             # function that recenters the spots
             crop_image = image[y_pos-(crop_size):y_pos+(crop_size+1), x_pos-(crop_size):x_pos+(crop_size+1)]
             return crop_image
         # Section that marks particles if a numpy array with spot positions is passed.
 
+
+
+        def intensity_from_position_movement(video,particle_index, spot_positions_movement, crop_size,disk_size, frames_part,method ,time_points, number_channels ):
+            intensities_mean = np.zeros((time_points, number_channels))
+            intensities_std = np.zeros((time_points, number_channels))
+            for j in range(0, frames_part):
+                for i in range(0, number_channels):
+                    x_pos = spot_positions_movement[j,particle_index, 1]
+                    y_pos = spot_positions_movement[j,particle_index, 0]
+                    crop_image = return_crop(video[j, :, :, i], x_pos, y_pos, crop_size) # NOT RECENTERING IMAGE
+                    if method == 'disk_donut':
+                        intensities_mean[j, i], intensities_std[j, i] = disk_donut(crop_image,disk_size)
+                    elif method == 'total_intensity':
+                        intensities_mean[j, i] = np.amax((0, np.mean(crop_image)))# mean intensity in the crop
+                        intensities_std[ j, i] = np.amax((0, np.std(crop_image)))# std intensity in the crop
+                    elif method == 'gaussian_fit':
+                        intensities_mean[j, i], intensities_std[j, i] = gaussian_fit(crop_image)# disk_donut(crop_image, self.disk_size
+            return intensities_mean, intensities_std
+        
+        def intensity_from_dataframe(video,particle_index, trackpy_dataframe,crop_size,disk_size,method ,time_points, number_channels ):
+            frames_part = trackpy_dataframe.loc[trackpy_dataframe['particle'] == trackpy_dataframe['particle'].unique()[particle_index]].frame.values
+            intensities_mean = np.zeros((time_points, number_channels))
+            intensities_std = np.zeros((time_points, number_channels))
+            for j in range(0, len(frames_part)):
+                for i in range(0, number_channels):
+                    current_frame = frames_part[j]
+                    try:
+                        x_pos = int(trackpy_dataframe.loc[trackpy_dataframe['particle'] == trackpy_dataframe['particle'].unique()[particle_index]].x.values[j])
+                        y_pos = int(trackpy_dataframe.loc[trackpy_dataframe['particle'] == trackpy_dataframe['particle'].unique()[particle_index]].y.values[j])
+                    except:
+                        x_pos = int(trackpy_dataframe.loc[trackpy_dataframe['particle'] == trackpy_dataframe['particle'].unique()[particle_index]].x.values[frames_part[0]])
+                        y_pos = int(trackpy_dataframe.loc[trackpy_dataframe['particle'] == trackpy_dataframe['particle'].unique()[particle_index]].y.values[frames_part[0]])
+                    if method == 'disk_donut':
+                        crop_image = return_crop(video[j, :, :, i], x_pos, y_pos, crop_size) # NOT RECENTERING IMAGE
+                        intensities_mean[current_frame, i], intensities_std[current_frame, i] = disk_donut(crop_image, disk_size)
+                    elif method == 'total_intensity':
+                        crop_image = return_crop(video[j, :, :, i], x_pos, y_pos, crop_size) # NOT RECENTERING IMAGE
+                        intensities_mean[ current_frame, i] = np.amax((0, np.mean(crop_image))) # mean intensity in image
+                        intensities_std[ current_frame, i] = np.amax((0, np.std(crop_image))) # std intensity in image
+                    elif method == 'gaussian_fit':
+                        crop_image = return_crop(video[j, :, :, i], x_pos, y_pos, crop_size) # NOT RECENTERING IMAGE
+                        intensities_mean[current_frame, i], intensities_std[ current_frame, i] = gaussian_fit(crop_image)# disk_donut(crop_image, disk_size)
+            return intensities_mean, intensities_std
+
+
         if not ( self.spot_positions_movement is None):
             frames_part = self.spot_positions_movement.shape[0]
-            
-            
+            list_intensities_mean_and_std = Parallel(n_jobs = self.NUMBER_OF_CORES)(delayed(intensity_from_position_movement)(self.video,i, self.spot_positions_movement, self.crop_size, self.disk_size,frames_part, self.method, time_points, number_channels  ) for i in range(0,  self.n_particles))
+            #print(len(list_intensities_mean_and_std))
+            #print(list_intensities_mean_and_std[4][0].shape )
+            array_intensities_mean = np.asarray([list_intensities_mean_and_std[i][0]  for i in range(0,len(list_intensities_mean_and_std))]   )
+            array_intensities_std = np.asarray([list_intensities_mean_and_std[i][1]  for i in range(0,len(list_intensities_mean_and_std))]   )
+            #print(array_intensities_mean.shape)
 
 
-
             
-            for k in range (0, self.n_particles):
+            ''' for k in range (0, self.n_particles):
                 for j in range(0, frames_part):
                     for i in range(0, number_channels):
                         x_pos = self.spot_positions_movement[j, k, 1]
                         y_pos = self.spot_positions_movement[j, k, 0]
-
                         crop_image = return_crop(self.video[j, :, :, i], x_pos, y_pos, self.crop_size) # NOT RECENTERING IMAGE
                         if self.method == 'disk_donut':
                             array_intensities_mean[k, j, i], array_intensities_std[k, j, i] = disk_donut(crop_image, self.disk_size)
@@ -1790,36 +1838,49 @@ class Intensity():
                             array_intensities_mean[k, j, i] = np.amax((0, np.mean(crop_image)))# mean intensity in the crop
                             array_intensities_std[k, j, i] = np.amax((0, np.std(crop_image)))# std intensity in the crop
                         elif self.method == 'gaussian_fit':
-                            array_intensities_mean[k, j, i], array_intensities_std[k, j, i] = gaussian_fit(crop_image)# disk_donut(crop_image, self.disk_size)
-        
+                            array_intensities_mean[k, j, i], array_intensities_std[k, j, i] = gaussian_fit(crop_image)# disk_donut(crop_image, self.disk_size) '''
         
         
         
         
         if not ( self.trackpy_dataframe is None):
+                                                                                                              
+            list_intensities_mean_and_std = Parallel(n_jobs = self.NUMBER_OF_CORES)(delayed(intensity_from_dataframe)(self.video,i, self.trackpy_dataframe, self.crop_size, self.disk_size, self.method, time_points, number_channels  ) for i in range(0,  self.n_particles))
+            #print(len(list_intensities_mean_and_std))
+            #print(list_intensities_mean_and_std[4][0].shape )
+            array_intensities_mean = np.asarray([list_intensities_mean_and_std[i][0]  for i in range(0,len(list_intensities_mean_and_std))]   )
+            array_intensities_std = np.asarray([list_intensities_mean_and_std[i][1]  for i in range(0,len(list_intensities_mean_and_std))]   )
+            #print(array_intensities_mean.shape)
+
+
+
+
             
-            
-            for k in range (0, self.n_particles):
-                frames_part = self.trackpy_dataframe.loc[self.trackpy_dataframe['particle'] == self.trackpy_dataframe['particle'].unique()[k]].frame.values
-                for j in range(0, len(frames_part)):
-                    for i in range(0, number_channels):
-                        current_frame = frames_part[j]
-                        try:
-                            x_pos = int(self.trackpy_dataframe.loc[self.trackpy_dataframe['particle'] == self.trackpy_dataframe['particle'].unique()[k]].x.values[j])
-                            y_pos = int(self.trackpy_dataframe.loc[self.trackpy_dataframe['particle'] == self.trackpy_dataframe['particle'].unique()[k]].y.values[j])
-                        except:
-                            x_pos = int(self.trackpy_dataframe.loc[self.trackpy_dataframe['particle'] == self.trackpy_dataframe['particle'].unique()[k]].x.values[frames_part[0]])
-                            y_pos = int(self.trackpy_dataframe.loc[self.trackpy_dataframe['particle'] == self.trackpy_dataframe['particle'].unique()[k]].y.values[frames_part[0]])
-                        if self.method == 'disk_donut':
-                            crop_image = return_crop(self.video[j, :, :, i], x_pos, y_pos, self.crop_size) # NOT RECENTERING IMAGE
-                            array_intensities_mean[k, current_frame, i], array_intensities_std[k, current_frame, i] = disk_donut(crop_image, self.disk_size)
-                        elif self.method == 'total_intensity':
-                            crop_image = return_crop(self.video[j, :, :, i], x_pos, y_pos, self.crop_size) # NOT RECENTERING IMAGE
-                            array_intensities_mean[k, current_frame, i] = np.amax((0, np.mean(crop_image))) # mean intensity in image
-                            array_intensities_std[k, current_frame, i] = np.amax((0, np.std(crop_image))) # std intensity in image
-                        elif self.method == 'gaussian_fit':
-                            crop_image = return_crop(self.video[j, :, :, i], x_pos, y_pos, self.crop_size) # NOT RECENTERING IMAGE
-                            array_intensities_mean[k, current_frame, i], array_intensities_std[k, current_frame, i] = gaussian_fit(crop_image)# disk_donut(crop_image, self.disk_size)
+            # for k in range (0, self.n_particles):
+            #     frames_part = self.trackpy_dataframe.loc[self.trackpy_dataframe['particle'] == self.trackpy_dataframe['particle'].unique()[k]].frame.values
+            #     for j in range(0, len(frames_part)):
+            #         for i in range(0, number_channels):
+            #             current_frame = frames_part[j]
+            #             try:
+            #                 x_pos = int(self.trackpy_dataframe.loc[self.trackpy_dataframe['particle'] == self.trackpy_dataframe['particle'].unique()[k]].x.values[j])
+            #                 y_pos = int(self.trackpy_dataframe.loc[self.trackpy_dataframe['particle'] == self.trackpy_dataframe['particle'].unique()[k]].y.values[j])
+            #             except:
+            #                 x_pos = int(self.trackpy_dataframe.loc[self.trackpy_dataframe['particle'] == self.trackpy_dataframe['particle'].unique()[k]].x.values[frames_part[0]])
+            #                 y_pos = int(self.trackpy_dataframe.loc[self.trackpy_dataframe['particle'] == self.trackpy_dataframe['particle'].unique()[k]].y.values[frames_part[0]])
+            #             if self.method == 'disk_donut':
+            #                 crop_image = return_crop(self.video[j, :, :, i], x_pos, y_pos, self.crop_size) # NOT RECENTERING IMAGE
+            #                 array_intensities_mean[k, current_frame, i], array_intensities_std[k, current_frame, i] = disk_donut(crop_image, self.disk_size)
+            #             elif self.method == 'total_intensity':
+            #                 crop_image = return_crop(self.video[j, :, :, i], x_pos, y_pos, self.crop_size) # NOT RECENTERING IMAGE
+            #                 array_intensities_mean[k, current_frame, i] = np.amax((0, np.mean(crop_image))) # mean intensity in image
+            #                 array_intensities_std[k, current_frame, i] = np.amax((0, np.std(crop_image))) # std intensity in image
+            #             elif self.method == 'gaussian_fit':
+            #                 crop_image = return_crop(self.video[j, :, :, i], x_pos, y_pos, self.crop_size) # NOT RECENTERING IMAGE
+            #                 array_intensities_mean[k, current_frame, i], array_intensities_std[k, current_frame, i] = gaussian_fit(crop_image)# disk_donut(crop_image, self.disk_size)
+        
+        
+        
+        
         # Calculate mean intensities.
         mean_intensities = np.nanmean(array_intensities_mean, axis = 0, dtype = np.float32)
         std_intensities = np.nanstd(array_intensities_mean, axis = 0, dtype = np.float32)
