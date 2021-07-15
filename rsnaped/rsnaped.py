@@ -1118,6 +1118,7 @@ class Cellpose():
         self.diameter = diameter
         self.model_type = model_type # options are 'cyto' or 'nuclei'
         self.selection_method = selection_method # options are 'max_area' or 'max_cells'
+        self.NUMBER_OF_CORES = 1 # multiprocessing.cpu_count()
     def calculate_masks(self):
         '''
         This method performs the process of image masking using **Cellpose**.
@@ -1134,34 +1135,68 @@ class Cellpose():
         # Loop that test multiple probabilities in cell pose and returns the masks with the longest area.
         tested_probabilities = np.round(np.linspace(self.minimumm_probability, self.maximum_probability, self.num_iterations), 2)
         area_longest_mask = np.zeros(self.num_iterations)
+
+        def cellpose_max_area( cell_prob):
+            masks, _, _, _ = model.eval(self.video, normalize = True, cellprob_threshold = cell_prob, diameter = self.diameter, min_size = -1, channels = self.channels, progress = None)
+            n_masks = np.amax(masks)
+            if n_masks > 1: # detecting if more than 1 mask are detected per cell
+                size_mask = []
+                for nm in range (1, n_masks+1): # iterating for each mask in a given cell. The mask has values from 0 for background, to int n, where n is the number of detected masks.
+                    size_mask.append(np.sum(masks == nm)) # creating a list with the size of each mask
+                largest_mask = np.argmax(size_mask)+1 # detecting the mask with the largest value
+                temp_mask = np.zeros_like(masks) # making a copy of the image
+                selected_mask = temp_mask + (masks == largest_mask) # Selecting a single mask and making this mask equal to one and the background equal to zero.
+                return np.sum(selected_mask)
+            else: # do nothing if only a single mask is detected per image.
+                return np.sum(masks)
+        
+        def cellpose_max_cells(cell_prob):
+            masks, _, _, _ = model.eval(self.video, normalize = True, cellprob_threshold = cell_prob, diameter = self.diameter, min_size = -1, channels = self.channels, progress = None)
+            return np.amax(masks)
+        
         if self.selection_method == 'max_area':
-            # Loop that iterates in the selected probabilities
-            for idx, cell_prob in enumerate (tested_probabilities):
-                masks, _, _, _ = model.eval(self.video, normalize = True, cellprob_threshold = cell_prob, diameter = self.diameter, min_size = -1, channels = self.channels, progress = None)
-                n_masks = np.amax(masks)
-                if n_masks > 1: # detecting if more than 1 mask are detected per cell
-                    size_mask = []
-                    for nm in range (1, n_masks+1): # iterating for each mask in a given cell. The mask has values from 0 for background, to int n, where n is the number of detected masks.
-                        size_mask.append(np.sum(masks == nm)) # creating a list with the size of each mask
-                    largest_mask = np.argmax(size_mask)+1 # detecting the mask with the largest value
-                    temp_mask = np.zeros_like(masks) # making a copy of the image
-                    selected_mask = temp_mask + (masks == largest_mask) # Selecting a single mask and making this mask equal to one and the background equal to zero.
-                    area_longest_mask[idx] = np.sum(selected_mask)
-                else: # do nothing if only a single mask is detected per image.
-                    area_longest_mask[idx] = np.sum(masks)
-            # This section of the code selects the probability that should be used in cellpose.
-            selected_probability = tested_probabilities[np.argmax(area_longest_mask)]
+            list_metrics_masks = Parallel(n_jobs = self.NUMBER_OF_CORES)(delayed(cellpose_max_area)(tested_probabilities[i] ) for i,_ in enumerate(tested_probabilities))
+            evaluated_metric_for_masks = np.asarray([list_metrics_masks[i]  for i,_ in enumerate(tested_probabilities)]   )
+
         if self.selection_method == 'max_cells':
-            num_masks = np.zeros(self.num_iterations)
-            # Loop that iterates in the selected probabilities
-            for idx, cell_prob in enumerate (tested_probabilities):
-                masks, _, _, _ = model.eval(self.video, normalize = True, cellprob_threshold = cell_prob, diameter = self.diameter, min_size = -1, channels = self.channels, progress = None)
-                num_masks[idx] = np.amax(masks)
-            # This section of the code selects the probability that should be used in cellpose.
-            selected_probability = tested_probabilities[np.argmax(num_masks)]
+            list_metrics_masks = Parallel(n_jobs = self.NUMBER_OF_CORES)(delayed(cellpose_max_cells)(tested_probabilities[i] ) for i,_ in enumerate(tested_probabilities))
+            evaluated_metric_for_masks = np.asarray([list_metrics_masks[i]  for i,_ in enumerate(tested_probabilities)]   )
+
+        # This section of the code selects the probability that should be used in cellpose.
+        #selected_probability = tested_probabilities[np.argmax(area_longest_mask)]
+        selected_probability = tested_probabilities[np.argmax(evaluated_metric_for_masks)]
+        
+        # if self.selection_method == 'max_area':
+        #     # Loop that iterates in the selected probabilities
+        #     for idx, cell_prob in enumerate (tested_probabilities):
+        #         masks, _, _, _ = model.eval(self.video, normalize = True, cellprob_threshold = cell_prob, diameter = self.diameter, min_size = -1, channels = self.channels, progress = None)
+        #         n_masks = np.amax(masks)
+        #         if n_masks > 1: # detecting if more than 1 mask are detected per cell
+        #             size_mask = []
+        #             for nm in range (1, n_masks+1): # iterating for each mask in a given cell. The mask has values from 0 for background, to int n, where n is the number of detected masks.
+        #                 size_mask.append(np.sum(masks == nm)) # creating a list with the size of each mask
+        #             largest_mask = np.argmax(size_mask)+1 # detecting the mask with the largest value
+        #             temp_mask = np.zeros_like(masks) # making a copy of the image
+        #             selected_mask = temp_mask + (masks == largest_mask) # Selecting a single mask and making this mask equal to one and the background equal to zero.
+        #             area_longest_mask[idx] = np.sum(selected_mask)
+        #         else: # do nothing if only a single mask is detected per image.
+        #             area_longest_mask[idx] = np.sum(masks)
+        #     # This section of the code selects the probability that should be used in cellpose.
+        #     selected_probability = tested_probabilities[np.argmax(area_longest_mask)]
+        
+        # if self.selection_method == 'max_cells':
+        #     num_masks = np.zeros(self.num_iterations)
+        #     # Loop that iterates in the selected probabilities
+        #     for idx, cell_prob in enumerate (tested_probabilities):
+        #         masks, _, _, _ = model.eval(self.video, normalize = True, cellprob_threshold = cell_prob, diameter = self.diameter, min_size = -1, channels = self.channels, progress = None)
+        #         num_masks[idx] = np.amax(masks)
+        #     # This section of the code selects the probability that should be used in cellpose.
+        #     selected_probability = tested_probabilities[np.argmax(num_masks)]
+        
         # This line re-runs the cellpose algorithm using the selected probability threshold
         selected_masks, _, _, _ = model.eval(self.video, normalize = True, cellprob_threshold = selected_probability, diameter = self.diameter, min_size = -1, channels = self.channels, progress = None)
         selected_masks[0, :] = 0;selected_masks[:, 0] = 0;selected_masks[selected_masks.shape[0]-1, :] = 0;selected_masks[:, selected_masks.shape[1]-1] = 0#This line of code ensures that the corners are zeros.
+        
         # reactivating outputs
         if np.amax(selected_masks) == 0:
             selected_masks = None
@@ -1433,7 +1468,7 @@ class CellposeSelection():
                 print('No mask was selected in the image.')
                 # This section dilates the mask to connect areas that are isolated.
         mask_int = np.where(selected_mask > 0.5, 1, 0).astype(np.int)
-        dilated_image = dilation(mask_int, square(15))
+        dilated_image = dilation(mask_int, square(20))
         mask_final = np.where(dilated_image > 0.5, 1, 0).astype(np.int)
         mask_final[0, :] = 0;mask_final[:, 0] = 0;mask_final[mask_final.shape[0]-1, :] = 0;mask_final[:, mask_final.shape[1]-1] = 0#This line of code ensures that the corners are zeros.
         return mask_final
@@ -1750,8 +1785,8 @@ class Intensity():
                 # mean intensity in disk
                 image_in_disk = test_im[center_coordinates-disk_size:center_coordinates+disk_size+1, center_coordinates-disk_size:center_coordinates+disk_size+1]
                 #mean_intensity_disk = image_in_disk.mean() # mean calculation ignoring zeros
-                mean_intensity_disk = np.amax(image_in_disk.flatten())
-                #mean_intensity_disk = np.mean(image_in_disk)
+                #mean_intensity_disk = np.amax(image_in_disk.flatten())
+                mean_intensity_disk = np.mean(image_in_disk)
                 spot_intensity_disk_donut_std = np.std(image_in_disk)
                 # mean intensity in donut.  The center is set to zeros and then the mean is calculated ignoring the zeros.
                 #recentered_image_donut[center_coordinates-disk_size:center_coordinates+disk_size+1, center_coordinates-disk_size:center_coordinates+disk_size+1] = 0
@@ -1768,62 +1803,54 @@ class Intensity():
             # function that recenters the spots
             crop_image = image[y_pos-(crop_size):y_pos+(crop_size+1), x_pos-(crop_size):x_pos+(crop_size+1)]
             return crop_image
+        
         # Section that marks particles if a numpy array with spot positions is passed.
-
-
-
-        def intensity_from_position_movement(video,particle_index, spot_positions_movement, crop_size,disk_size, frames_part,method ,time_points, number_channels ):
+        def intensity_from_position_movement(particle_index , frames_part ,time_points, number_channels ):
             intensities_mean = np.zeros((time_points, number_channels))
             intensities_std = np.zeros((time_points, number_channels))
             for j in range(0, frames_part):
                 for i in range(0, number_channels):
-                    x_pos = spot_positions_movement[j,particle_index, 1]
-                    y_pos = spot_positions_movement[j,particle_index, 0]
-                    crop_image = return_crop(video[j, :, :, i], x_pos, y_pos, crop_size) # NOT RECENTERING IMAGE
-                    if method == 'disk_donut':
-                        intensities_mean[j, i], intensities_std[j, i] = disk_donut(crop_image,disk_size)
-                    elif method == 'total_intensity':
+                    x_pos = self.spot_positions_movement[j,particle_index, 1]
+                    y_pos = self.spot_positions_movement[j,particle_index, 0]
+                    crop_image = return_crop(self.video[j, :, :, i], x_pos, y_pos, self.crop_size) # NOT RECENTERING IMAGE
+                    if self.method == 'disk_donut':
+                        intensities_mean[j, i], intensities_std[j, i] = disk_donut(crop_image,self.disk_size)
+                    elif self.method == 'total_intensity':
                         intensities_mean[j, i] = np.amax((0, np.mean(crop_image)))# mean intensity in the crop
                         intensities_std[ j, i] = np.amax((0, np.std(crop_image)))# std intensity in the crop
-                    elif method == 'gaussian_fit':
+                    elif self.method == 'gaussian_fit':
                         intensities_mean[j, i], intensities_std[j, i] = gaussian_fit(crop_image)# disk_donut(crop_image, self.disk_size
             return intensities_mean, intensities_std
         
-        def intensity_from_dataframe(video,particle_index, trackpy_dataframe,crop_size,disk_size,method ,time_points, number_channels ):
-            frames_part = trackpy_dataframe.loc[trackpy_dataframe['particle'] == trackpy_dataframe['particle'].unique()[particle_index]].frame.values
+        def intensity_from_dataframe(particle_index ,time_points, number_channels ):
+            frames_part = self.trackpy_dataframe.loc[self.trackpy_dataframe['particle'] == self.trackpy_dataframe['particle'].unique()[particle_index]].frame.values
             intensities_mean = np.zeros((time_points, number_channels))
             intensities_std = np.zeros((time_points, number_channels))
             for j in range(0, len(frames_part)):
                 for i in range(0, number_channels):
                     current_frame = frames_part[j]
                     try:
-                        x_pos = int(trackpy_dataframe.loc[trackpy_dataframe['particle'] == trackpy_dataframe['particle'].unique()[particle_index]].x.values[j])
-                        y_pos = int(trackpy_dataframe.loc[trackpy_dataframe['particle'] == trackpy_dataframe['particle'].unique()[particle_index]].y.values[j])
+                        x_pos = int(self.trackpy_dataframe.loc[self.trackpy_dataframe['particle'] == self.trackpy_dataframe['particle'].unique()[particle_index]].x.values[j])
+                        y_pos = int(self.trackpy_dataframe.loc[self.trackpy_dataframe['particle'] == self.trackpy_dataframe['particle'].unique()[particle_index]].y.values[j])
                     except:
-                        x_pos = int(trackpy_dataframe.loc[trackpy_dataframe['particle'] == trackpy_dataframe['particle'].unique()[particle_index]].x.values[frames_part[0]])
-                        y_pos = int(trackpy_dataframe.loc[trackpy_dataframe['particle'] == trackpy_dataframe['particle'].unique()[particle_index]].y.values[frames_part[0]])
-                    if method == 'disk_donut':
-                        crop_image = return_crop(video[j, :, :, i], x_pos, y_pos, crop_size) # NOT RECENTERING IMAGE
-                        intensities_mean[current_frame, i], intensities_std[current_frame, i] = disk_donut(crop_image, disk_size)
-                    elif method == 'total_intensity':
-                        crop_image = return_crop(video[j, :, :, i], x_pos, y_pos, crop_size) # NOT RECENTERING IMAGE
+                        x_pos = int(self.trackpy_dataframe.loc[self.trackpy_dataframe['particle'] == self.trackpy_dataframe['particle'].unique()[particle_index]].x.values[frames_part[0]])
+                        y_pos = int(self.trackpy_dataframe.loc[self.trackpy_dataframe['particle'] == self.trackpy_dataframe['particle'].unique()[particle_index]].y.values[frames_part[0]])
+                    crop_image = return_crop(self.video[j, :, :, i], x_pos, y_pos, self.crop_size) # NOT RECENTERING IMAGE
+                    if self.method == 'disk_donut':
+                        intensities_mean[current_frame, i], intensities_std[current_frame, i] = disk_donut(crop_image, self.disk_size)
+                    elif self.method == 'total_intensity':
                         intensities_mean[ current_frame, i] = np.amax((0, np.mean(crop_image))) # mean intensity in image
                         intensities_std[ current_frame, i] = np.amax((0, np.std(crop_image))) # std intensity in image
-                    elif method == 'gaussian_fit':
-                        crop_image = return_crop(video[j, :, :, i], x_pos, y_pos, crop_size) # NOT RECENTERING IMAGE
+                    elif self.method == 'gaussian_fit':
                         intensities_mean[current_frame, i], intensities_std[ current_frame, i] = gaussian_fit(crop_image)# disk_donut(crop_image, disk_size)
             return intensities_mean, intensities_std
 
 
         if not ( self.spot_positions_movement is None):
             frames_part = self.spot_positions_movement.shape[0]
-            list_intensities_mean_and_std = Parallel(n_jobs = self.NUMBER_OF_CORES)(delayed(intensity_from_position_movement)(self.video,i, self.spot_positions_movement, self.crop_size, self.disk_size,frames_part, self.method, time_points, number_channels  ) for i in range(0,  self.n_particles))
-            #print(len(list_intensities_mean_and_std))
-            #print(list_intensities_mean_and_std[4][0].shape )
+            list_intensities_mean_and_std = Parallel(n_jobs = self.NUMBER_OF_CORES)(delayed(intensity_from_position_movement)(i,frames_part, time_points, number_channels  ) for i in range(0,  self.n_particles))
             array_intensities_mean = np.asarray([list_intensities_mean_and_std[i][0]  for i in range(0,len(list_intensities_mean_and_std))]   )
             array_intensities_std = np.asarray([list_intensities_mean_and_std[i][1]  for i in range(0,len(list_intensities_mean_and_std))]   )
-            #print(array_intensities_mean.shape)
-
 
             
             ''' for k in range (0, self.n_particles):
@@ -1844,8 +1871,7 @@ class Intensity():
         
         
         if not ( self.trackpy_dataframe is None):
-                                                                                                              
-            list_intensities_mean_and_std = Parallel(n_jobs = self.NUMBER_OF_CORES)(delayed(intensity_from_dataframe)(self.video,i, self.trackpy_dataframe, self.crop_size, self.disk_size, self.method, time_points, number_channels  ) for i in range(0,  self.n_particles))
+            list_intensities_mean_and_std = Parallel(n_jobs = self.NUMBER_OF_CORES)(delayed(intensity_from_dataframe)(i, time_points, number_channels  ) for i in range(0,  self.n_particles))
             #print(len(list_intensities_mean_and_std))
             #print(list_intensities_mean_and_std[4][0].shape )
             array_intensities_mean = np.asarray([list_intensities_mean_and_std[i][0]  for i in range(0,len(list_intensities_mean_and_std))]   )
@@ -2692,7 +2718,7 @@ class PipelineTracking():
         self.average_cell_diameter = average_cell_diameter
         self.print_process_times = print_process_times
         # Iterations
-        self.NUM_ITERATIONS_CELLPOSE = 10
+        self.NUM_ITERATIONS_CELLPOSE = 8
         self.NUM_ITERATIONS_TRACKING = 100
         self.MN_PERCENTAGE_FRAMES_FOR_TRACKING = 0.3
     def run(self):
