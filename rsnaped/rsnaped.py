@@ -2090,8 +2090,14 @@ class SimulatedCell():
         If true, it performs random rotations the initial video. The default is 1.
     frame_selection_empty_video : str, optional
         Method to select the frames from the empty video, the options are : 'constant' , 'shuffle' and 'loop'. The default is 'shuffle'.
+    ignore_trajectories_ch0 : bool, optional
+        A flag that ignores plotting trajectories in channel 0. The default is 0.
+    ignore_trajectories_ch1 : bool, optional
+        A flag that ignores plotting trajectories in channel 1. The default is 1.
+    ignore_trajectories_ch2 : bool, optional
+        A flag that ignores plotting trajectories in channel 2. The default is 1.
     '''
-    def __init__(self, base_video:np.ndarray, video_for_mask:Union[np.ndarray, None] = None, number_spots:int = 10, number_frames:int = 20, step_size:float = 1, diffusion_coefficient:float = 0.01, simulated_trajectories_ch0:Union[np.ndarray, None]  = None, size_spot_ch0:int = 5, spot_sigma_ch0:int = 2, simulated_trajectories_ch1:Union[np.ndarray, None] = None, size_spot_ch1:int = 5, spot_sigma_ch1:int = 2, simulated_trajectories_ch2:Union[np.ndarray, None] = None, size_spot_ch2:int = 5, spot_sigma_ch2:int = 2, ignore_ch0: bool = 0, ignore_ch1: bool = 1, ignore_ch2: bool = 1, save_as_tif_uint8: bool = 0, save_as_tif: bool = 0, save_as_gif: bool = 0, save_dataframe: bool = 0, saved_file_name :str = 'temp', create_temp_folder: bool = True, intensity_calculation_method :str = 'disk_donut', using_for_multiplexing = 0, min_int_multiplexing: bool = None, max_int_multiplexing :Union[float, None] = None, perform_video_augmentation: bool = 0, frame_selection_empty_video:str = 'shuffle'):
+    def __init__(self, base_video:np.ndarray, video_for_mask:Union[np.ndarray, None] = None, number_spots:int = 10, number_frames:int = 20, step_size:float = 1, diffusion_coefficient:float = 0.01, simulated_trajectories_ch0:Union[np.ndarray, None]  = None, size_spot_ch0:int = 5, spot_sigma_ch0:int = 2, simulated_trajectories_ch1:Union[np.ndarray, None] = None, size_spot_ch1:int = 5, spot_sigma_ch1:int = 2, simulated_trajectories_ch2:Union[np.ndarray, None] = None, size_spot_ch2:int = 5, spot_sigma_ch2:int = 2, ignore_ch0: bool = 0, ignore_ch1: bool = 0, ignore_ch2: bool = 0, save_as_tif_uint8: bool = 0, save_as_tif: bool = 0, save_as_gif: bool = 0, save_dataframe: bool = 0, saved_file_name :str = 'temp', create_temp_folder: bool = True, intensity_calculation_method :str = 'disk_donut', using_for_multiplexing = 0, min_int_multiplexing: bool = None, max_int_multiplexing :Union[float, None] = None, perform_video_augmentation: bool = 0, frame_selection_empty_video:str = 'shuffle',ignore_trajectories_ch0:bool =0, ignore_trajectories_ch1:bool =0, ignore_trajectories_ch2:bool =0):
         if (perform_video_augmentation == 1) and (video_for_mask is None):
             base_video = AugmentationVideo(base_video).random_rotation()
         self.intensity_calculation_method = intensity_calculation_method
@@ -2125,6 +2131,9 @@ class SimulatedCell():
         self.ignore_ch0 = ignore_ch0
         self.ignore_ch1 = ignore_ch1
         self.ignore_ch2 = ignore_ch2
+        self.ignore_trajectories_ch0 = ignore_trajectories_ch0
+        self.ignore_trajectories_ch1 = ignore_trajectories_ch1
+        self.ignore_trajectories_ch2 = ignore_trajectories_ch2
         self.n_channels = 3
         self.z_slices = 1
         self.time_vector = np.linspace(0, number_frames*step_size, num = number_frames)
@@ -2138,8 +2147,8 @@ class SimulatedCell():
         self.max_int_multiplexing = max_int_multiplexing
         self.frame_selection_empty_video = frame_selection_empty_video
         # The following two constants are weights used to define a range of intensities for the simulated spots.
-        self.MIN_INTENSITY_SPOT_WEIGHT = 1.5 # 1.05 lower weight that multiplays the mean intensity value in the image to define the simulated spot intensity.
-        self.MAX_INTENSITY_SPOT_WEIGHT = 3 # 1.6 higher weight that multiplays the mean intensity value in the image to define the simulated spot intensity.
+        self.MIN_INTENSITY_SPOT_WEIGHT = 1.1 # 1.05 lower weight that multiplays the mean intensity value in the image to define the simulated spot intensity.
+        self.MAX_INTENSITY_SPOT_WEIGHT = 2 # 1.6 higher weight that multiplays the mean intensity value in the image to define the simulated spot intensity.
         self.MAX_STD_INT_IMAGE = 4 # maximum number of standard deviations above the mean that are allowed to draw an spot.
         # This function is intended to detect the mask and then reduce the mask by a given percentage. This reduction ensures that the simulated spots are inclosed inside the cell.
         def mask_reduction(polygon_array, percentage_reduction:float = 0.2):
@@ -2378,7 +2387,7 @@ class SimulatedCell():
                 #print(spot_positions_movement)
             return spot_positions_movement # vector with dimensions (time, spot, y, x )
 
-        def make_simulation(base_video_selected_channel:np.ndarray, masked_video_selected_channel:np.ndarray, spot_positions_movement:np.ndarray, time_vector:np.ndarray, polygon_array, image_size:np.ndarray, size_spot:int, spot_sigma:int, simulated_trajectories, frame_selection_empty_video):
+        def make_simulation(base_video_selected_channel:np.ndarray, masked_video_selected_channel:np.ndarray, spot_positions_movement:np.ndarray, time_vector:np.ndarray, polygon_array, image_size:np.ndarray, size_spot:int, spot_sigma:int, simulated_trajectories, frame_selection_empty_video,ignore_trajectories):
             # Main function that makes the simulated cell by calling multiple function.
             temp_image = masked_video_selected_channel[0, :, :]
             temp_image_nonzeros = temp_image.copy()
@@ -2395,8 +2404,10 @@ class SimulatedCell():
                 index_frame_selection = np.resize(empty_video_index, len(time_vector))
             if frame_selection_empty_video ==  'shuffle':
                 index_frame_selection = np.random.randint(0, high = len_empty_video, size = len(time_vector), dtype = np.int32)
+            
             for t_p, _ in enumerate(time_vector):
                 matrix_background = base_video_selected_channel_copy[index_frame_selection[t_p], :, :]
+                
                 if not ( simulated_trajectories is None):
                     using_ssa = 1
                     simulated_trajectories_tp = simulated_trajectories[:, t_p]
@@ -2412,7 +2423,10 @@ class SimulatedCell():
                     max_SSA_value = 0
                     min_SSA_value = 0
                 # Making the pixelated spots
-                tensor_image[t_p, :, :] = make_replacement_pixelated_spots(matrix_background, spot_positions_movement[t_p, :, :], size_spot, spot_sigma, using_ssa, simulated_trajectories_tp, min_SSA_value, max_SSA_value)
+                if ignore_trajectories ==1:
+                    tensor_image[t_p, :, :] = matrix_background
+                else:
+                    tensor_image[t_p, :, :] = make_replacement_pixelated_spots(matrix_background, spot_positions_movement[t_p, :, :], size_spot, spot_sigma, using_ssa, simulated_trajectories_tp, min_SSA_value, max_SSA_value)
                 #counter += 1
             return tensor_image
 
@@ -2420,7 +2434,7 @@ class SimulatedCell():
         spot_positions_movement = make_spots_movement(self.polygon_array, self.number_spots, self.time_vector, self.step_size, self.image_size, self.diffusion_coefficient, self.base_video[0, :, :, 1])
         # This section of the code runs the for each channel
         if self.ignore_ch0 == 0:
-            tensor_image_ch0 = make_simulation(self.base_video[:, :, :, 0], self.video_removed_mask[:, :, :, 0], spot_positions_movement, self.time_vector, self.polygon_array, self.image_size, self.size_spot_ch0, self.spot_sigma_ch0, self.simulated_trajectories_ch0, self.frame_selection_empty_video)
+            tensor_image_ch0 = make_simulation(self.base_video[:, :, :, 0], self.video_removed_mask[:, :, :, 0], spot_positions_movement, self.time_vector, self.polygon_array, self.image_size, self.size_spot_ch0, self.spot_sigma_ch0, self.simulated_trajectories_ch0, self.frame_selection_empty_video,self.ignore_trajectories_ch0)
             tensor_mean_intensity_in_figure_ch0, tensor_std_intensity_in_figure_ch0 = calculate_intensity_in_figure(tensor_image_ch0, self.time_vector, self.number_spots, spot_positions_movement, self.size_spot_ch0)
         else:
             tensor_image_ch0 = np.zeros((self.number_frames, self.image_size[0], self.image_size[1]), dtype = np.uint16)
@@ -2428,7 +2442,7 @@ class SimulatedCell():
             tensor_std_intensity_in_figure_ch0 = np.zeros((len(self.time_vector), self.number_spots), dtype = np.uint16)
         # Channel 1
         if self.ignore_ch1 == 0:
-            tensor_image_ch1 = make_simulation(self.base_video[:, :, :, 1], self.video_removed_mask[:, :, :, 1], spot_positions_movement, self.time_vector, self.polygon_array, self.image_size, self.size_spot_ch1, self.spot_sigma_ch1, self.simulated_trajectories_ch1, self.frame_selection_empty_video)
+            tensor_image_ch1 = make_simulation(self.base_video[:, :, :, 1], self.video_removed_mask[:, :, :, 1], spot_positions_movement, self.time_vector, self.polygon_array, self.image_size, self.size_spot_ch1, self.spot_sigma_ch1, self.simulated_trajectories_ch1, self.frame_selection_empty_video,self.ignore_trajectories_ch1)
             tensor_mean_intensity_in_figure_ch1, tensor_std_intensity_in_figure_ch1 = calculate_intensity_in_figure(tensor_image_ch1, self.time_vector, self.number_spots, spot_positions_movement, self.size_spot_ch1)
         else:
             tensor_image_ch1 = np.zeros((self.number_frames, self.image_size[0], self.image_size[1]), dtype = np.uint16)
@@ -2436,7 +2450,10 @@ class SimulatedCell():
             tensor_std_intensity_in_figure_ch1 = np.zeros((len(self.time_vector), self.number_spots), dtype = np.uint16)
         # Channel 2
         if self.ignore_ch2 == 0:
-            tensor_image_ch2 = make_simulation(self.base_video[:, :, :, 2], self.video_removed_mask[:, :, :, 2], spot_positions_movement, self.time_vector, self.polygon_array, self.image_size, self.size_spot_ch2, self.spot_sigma_ch2, self.simulated_trajectories_ch2, self.frame_selection_empty_video)
+            try:
+                tensor_image_ch2 = make_simulation(self.base_video[:, :, :, 2], self.video_removed_mask[:, :, :, 2], spot_positions_movement, self.time_vector, self.polygon_array, self.image_size, self.size_spot_ch2, self.spot_sigma_ch2, self.simulated_trajectories_ch2, self.frame_selection_empty_video,self.ignore_trajectories_ch2)
+            except:
+                tensor_image_ch2 = make_simulation(self.base_video[:, :, :, 1], self.video_removed_mask[:, :, :, 1], spot_positions_movement, self.time_vector, self.polygon_array, self.image_size, self.size_spot_ch2, self.spot_sigma_ch2, self.simulated_trajectories_ch2, self.frame_selection_empty_video,self.ignore_trajectories_ch2)
             tensor_mean_intensity_in_figure_ch2, tensor_std_intensity_in_figure_ch2 = calculate_intensity_in_figure(tensor_image_ch2, self.time_vector, self.number_spots, spot_positions_movement, self.size_spot_ch2)
         else:
             tensor_image_ch2 = np.zeros((self.number_frames, self.image_size[0], self.image_size[1]), dtype = np.uint16)
@@ -2530,8 +2547,10 @@ class SimulatedCellMultiplexing ():
         List where every element is a gene sequence file.
     list_number_spots : List of int
         List where every element represents the number of spots to simulate for each gene.
-    list_target_channels : List of int with a range from 0 to 2
-        List where every element represents the specific channel where the spots will be located.
+    list_target_channels_proteins : List of int with a range from 0 to 2
+        List where every element represents the specific channel where the spots for the nascent proteins will be located.
+    list_target_channels_mRNA : List of int with a range from 0 to 2
+        List where every element represents the specific channel where the spots for the mRNA signals will be located.
     list_diffusion_coefficients : List of floats
         List where every element represents the diffusion coefficient for every gene.
     list_label_names : List of str
@@ -2560,15 +2579,18 @@ class SimulatedCellMultiplexing ():
         If true, it performs random rotations the initial video. The default is 1.
     frame_selection_empty_video : str, optional
         Method to select the frames from the empty video, the options are : 'constant' , 'shuffle' and 'loop'. The default is 'shuffle'.
+    spot_size : int, optional
+        Spot size in pixels. The default is 5.
     '''
-    def __init__(self, initial_video:np.ndarray, list_gene_sequences:list, list_number_spots:list, list_target_channels:list, list_diffusion_coefficients:list, list_label_names:list, list_elongation_rates:list, list_initiation_rates:list, simulation_time_in_sec:float, step_size_in_sec:float, save_as_tif:bool, save_dataframe:bool, saved_file_name:str, create_temp_folder:bool, cell_number:int = 0, save_as_gif:bool = 0, perform_video_augmentation:bool = 1, frame_selection_empty_video:str = 'shuffle'):
+    def __init__(self, initial_video:np.ndarray, list_gene_sequences:list, list_number_spots:list, list_target_channels_proteins:list, list_target_channels_mRNA:list, list_diffusion_coefficients:list, list_label_names:list, list_elongation_rates:list, list_initiation_rates:list, simulation_time_in_sec:float, step_size_in_sec:float, save_as_tif:bool, save_dataframe:bool, saved_file_name:str, create_temp_folder:bool, cell_number:int = 0, save_as_gif:bool = 0, perform_video_augmentation:bool = 1, frame_selection_empty_video:str = 'shuffle',spot_size:int = 5):
         if perform_video_augmentation == 1:
             self.initial_video = AugmentationVideo(initial_video).random_rotation()
         else:
             self.initial_video = initial_video
         self.list_gene_sequences = list_gene_sequences
         self.list_number_spots = list_number_spots
-        self.list_target_channels = list_target_channels
+        self.list_target_channels_proteins = list_target_channels_proteins
+        self.list_target_channels_mRNA = list_target_channels_mRNA
         self.list_diffusion_coefficients = list_diffusion_coefficients
         self.list_label_names = list_label_names
         self.list_elongation_rates = list_elongation_rates
@@ -2583,6 +2605,12 @@ class SimulatedCellMultiplexing ():
         self.cell_number = cell_number
         self.save_as_gif = save_as_gif
         self.frame_selection_empty_video = frame_selection_empty_video
+        self.spot_size = spot_size
+        if max(list_target_channels_proteins)>2:
+            raise ValueError('The target channel in the list should be a int between 0 and 2.')
+        if max(list_target_channels_mRNA)>2:
+            raise ValueError('The target channel in the list should be a int between 0 and 2.')    
+
     def make_simulation (self):
         '''
         Method that runs the simulations for the multiplexing experiment.
@@ -2612,15 +2640,39 @@ class SimulatedCellMultiplexing ():
             return time_ssa, ssa_int
 
         # Wrapper for the simulated cell
-        def wrapper_simulated_cell (base_video, video_for_mask = None, ssa = None, target_channel = 1, diffusion_coefficient = 0.05, step_size = self.step_size_in_sec, spot_size = 5, spot_sigma = 2, intensity_calculation_method = 'disk_donut', using_for_multiplexing = 0, min_int_multiplexing = 0 , max_int_multiplexing = 0, save_as_gif = 0, frame_selection_empty_video = self.frame_selection_empty_video):
-            if target_channel == 0:
-                ignore_ch0 = 0; ignore_ch1 = 1; ignore_ch2 = 1
-            elif target_channel == 1:
-                ignore_ch0 = 0; ignore_ch1 = 0; ignore_ch2 = 1
-            elif target_channel == 2:
-                ignore_ch0 = 0; ignore_ch1 = 1; ignore_ch2 = 0
+        def wrapper_simulated_cell (base_video, video_for_mask = None, ssa = None, target_channel_protein = 1,target_channel_mRNA =0,  diffusion_coefficient = 0.05, step_size = self.step_size_in_sec, spot_size = self.spot_size, spot_sigma = 2, intensity_calculation_method = 'disk_donut', using_for_multiplexing = 0, min_int_multiplexing = 0 , max_int_multiplexing = 0, save_as_gif = 0, frame_selection_empty_video = self.frame_selection_empty_video):
+            if target_channel_protein == 0 and target_channel_mRNA==1:
+                ignore_trajectories_ch0 = 0; ignore_trajectories_ch1 = 0; ignore_trajectories_ch2 = 1
+                simulated_trajectories_ch0 = ssa 
+                simulated_trajectories_ch1 = None
+                simulated_trajectories_ch2 = None
+            elif target_channel_protein == 0 and target_channel_mRNA==2:
+                ignore_trajectories_ch0 = 0; ignore_trajectories_ch1 = 1; ignore_trajectories_ch2 = 0
+                simulated_trajectories_ch0 = ssa
+                simulated_trajectories_ch1 = None
+                simulated_trajectories_ch2 = None
+            elif target_channel_protein == 1 and target_channel_mRNA==0:
+                ignore_trajectories_ch0 = 0; ignore_trajectories_ch1 = 0; ignore_trajectories_ch2 = 1
+                simulated_trajectories_ch0 = None
+                simulated_trajectories_ch1 = ssa
+                simulated_trajectories_ch2 = None
+            elif target_channel_protein == 1 and target_channel_mRNA==2:
+                ignore_trajectories_ch0 = 1; ignore_trajectories_ch1 = 0; ignore_trajectories_ch2 = 0
+                simulated_trajectories_ch0 = None
+                simulated_trajectories_ch1 = ssa
+                simulated_trajectories_ch2 = None
+            elif target_channel_protein == 2 and target_channel_mRNA==0:
+                ignore_trajectories_ch0 = 0; ignore_trajectories_ch1 = 1; ignore_trajectories_ch2 = 0
+                simulated_trajectories_ch0 = None
+                simulated_trajectories_ch1 = None
+                simulated_trajectories_ch2 = ssa
+            elif target_channel_protein == 2 and target_channel_mRNA==1:            
+                ignore_trajectories_ch0 = 1; ignore_trajectories_ch1 = 0; ignore_trajectories_ch2 = 0
+                simulated_trajectories_ch0 = None
+                simulated_trajectories_ch1 = None
+                simulated_trajectories_ch2 = ssa
             number_spots_per_cell = ssa.shape[0]
-            tensor_video , _ , _, _, _, DataFrame_particles_intensities = SimulatedCell( base_video = base_video, video_for_mask = video_for_mask, number_spots = number_spots_per_cell, number_frames = ssa.shape[1], step_size = step_size, diffusion_coefficient = diffusion_coefficient, simulated_trajectories_ch0 = None, size_spot_ch0 = spot_size, spot_sigma_ch0 = spot_sigma, simulated_trajectories_ch1 = ssa, size_spot_ch1 = spot_size, spot_sigma_ch1 = spot_sigma, simulated_trajectories_ch2 = ssa, size_spot_ch2 = spot_size, spot_sigma_ch2 = spot_sigma, ignore_ch0 = ignore_ch0, ignore_ch1 = ignore_ch1, ignore_ch2 = ignore_ch2, save_as_tif_uint8 = 0, save_as_tif = 0, save_as_gif = save_as_gif, save_dataframe = 0, create_temp_folder = 1, intensity_calculation_method = intensity_calculation_method, using_for_multiplexing = using_for_multiplexing, min_int_multiplexing = min_int_multiplexing, max_int_multiplexing = max_int_multiplexing, frame_selection_empty_video = frame_selection_empty_video).make_simulation()
+            tensor_video , _ , _, _, _, DataFrame_particles_intensities = SimulatedCell( base_video = base_video, video_for_mask = video_for_mask, number_spots = number_spots_per_cell, number_frames = ssa.shape[1], step_size = step_size, diffusion_coefficient = diffusion_coefficient, simulated_trajectories_ch0 = simulated_trajectories_ch0, size_spot_ch0 = spot_size, spot_sigma_ch0 = spot_sigma, simulated_trajectories_ch1 = simulated_trajectories_ch1, size_spot_ch1 = spot_size, spot_sigma_ch1 = spot_sigma, simulated_trajectories_ch2 = simulated_trajectories_ch2, size_spot_ch2 = spot_size, spot_sigma_ch2 = spot_sigma, save_as_tif_uint8 = 0, save_as_tif = 0, save_as_gif = save_as_gif, save_dataframe = 0, create_temp_folder = 1, intensity_calculation_method = intensity_calculation_method, using_for_multiplexing = using_for_multiplexing, min_int_multiplexing = min_int_multiplexing, max_int_multiplexing = max_int_multiplexing, frame_selection_empty_video = frame_selection_empty_video, ignore_trajectories_ch0 = ignore_trajectories_ch0, ignore_trajectories_ch1 = ignore_trajectories_ch1,ignore_trajectories_ch2 = ignore_trajectories_ch2).make_simulation()
             DataFrame_particles_intensities['cell_number'] = DataFrame_particles_intensities['cell_number'].replace([0], self.cell_number)
             return tensor_video, DataFrame_particles_intensities  # [cell_number, particle, frame, red_int_mean, green_int_mean, blue_int_mean, red_int_std, green_int_std, blue_int_std, x, y].
         # Runs the SSA and the simulated cell functions
@@ -2636,9 +2688,9 @@ class SimulatedCellMultiplexing ():
         list_DataFrame_particles_intensities = []
         for i in range(0, self.number_genes):
             if i == 0 :
-                tensor_video , DataFrame_particles_intensities = wrapper_simulated_cell(self.initial_video, video_for_mask = self.initial_video, ssa = list_ssa[i], target_channel = self.list_target_channels[i], diffusion_coefficient = self.list_diffusion_coefficients[i], min_int_multiplexing = min(list_min_ssa) , max_int_multiplexing = max(list_max_ssa), save_as_gif = self.save_as_gif, frame_selection_empty_video = self.frame_selection_empty_video)
+                tensor_video , DataFrame_particles_intensities = wrapper_simulated_cell(self.initial_video, video_for_mask = self.initial_video, ssa = list_ssa[i], target_channel_protein = self.list_target_channels_proteins[i],target_channel_mRNA =  self.list_target_channels_mRNA[i], diffusion_coefficient = self.list_diffusion_coefficients[i], min_int_multiplexing = min(list_min_ssa) , max_int_multiplexing = max(list_max_ssa), save_as_gif = self.save_as_gif, frame_selection_empty_video = self.frame_selection_empty_video)
             else:
-                tensor_video , DataFrame_particles_intensities = wrapper_simulated_cell(tensor_video, video_for_mask = self.initial_video, ssa = list_ssa[i], target_channel = self.list_target_channels[i], diffusion_coefficient = self.list_diffusion_coefficients[i], using_for_multiplexing = 1, min_int_multiplexing = min(list_min_ssa) , max_int_multiplexing = max(list_max_ssa), save_as_gif = self.save_as_gif, frame_selection_empty_video = 'loop') # notice that for the multiplexing frame_selection_empty_video has to be 'loop', because the initial video deffines the initial background image.
+                tensor_video , DataFrame_particles_intensities = wrapper_simulated_cell(tensor_video, video_for_mask = self.initial_video, ssa = list_ssa[i], target_channel_protein = self.list_target_channels_proteins[i], target_channel_mRNA = self.list_target_channels_mRNA[i] , diffusion_coefficient = self.list_diffusion_coefficients[i], using_for_multiplexing = 1, min_int_multiplexing = min(list_min_ssa) , max_int_multiplexing = max(list_max_ssa), save_as_gif = self.save_as_gif, frame_selection_empty_video = 'loop') # notice that for the multiplexing frame_selection_empty_video has to be 'loop', because the initial video deffines the initial background image.
             list_DataFrame_particles_intensities.append(DataFrame_particles_intensities)
         # Adding a classification column to all dataframes
         for i in range(0, self.number_genes):
