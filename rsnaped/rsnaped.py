@@ -2324,6 +2324,7 @@ class SimulatedCell():
             return pixelated_image # final_image
 
         def make_spots_movement(polygon_array, number_spots:int, time_vector:np.ndarray, step_size: float, image_size:np.ndarray, diffusion_coefficient:float, internal_base_video:Union[np.ndarray, None] = None):
+            print('making spot movement')
             # Function that creates the simulated spots inside a given polygon
             #print('mean int in cell', np.mean(base_video))
             #print('std int in cell', np.std(base_video))
@@ -2389,6 +2390,7 @@ class SimulatedCell():
             return spot_positions_movement # vector with dimensions (time, spot, y, x )
 
         def make_simulation(base_video_selected_channel:np.ndarray, masked_video_selected_channel:np.ndarray, spot_positions_movement:np.ndarray, time_vector:np.ndarray, polygon_array, image_size:np.ndarray, size_spot:int, spot_sigma:int, simulated_trajectories, frame_selection_empty_video,ignore_trajectories):
+            print('making simulation')
             # Main function that makes the simulated cell by calling multiple function.
             temp_image = masked_video_selected_channel[0, :, :]
             temp_image_nonzeros = temp_image.copy()
@@ -2407,6 +2409,7 @@ class SimulatedCell():
                 index_frame_selection = np.random.randint(0, high = len_empty_video, size = len(time_vector), dtype = np.int32)
             
             for t_p, _ in enumerate(time_vector):
+                print(t_p)
                 matrix_background = base_video_selected_channel_copy[index_frame_selection[t_p], :, :]
                 
                 if not ( simulated_trajectories is None):
