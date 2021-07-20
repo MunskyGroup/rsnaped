@@ -2391,7 +2391,8 @@ class SimulatedCell():
             return spot_positions_movement # vector with dimensions (time, spot, y, x )
 
         def make_simulation(base_video_selected_channel:np.ndarray, masked_video_selected_channel:np.ndarray, spot_positions_movement:np.ndarray, time_vector:np.ndarray, polygon_array, image_size:np.ndarray, size_spot:int, spot_sigma:int, simulated_trajectories, frame_selection_empty_video,ignore_trajectories):
-            print('making simulation')
+            print('making simulation in')
+            print('next')
             # Main function that makes the simulated cell by calling multiple function.
             print('step_1')
             temp_image = masked_video_selected_channel[0, :, :]
