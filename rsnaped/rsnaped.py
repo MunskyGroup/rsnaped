@@ -2468,9 +2468,11 @@ class SimulatedCell():
         # Channel 2
         if self.ignore_ch2 == 0:
             print('ch2')
-            try:
+            #try:
+            if self.base_video.shape[3] <= 2 :   
                 tensor_image_ch2 = make_simulation(self.base_video[:, :, :, 2], self.video_removed_mask[:, :, :, 2], spot_positions_movement, self.time_vector, self.polygon_array, self.image_size, self.size_spot_ch2, self.spot_sigma_ch2, self.simulated_trajectories_ch2, self.frame_selection_empty_video,self.ignore_trajectories_ch2)
-            except:
+            else:
+            #except:
                 tensor_image_ch2 = make_simulation(self.base_video[:, :, :, 1], self.video_removed_mask[:, :, :, 1], spot_positions_movement, self.time_vector, self.polygon_array, self.image_size, self.size_spot_ch2, self.spot_sigma_ch2, self.simulated_trajectories_ch2, self.frame_selection_empty_video,self.ignore_trajectories_ch2)
             #tensor_mean_intensity_in_figure_ch2, tensor_std_intensity_in_figure_ch2 = calculate_intensity_in_figure(tensor_image_ch2, self.time_vector, self.number_spots, spot_positions_movement, self.size_spot_ch2)
         else:
