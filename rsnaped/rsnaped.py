@@ -2393,11 +2393,13 @@ class SimulatedCell():
         def make_simulation(base_video_selected_channel:np.ndarray, masked_video_selected_channel:np.ndarray, spot_positions_movement:np.ndarray, time_vector:np.ndarray, polygon_array, image_size:np.ndarray, size_spot:int, spot_sigma:int, simulated_trajectories, frame_selection_empty_video,ignore_trajectories):
             print('making simulation')
             # Main function that makes the simulated cell by calling multiple function.
+            print('step_1')
             temp_image = masked_video_selected_channel[0, :, :]
             temp_image_nonzeros = temp_image.copy()
             temp_image_nonzeros.flatten
             base_video_selected_channel_copy = base_video_selected_channel.copy()
             # Calculate initial background intensity for each spot.
+            print('step_2')
             tensor_image = np.zeros((len(time_vector), image_size[0], image_size[1]), dtype = np.uint32)
             len_empty_video = base_video_selected_channel.shape[0]
             empty_video_index = np.arange(len_empty_video, dtype = np.int32)
@@ -2408,7 +2410,7 @@ class SimulatedCell():
                 index_frame_selection = np.resize(empty_video_index, len(time_vector))
             if frame_selection_empty_video ==  'shuffle':
                 index_frame_selection = np.random.randint(0, high = len_empty_video, size = len(time_vector), dtype = np.int32)
-            
+            print('step_3')
             for t_p, _ in enumerate(time_vector):
                 print(t_p)
                 matrix_background = base_video_selected_channel_copy[index_frame_selection[t_p], :, :]
