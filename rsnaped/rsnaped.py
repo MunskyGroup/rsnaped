@@ -2449,6 +2449,7 @@ class SimulatedCell():
         print('end spt mov')
         # This section of the code runs the for each channel
         if self.ignore_ch0 == 0:
+            print('ch0')
             tensor_image_ch0 = make_simulation(self.base_video[:, :, :, 0], self.video_removed_mask[:, :, :, 0], spot_positions_movement, self.time_vector, self.polygon_array, self.image_size, self.size_spot_ch0, self.spot_sigma_ch0, self.simulated_trajectories_ch0, self.frame_selection_empty_video,self.ignore_trajectories_ch0)
             #tensor_mean_intensity_in_figure_ch0, tensor_std_intensity_in_figure_ch0 = calculate_intensity_in_figure(tensor_image_ch0, self.time_vector, self.number_spots, spot_positions_movement, self.size_spot_ch0)
         else:
@@ -2457,6 +2458,7 @@ class SimulatedCell():
             tensor_std_intensity_in_figure_ch0 = np.zeros((len(self.time_vector), self.number_spots), dtype = np.uint16)
         # Channel 1
         if self.ignore_ch1 == 0:
+            print('ch1')
             tensor_image_ch1 = make_simulation(self.base_video[:, :, :, 1], self.video_removed_mask[:, :, :, 1], spot_positions_movement, self.time_vector, self.polygon_array, self.image_size, self.size_spot_ch1, self.spot_sigma_ch1, self.simulated_trajectories_ch1, self.frame_selection_empty_video,self.ignore_trajectories_ch1)
             #tensor_mean_intensity_in_figure_ch1, tensor_std_intensity_in_figure_ch1 = calculate_intensity_in_figure(tensor_image_ch1, self.time_vector, self.number_spots, spot_positions_movement, self.size_spot_ch1)
         else:
@@ -2465,6 +2467,7 @@ class SimulatedCell():
             tensor_std_intensity_in_figure_ch1 = np.zeros((len(self.time_vector), self.number_spots), dtype = np.uint16)
         # Channel 2
         if self.ignore_ch2 == 0:
+            print('ch2')
             try:
                 tensor_image_ch2 = make_simulation(self.base_video[:, :, :, 2], self.video_removed_mask[:, :, :, 2], spot_positions_movement, self.time_vector, self.polygon_array, self.image_size, self.size_spot_ch2, self.spot_sigma_ch2, self.simulated_trajectories_ch2, self.frame_selection_empty_video,self.ignore_trajectories_ch2)
             except:
