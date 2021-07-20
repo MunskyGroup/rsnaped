@@ -2469,8 +2469,10 @@ class SimulatedCell():
         if self.ignore_ch2 == 0:
             print('ch2')
             #try:
-            print('shape', self.base_video.shape[3])
-            if self.base_video.shape[3] <= 1 :   
+            #print('shape new', self.base_video.shape[3])
+
+
+            if self.base_video.shape[3] <3 :   
                 tensor_image_ch2 = make_simulation(self.base_video[:, :, :, 1], self.video_removed_mask[:, :, :, 1], spot_positions_movement, self.time_vector, self.polygon_array, self.image_size, self.size_spot_ch2, self.spot_sigma_ch2, self.simulated_trajectories_ch2, self.frame_selection_empty_video,self.ignore_trajectories_ch2)
             else:
             #except:
