@@ -1500,7 +1500,7 @@ class Trackpy():
         This parameter allows the user to use FISH images and connect spots detected along multiple z-slices. The default is 0.
     '''
     def __init__(self, video:np.ndarray, mask:np.ndarray, particle_size:int = 5, selected_channel:int = 0, minimal_frames:int = 5, optimization_iterations:int = 40, use_default_filter:int = 1, FISH_image: bool = 0, show_plot:bool = 1):
-        self.num_cores = multiprocessing.cpu_count()
+        self.num_cores = 1# multiprocessing.cpu_count()
         self.time_points = video.shape[0]
         self.selected_channel = selected_channel
         # function that remove outliers from the video
@@ -1739,7 +1739,7 @@ class Intensity():
             print ('Error a trackpy_dataframe or spot_positions_movement should be given')
             raise
         self.step_size = step_size
-        self.NUMBER_OF_CORES = multiprocessing.cpu_count()
+        self.NUMBER_OF_CORES = 1#multiprocessing.cpu_count()
     def calculate_intensity(self):
         '''
         This method calculates the spot intensity.
@@ -2147,8 +2147,8 @@ class SimulatedCell():
         self.max_int_multiplexing = max_int_multiplexing
         self.frame_selection_empty_video = frame_selection_empty_video
         # The following two constants are weights used to define a range of intensities for the simulated spots.
-        self.MIN_INTENSITY_SPOT_WEIGHT = 1.1 # 1.05 lower weight that multiplays the mean intensity value in the image to define the simulated spot intensity.
-        self.MAX_INTENSITY_SPOT_WEIGHT = 2 # 1.6 higher weight that multiplays the mean intensity value in the image to define the simulated spot intensity.
+        self.MIN_INTENSITY_SPOT_WEIGHT = 1.1        # 1.05 lower weight that multiplays the mean intensity value in the image to define the simulated spot intensity.
+        self.MAX_INTENSITY_SPOT_WEIGHT = 1.6          # 1.6 higher weight that multiplays the mean intensity value in the image to define the simulated spot intensity.
         self.MAX_STD_INT_IMAGE = 4 # maximum number of standard deviations above the mean that are allowed to draw an spot.
         # This function is intended to detect the mask and then reduce the mask by a given percentage. This reduction ensures that the simulated spots are inclosed inside the cell.
         def mask_reduction(polygon_array, percentage_reduction:float = 0.2):
@@ -2191,6 +2191,7 @@ class SimulatedCell():
         self.video_removed_mask = MaskingImage(base_video, selected_mask).apply_mask()
 
     def make_simulation (self):
+        print('making simulation')
         '''
         This method generates the simulated cell.
 
