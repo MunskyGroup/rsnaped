@@ -2416,8 +2416,9 @@ class SimulatedCell():
             if frame_selection_empty_video ==  'shuffle':
                 index_frame_selection = np.random.randint(0, high = len_empty_video, size = len(time_vector), dtype = np.int32)
             print('step_7')
+            
             for t_p, _ in enumerate(time_vector):
-                print(t_p)
+                print('tp ',t_p)
                 matrix_background = base_video_selected_channel_copy[index_frame_selection[t_p], :, :]
                 
                 if not ( simulated_trajectories is None):
