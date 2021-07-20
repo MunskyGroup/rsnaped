@@ -2436,7 +2436,7 @@ class SimulatedCell():
         # This section of the code runs the for each channel
         if self.ignore_ch0 == 0:
             tensor_image_ch0 = make_simulation(self.base_video[:, :, :, 0], self.video_removed_mask[:, :, :, 0], spot_positions_movement, self.time_vector, self.polygon_array, self.image_size, self.size_spot_ch0, self.spot_sigma_ch0, self.simulated_trajectories_ch0, self.frame_selection_empty_video,self.ignore_trajectories_ch0)
-            tensor_mean_intensity_in_figure_ch0, tensor_std_intensity_in_figure_ch0 = calculate_intensity_in_figure(tensor_image_ch0, self.time_vector, self.number_spots, spot_positions_movement, self.size_spot_ch0)
+            #tensor_mean_intensity_in_figure_ch0, tensor_std_intensity_in_figure_ch0 = calculate_intensity_in_figure(tensor_image_ch0, self.time_vector, self.number_spots, spot_positions_movement, self.size_spot_ch0)
         else:
             tensor_image_ch0 = np.zeros((self.number_frames, self.image_size[0], self.image_size[1]), dtype = np.uint16)
             tensor_mean_intensity_in_figure_ch0 = np.zeros(( len(self.time_vector), self.number_spots), dtype = np.uint16)
@@ -2444,7 +2444,7 @@ class SimulatedCell():
         # Channel 1
         if self.ignore_ch1 == 0:
             tensor_image_ch1 = make_simulation(self.base_video[:, :, :, 1], self.video_removed_mask[:, :, :, 1], spot_positions_movement, self.time_vector, self.polygon_array, self.image_size, self.size_spot_ch1, self.spot_sigma_ch1, self.simulated_trajectories_ch1, self.frame_selection_empty_video,self.ignore_trajectories_ch1)
-            tensor_mean_intensity_in_figure_ch1, tensor_std_intensity_in_figure_ch1 = calculate_intensity_in_figure(tensor_image_ch1, self.time_vector, self.number_spots, spot_positions_movement, self.size_spot_ch1)
+            #tensor_mean_intensity_in_figure_ch1, tensor_std_intensity_in_figure_ch1 = calculate_intensity_in_figure(tensor_image_ch1, self.time_vector, self.number_spots, spot_positions_movement, self.size_spot_ch1)
         else:
             tensor_image_ch1 = np.zeros((self.number_frames, self.image_size[0], self.image_size[1]), dtype = np.uint16)
             tensor_mean_intensity_in_figure_ch1 = np.zeros((len(self.time_vector), self.number_spots), dtype = np.uint16)
@@ -2455,7 +2455,7 @@ class SimulatedCell():
                 tensor_image_ch2 = make_simulation(self.base_video[:, :, :, 2], self.video_removed_mask[:, :, :, 2], spot_positions_movement, self.time_vector, self.polygon_array, self.image_size, self.size_spot_ch2, self.spot_sigma_ch2, self.simulated_trajectories_ch2, self.frame_selection_empty_video,self.ignore_trajectories_ch2)
             except:
                 tensor_image_ch2 = make_simulation(self.base_video[:, :, :, 1], self.video_removed_mask[:, :, :, 1], spot_positions_movement, self.time_vector, self.polygon_array, self.image_size, self.size_spot_ch2, self.spot_sigma_ch2, self.simulated_trajectories_ch2, self.frame_selection_empty_video,self.ignore_trajectories_ch2)
-            tensor_mean_intensity_in_figure_ch2, tensor_std_intensity_in_figure_ch2 = calculate_intensity_in_figure(tensor_image_ch2, self.time_vector, self.number_spots, spot_positions_movement, self.size_spot_ch2)
+            #tensor_mean_intensity_in_figure_ch2, tensor_std_intensity_in_figure_ch2 = calculate_intensity_in_figure(tensor_image_ch2, self.time_vector, self.number_spots, spot_positions_movement, self.size_spot_ch2)
         else:
             tensor_image_ch2 = np.zeros((self.number_frames, self.image_size[0], self.image_size[1]), dtype = np.uint16)
             tensor_mean_intensity_in_figure_ch2 = np.zeros((len(self.time_vector), self.number_spots), dtype = np.uint16)
@@ -2477,14 +2477,14 @@ class SimulatedCell():
                     tensor_for_image_j [i, 0, 2, :, :] = tensor_image_ch2 [i, :, :]
         # Creating tensors with real intensity values in the order TSC
         tensor_mean_intensity_in_figure = np.zeros((len(self.time_vector), self.number_spots, self.n_channels), dtype = np.uint16)
-        tensor_mean_intensity_in_figure[:, :, 0] = tensor_mean_intensity_in_figure_ch0
-        tensor_mean_intensity_in_figure[:, :, 1] = tensor_mean_intensity_in_figure_ch1
-        tensor_mean_intensity_in_figure[:, :, 2] = tensor_mean_intensity_in_figure_ch2
+        #tensor_mean_intensity_in_figure[:, :, 0] = tensor_mean_intensity_in_figure_ch0
+        #tensor_mean_intensity_in_figure[:, :, 1] = tensor_mean_intensity_in_figure_ch1
+        #tensor_mean_intensity_in_figure[:, :, 2] = tensor_mean_intensity_in_figure_ch2
         # The same for the std
         tensor_std_intensity_in_figure = np.zeros((len(self.time_vector), self.number_spots, self.n_channels), dtype = np.uint16)
-        tensor_std_intensity_in_figure[:, :, 0] = tensor_std_intensity_in_figure_ch0
-        tensor_std_intensity_in_figure[:, :, 1] = tensor_std_intensity_in_figure_ch1
-        tensor_std_intensity_in_figure[:, :, 2] = tensor_std_intensity_in_figure_ch2
+        #tensor_std_intensity_in_figure[:, :, 0] = tensor_std_intensity_in_figure_ch0
+        #tensor_std_intensity_in_figure[:, :, 1] = tensor_std_intensity_in_figure_ch1
+        #tensor_std_intensity_in_figure[:, :, 2] = tensor_std_intensity_in_figure_ch2
         if (self.save_as_tif_uint8 == 1) or (self.save_as_gif == 1):
             if self.create_temp_folder == True:
                 save_to_path = pathlib.Path().absolute().joinpath('temp')
