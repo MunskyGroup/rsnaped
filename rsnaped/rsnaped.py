@@ -2191,7 +2191,7 @@ class SimulatedCell():
         self.video_removed_mask = MaskingImage(base_video, selected_mask).apply_mask()
 
     def make_simulation (self):
-        print('making simulation')
+        print('making simulation fun')
         '''
         This method generates the simulated cell.
 
@@ -2266,7 +2266,7 @@ class SimulatedCell():
             return tensor_mean_intensity_in_figure, tensor_std_intensity_in_figure
 
         def make_replacement_pixelated_spots(matrix_background:np.ndarray, center_positions_vector:np.ndarray, size_spot:int, spot_sigma:int, using_ssa:bool, simulated_trajectories_time_point:np.ndarray, min_SSA_value:float, max_SSA_value:float):
-            print('replacing spots')
+            print('replacing spots fun')
             #This function is intended to replace a kernel gaussian matrix for each spot position. The kernel gaussian matrix is scaled with the values obtained from the SSA o with the values given in a range.
             if size_spot%2 == 0:
                 size_spot = size_spot+1
@@ -2325,7 +2325,7 @@ class SimulatedCell():
             return pixelated_image # final_image
 
         def make_spots_movement(polygon_array, number_spots:int, time_vector:np.ndarray, step_size: float, image_size:np.ndarray, diffusion_coefficient:float, internal_base_video:Union[np.ndarray, None] = None):
-            print('making spot movement')
+            print('making spot movement fun')
             # Function that creates the simulated spots inside a given polygon
             #print('mean int in cell', np.mean(base_video))
             #print('std int in cell', np.std(base_video))
@@ -2395,11 +2395,15 @@ class SimulatedCell():
             # Main function that makes the simulated cell by calling multiple function.
             print('step_1')
             temp_image = masked_video_selected_channel[0, :, :]
-            temp_image_nonzeros = temp_image.copy()
-            temp_image_nonzeros.flatten
-            base_video_selected_channel_copy = base_video_selected_channel.copy()
-            # Calculate initial background intensity for each spot.
             print('step_2')
+            temp_image_nonzeros = temp_image.copy()
+            print('step_3')
+            temp_image_nonzeros.flatten
+            print('step_4')
+            base_video_selected_channel_copy = base_video_selected_channel.copy()
+            print('step_5')
+            # Calculate initial background intensity for each spot.
+            print('step_6')
             tensor_image = np.zeros((len(time_vector), image_size[0], image_size[1]), dtype = np.uint32)
             len_empty_video = base_video_selected_channel.shape[0]
             empty_video_index = np.arange(len_empty_video, dtype = np.int32)
@@ -2410,7 +2414,7 @@ class SimulatedCell():
                 index_frame_selection = np.resize(empty_video_index, len(time_vector))
             if frame_selection_empty_video ==  'shuffle':
                 index_frame_selection = np.random.randint(0, high = len_empty_video, size = len(time_vector), dtype = np.int32)
-            print('step_3')
+            print('step_7')
             for t_p, _ in enumerate(time_vector):
                 print(t_p)
                 matrix_background = base_video_selected_channel_copy[index_frame_selection[t_p], :, :]
@@ -2438,7 +2442,9 @@ class SimulatedCell():
             return tensor_image
 
         # Create the spots for all channels. Return array with 3-dimensions: T, Sop, XY-Coord
+        print('start spt mov')
         spot_positions_movement = make_spots_movement(self.polygon_array, self.number_spots, self.time_vector, self.step_size, self.image_size, self.diffusion_coefficient, self.base_video[0, :, :, 1])
+        print('end spt mov')
         # This section of the code runs the for each channel
         if self.ignore_ch0 == 0:
             tensor_image_ch0 = make_simulation(self.base_video[:, :, :, 0], self.video_removed_mask[:, :, :, 0], spot_positions_movement, self.time_vector, self.polygon_array, self.image_size, self.size_spot_ch0, self.spot_sigma_ch0, self.simulated_trajectories_ch0, self.frame_selection_empty_video,self.ignore_trajectories_ch0)
