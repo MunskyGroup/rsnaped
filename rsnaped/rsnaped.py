@@ -2191,7 +2191,6 @@ class SimulatedCell():
         self.video_removed_mask = MaskingImage(base_video, selected_mask).apply_mask()
 
     def make_simulation (self):
-        print('making simulation fun')
         '''
         This method generates the simulated cell.
 
@@ -2210,63 +2209,8 @@ class SimulatedCell():
         dataframe_particles : pandas dataframe
             Dataframe with fields [cell_number, particle, frame, red_int_mean, green_int_mean, blue_int_mean, red_int_std, green_int_std, blue_int_std, x, y].
         '''
-        def calculate_intensity_in_figure(tensor_image:np.ndarray, time_vector:np.ndarray, number_spots:int, spot_positions_movement:np.ndarray, size_spot:int):
-            # Function that allows the user to
-            if (size_spot % 2) == 0:
-                size_spot = size_spot + 1
-            disk_size =  int(size_spot/2)
-            crop_size = disk_size+4
-            tensor_mean_intensity_in_figure = np.zeros((len(time_vector), number_spots), dtype = 'float')
-            tensor_std_intensity_in_figure = np.zeros((len(time_vector), number_spots), dtype = 'float')
-            def gaussian_fit(test_im:np.ndarray):
-                size_spot = test_im.shape[0]
-                image_flat = test_im.ravel()
-                def gaussian_function(size_spot, offset, sigma):
-                    ax = np.linspace(-(size_spot - 1) / 2., (size_spot - 1) / 2., size_spot)
-                    xx, yy = np.meshgrid(ax, ax)
-                    kernel =  offset *(np.exp(-0.5 * (np.square(xx) + np.square(yy)) / np.square(sigma)))
-                    return kernel.ravel()
-                p0 = (np.mean(image_flat) , int(size_spot/2))
-                optimized_parameters, _ = curve_fit(gaussian_function, size_spot, image_flat, p0 = p0)
-                spot_intensity_gaussian = optimized_parameters[0] # Amplitude
-                std_intensity_gaussian = optimized_parameters[1] # sigma
-                return spot_intensity_gaussian, std_intensity_gaussian
-            def disk_donut(test_im:np.ndarray, disk_size:int):
-                # Function that calculates intensity using the disk and donut method
-                center_coordinates = int(test_im.shape[0]/2)
-                # mean intensity in disk
-                image_in_disk = test_im[center_coordinates-disk_size:center_coordinates+disk_size+1, center_coordinates-disk_size:center_coordinates+disk_size+1]
-                mean_intensity_disk = np.mean(image_in_disk)
-                std_intensity_disk = np.std(image_in_disk)
-                # mean intensity in donut.  The center is set to zeros and then the mean is calculated ignoring the zeros.
-                recentered_image_donut = test_im.copy()
-                recentered_image_donut[center_coordinates-disk_size:center_coordinates+disk_size+1, center_coordinates-disk_size:center_coordinates+disk_size+1] = 0
-                mean_intensity_donut = recentered_image_donut[recentered_image_donut != 0].mean() # mean calculation ignoring zeros
-                # substracting background minus center intensity
-                spot_intensity_disk_donut = np.array( mean_intensity_disk - mean_intensity_donut, dtype = np.float32)
-                spot_intensity_disk_donut[spot_intensity_disk_donut < 0] = 0
-                spot_intensity_disk_donut[np.isnan(spot_intensity_disk_donut)] = 0 # replacing nans with zero
-                return spot_intensity_disk_donut, std_intensity_disk
-            def return_crop(image:np.ndarray, x_pos:int, y_pos:int, crop_size:int):
-                # Function that return the crop from a given image and coordinates
-                crop_image = image[y_pos-(crop_size):y_pos+(crop_size+1), x_pos-(crop_size):x_pos+(crop_size+1)]
-                return crop_image
-            for t_p, _ in enumerate(time_vector):
-                center_positions_vector = spot_positions_movement[t_p, :, :]
-                temp_tensor_image = tensor_image[t_p, :, :]
-                for point_index in range(0, len(center_positions_vector)):
-                    center_position = center_positions_vector[point_index]
-                    crop_with_extra_area = return_crop(temp_tensor_image, center_position[1], center_position[0], crop_size)
-                    #mean_intensity_donut = np.mean(crop_with_extra_area)
-                    #tensor_mean_intensity_in_figure[t_p, point_index], tensor_std_intensity_in_figure[t_p, point_index]  = gaussian_fit(crop_with_extra_area)
-                    #if tensor_mean_intensity_in_figure[t_p, point_index] < 0:
-                    tensor_mean_intensity_in_figure[t_p, point_index], tensor_std_intensity_in_figure[t_p, point_index]  = disk_donut(crop_with_extra_area, disk_size)
-                    if tensor_mean_intensity_in_figure[t_p, point_index] < 0:
-                        tensor_mean_intensity_in_figure[t_p, point_index] = 0
-            return tensor_mean_intensity_in_figure, tensor_std_intensity_in_figure
 
         def make_replacement_pixelated_spots(matrix_background:np.ndarray, center_positions_vector:np.ndarray, size_spot:int, spot_sigma:int, using_ssa:bool, simulated_trajectories_time_point:np.ndarray, min_SSA_value:float, max_SSA_value:float):
-            print('replacing spots fun')
             #This function is intended to replace a kernel gaussian matrix for each spot position. The kernel gaussian matrix is scaled with the values obtained from the SSA o with the values given in a range.
             if size_spot%2 == 0:
                 size_spot = size_spot+1
@@ -2314,8 +2258,10 @@ class SimulatedCell():
                 else:
                     min_int = np.amin((mean_int_around_spot *self.MIN_INTENSITY_SPOT_WEIGHT, MIN_INTENSITY_ALL_SPOTS))
                     max_int = np.amin((mean_int_around_spot *self.MAX_INTENSITY_SPOT_WEIGHT, MAX_INTENSITY_ALL_SPOTS))
+                    mean_int = int(np.mean((min_int, max_int)))
                     # Scaling the spot kernel matrix with a mean value obtained from uniformly random distribution.
-                    spot_intensity = int(random.uniform(min_int, max_int))
+                    #spot_intensity = int(random.uniform(min_int, max_int))
+                    spot_intensity = mean_int
                     kernel_value_intensity = (kernel*spot_intensity)
                 # Setting thresholds
                 kernel_value_intensity[kernel_value_intensity < min_int] = min_int # making spots with less intensity than the background equal to the background.
@@ -2325,7 +2271,6 @@ class SimulatedCell():
             return pixelated_image # final_image
 
         def make_spots_movement(polygon_array, number_spots:int, time_vector:np.ndarray, step_size: float, image_size:np.ndarray, diffusion_coefficient:float, internal_base_video:Union[np.ndarray, None] = None):
-            print('making spot movement fun')
             # Function that creates the simulated spots inside a given polygon
             #print('mean int in cell', np.mean(base_video))
             #print('std int in cell', np.std(base_video))
@@ -2391,20 +2336,12 @@ class SimulatedCell():
             return spot_positions_movement # vector with dimensions (time, spot, y, x )
 
         def make_simulation(base_video_selected_channel:np.ndarray, masked_video_selected_channel:np.ndarray, spot_positions_movement:np.ndarray, time_vector:np.ndarray, polygon_array, image_size:np.ndarray, size_spot:int, spot_sigma:int, simulated_trajectories, frame_selection_empty_video,ignore_trajectories):
-            print('making simulation in')
-            print('next')
             # Main function that makes the simulated cell by calling multiple function.
-            print('step_1')
             temp_image = masked_video_selected_channel[0, :, :]
-            print('step_2')
             temp_image_nonzeros = temp_image.copy()
-            print('step_3')
             temp_image_nonzeros.flatten
-            print('step_4')
             base_video_selected_channel_copy = base_video_selected_channel.copy()
-            print('step_5')
             # Calculate initial background intensity for each spot.
-            print('step_6')
             tensor_image = np.zeros((len(time_vector), image_size[0], image_size[1]), dtype = np.uint32)
             len_empty_video = base_video_selected_channel.shape[0]
             empty_video_index = np.arange(len_empty_video, dtype = np.int32)
@@ -2415,12 +2352,9 @@ class SimulatedCell():
                 index_frame_selection = np.resize(empty_video_index, len(time_vector))
             if frame_selection_empty_video ==  'shuffle':
                 index_frame_selection = np.random.randint(0, high = len_empty_video, size = len(time_vector), dtype = np.int32)
-            print('step_7')
             
             for t_p, _ in enumerate(time_vector):
-                print('tp ',t_p)
                 matrix_background = base_video_selected_channel_copy[index_frame_selection[t_p], :, :]
-                
                 if not ( simulated_trajectories is None):
                     using_ssa = 1
                     simulated_trajectories_tp = simulated_trajectories[:, t_p]
@@ -2440,48 +2374,32 @@ class SimulatedCell():
                     tensor_image[t_p, :, :] = matrix_background
                 else:
                     tensor_image[t_p, :, :] = make_replacement_pixelated_spots(matrix_background, spot_positions_movement[t_p, :, :], size_spot, spot_sigma, using_ssa, simulated_trajectories_tp, min_SSA_value, max_SSA_value)
-                #counter += 1
             return tensor_image
 
         # Create the spots for all channels. Return array with 3-dimensions: T, Sop, XY-Coord
-        print('start spt mov')
         spot_positions_movement = make_spots_movement(self.polygon_array, self.number_spots, self.time_vector, self.step_size, self.image_size, self.diffusion_coefficient, self.base_video[0, :, :, 1])
-        print('end spt mov')
         # This section of the code runs the for each channel
         if self.ignore_ch0 == 0:
-            print('ch0')
             tensor_image_ch0 = make_simulation(self.base_video[:, :, :, 0], self.video_removed_mask[:, :, :, 0], spot_positions_movement, self.time_vector, self.polygon_array, self.image_size, self.size_spot_ch0, self.spot_sigma_ch0, self.simulated_trajectories_ch0, self.frame_selection_empty_video,self.ignore_trajectories_ch0)
-            #tensor_mean_intensity_in_figure_ch0, tensor_std_intensity_in_figure_ch0 = calculate_intensity_in_figure(tensor_image_ch0, self.time_vector, self.number_spots, spot_positions_movement, self.size_spot_ch0)
         else:
             tensor_image_ch0 = np.zeros((self.number_frames, self.image_size[0], self.image_size[1]), dtype = np.uint16)
-            tensor_mean_intensity_in_figure_ch0 = np.zeros(( len(self.time_vector), self.number_spots), dtype = np.uint16)
-            tensor_std_intensity_in_figure_ch0 = np.zeros((len(self.time_vector), self.number_spots), dtype = np.uint16)
+
         # Channel 1
         if self.ignore_ch1 == 0:
-            print('ch1')
             tensor_image_ch1 = make_simulation(self.base_video[:, :, :, 1], self.video_removed_mask[:, :, :, 1], spot_positions_movement, self.time_vector, self.polygon_array, self.image_size, self.size_spot_ch1, self.spot_sigma_ch1, self.simulated_trajectories_ch1, self.frame_selection_empty_video,self.ignore_trajectories_ch1)
-            #tensor_mean_intensity_in_figure_ch1, tensor_std_intensity_in_figure_ch1 = calculate_intensity_in_figure(tensor_image_ch1, self.time_vector, self.number_spots, spot_positions_movement, self.size_spot_ch1)
         else:
             tensor_image_ch1 = np.zeros((self.number_frames, self.image_size[0], self.image_size[1]), dtype = np.uint16)
-            tensor_mean_intensity_in_figure_ch1 = np.zeros((len(self.time_vector), self.number_spots), dtype = np.uint16)
-            tensor_std_intensity_in_figure_ch1 = np.zeros((len(self.time_vector), self.number_spots), dtype = np.uint16)
+
         # Channel 2
         if self.ignore_ch2 == 0:
-            print('ch2')
             #try:
-            #print('shape new', self.base_video.shape[3])
-
-
             if self.base_video.shape[3] <3 :   
                 tensor_image_ch2 = make_simulation(self.base_video[:, :, :, 1], self.video_removed_mask[:, :, :, 1], spot_positions_movement, self.time_vector, self.polygon_array, self.image_size, self.size_spot_ch2, self.spot_sigma_ch2, self.simulated_trajectories_ch2, self.frame_selection_empty_video,self.ignore_trajectories_ch2)
             else:
             #except:
                 tensor_image_ch2 = make_simulation(self.base_video[:, :, :, 2], self.video_removed_mask[:, :, :, 2], spot_positions_movement, self.time_vector, self.polygon_array, self.image_size, self.size_spot_ch2, self.spot_sigma_ch2, self.simulated_trajectories_ch2, self.frame_selection_empty_video,self.ignore_trajectories_ch2)
-            #tensor_mean_intensity_in_figure_ch2, tensor_std_intensity_in_figure_ch2 = calculate_intensity_in_figure(tensor_image_ch2, self.time_vector, self.number_spots, spot_positions_movement, self.size_spot_ch2)
         else:
             tensor_image_ch2 = np.zeros((self.number_frames, self.image_size[0], self.image_size[1]), dtype = np.uint16)
-            tensor_mean_intensity_in_figure_ch2 = np.zeros((len(self.time_vector), self.number_spots), dtype = np.uint16)
-            tensor_std_intensity_in_figure_ch2 = np.zeros((len(self.time_vector), self.number_spots), dtype = np.uint16)
         # Creating a tensor with the final video as a tensor with 4D the order TXYC
         tensor_video =  np.zeros((len(self.time_vector), self.image_size[0], self.image_size[1], self.n_channels), dtype = np.uint16)
         tensor_video [:, :, :, 0] =  tensor_image_ch0
@@ -2497,16 +2415,7 @@ class SimulatedCell():
                     tensor_for_image_j [i, 0, 1, :, :] = tensor_image_ch1 [i, :, :]
                 if ch == 2:
                     tensor_for_image_j [i, 0, 2, :, :] = tensor_image_ch2 [i, :, :]
-        # Creating tensors with real intensity values in the order TSC
-        tensor_mean_intensity_in_figure = np.zeros((len(self.time_vector), self.number_spots, self.n_channels), dtype = np.uint16)
-        #tensor_mean_intensity_in_figure[:, :, 0] = tensor_mean_intensity_in_figure_ch0
-        #tensor_mean_intensity_in_figure[:, :, 1] = tensor_mean_intensity_in_figure_ch1
-        #tensor_mean_intensity_in_figure[:, :, 2] = tensor_mean_intensity_in_figure_ch2
-        # The same for the std
-        tensor_std_intensity_in_figure = np.zeros((len(self.time_vector), self.number_spots, self.n_channels), dtype = np.uint16)
-        #tensor_std_intensity_in_figure[:, :, 0] = tensor_std_intensity_in_figure_ch0
-        #tensor_std_intensity_in_figure[:, :, 1] = tensor_std_intensity_in_figure_ch1
-        #tensor_std_intensity_in_figure[:, :, 2] = tensor_std_intensity_in_figure_ch2
+        # This section saves dataframes and simulated images
         if (self.save_as_tif_uint8 == 1) or (self.save_as_gif == 1):
             if self.create_temp_folder == True:
                 save_to_path = pathlib.Path().absolute().joinpath('temp')
@@ -2555,7 +2464,7 @@ class SimulatedCell():
             else:
                 save_to_path = pathlib.Path().absolute()
             dataframe_particles.to_csv(str(save_to_path.joinpath(self.saved_file_name +'_df'+ '.csv')), index = True)
-        return tensor_video , tensor_for_image_j , spot_positions_movement, tensor_mean_intensity_in_figure, tensor_std_intensity_in_figure, dataframe_particles
+        return tensor_video , tensor_for_image_j , spot_positions_movement, dataframe_particles
 
 
 class SimulatedCellMultiplexing ():
@@ -2646,7 +2555,6 @@ class SimulatedCellMultiplexing ():
             Dataframe with fields [cell_number, particle, frame, red_int_mean, green_int_mean, blue_int_mean, red_int_std, green_int_std, blue_int_std, x, y].
         list_ssa : List of NumPy arrays
             List of numpy arrays with the stochastic simulations for each gene. The format is [S, T], where the dimensions are S = spots and T = time.
-
         '''
         # FUNCTION THAT RUNS THE SSA IN rSNAPsim
         def rsnapsim_ssa(gene_file, ke , ki, simulation_time_in_sec = 100, n_traj = 20, frame_rate = self.step_size_in_sec):
@@ -2695,7 +2603,7 @@ class SimulatedCellMultiplexing ():
                 simulated_trajectories_ch1 = None
                 simulated_trajectories_ch2 = ssa
             number_spots_per_cell = ssa.shape[0]
-            tensor_video , _ , _, _, _, DataFrame_particles_intensities = SimulatedCell( base_video = base_video, video_for_mask = video_for_mask, number_spots = number_spots_per_cell, number_frames = ssa.shape[1], step_size = step_size, diffusion_coefficient = diffusion_coefficient, simulated_trajectories_ch0 = simulated_trajectories_ch0, size_spot_ch0 = spot_size, spot_sigma_ch0 = spot_sigma, simulated_trajectories_ch1 = simulated_trajectories_ch1, size_spot_ch1 = spot_size, spot_sigma_ch1 = spot_sigma, simulated_trajectories_ch2 = simulated_trajectories_ch2, size_spot_ch2 = spot_size, spot_sigma_ch2 = spot_sigma, save_as_tif_uint8 = 0, save_as_tif = 0, save_as_gif = save_as_gif, save_dataframe = 0, create_temp_folder = 1, intensity_calculation_method = intensity_calculation_method, using_for_multiplexing = using_for_multiplexing, min_int_multiplexing = min_int_multiplexing, max_int_multiplexing = max_int_multiplexing, frame_selection_empty_video = frame_selection_empty_video, ignore_trajectories_ch0 = ignore_trajectories_ch0, ignore_trajectories_ch1 = ignore_trajectories_ch1,ignore_trajectories_ch2 = ignore_trajectories_ch2).make_simulation()
+            tensor_video , _ , _,DataFrame_particles_intensities = SimulatedCell( base_video = base_video, video_for_mask = video_for_mask, number_spots = number_spots_per_cell, number_frames = ssa.shape[1], step_size = step_size, diffusion_coefficient = diffusion_coefficient, simulated_trajectories_ch0 = simulated_trajectories_ch0, size_spot_ch0 = spot_size, spot_sigma_ch0 = spot_sigma, simulated_trajectories_ch1 = simulated_trajectories_ch1, size_spot_ch1 = spot_size, spot_sigma_ch1 = spot_sigma, simulated_trajectories_ch2 = simulated_trajectories_ch2, size_spot_ch2 = spot_size, spot_sigma_ch2 = spot_sigma, save_as_tif_uint8 = 0, save_as_tif = 0, save_as_gif = save_as_gif, save_dataframe = 0, create_temp_folder = 1, intensity_calculation_method = intensity_calculation_method, using_for_multiplexing = using_for_multiplexing, min_int_multiplexing = min_int_multiplexing, max_int_multiplexing = max_int_multiplexing, frame_selection_empty_video = frame_selection_empty_video, ignore_trajectories_ch0 = ignore_trajectories_ch0, ignore_trajectories_ch1 = ignore_trajectories_ch1,ignore_trajectories_ch2 = ignore_trajectories_ch2).make_simulation()
             DataFrame_particles_intensities['cell_number'] = DataFrame_particles_intensities['cell_number'].replace([0], self.cell_number)
             return tensor_video, DataFrame_particles_intensities  # [cell_number, particle, frame, red_int_mean, green_int_mean, blue_int_mean, red_int_std, green_int_std, blue_int_std, x, y].
         # Runs the SSA and the simulated cell functions
@@ -2775,7 +2683,6 @@ class PipelineTracking():
         Average cell size. The default is 120.
     print_process_times : bool, optional
         Allows the user the times taken during each process. The default is 0.
-
     '''
     def __init__(self, video:np.ndarray, particle_size:int = 5, file_name:str = 'Cell.tif', selected_channel:int = 0, intensity_calculation_method:str = 'disk_donut', mask_selection_method:str = 'max_spots', show_plot:bool = 1, use_optimization_for_tracking: bool = 1, real_positions_dataframe = None, average_cell_diameter: float = 120, print_process_times:bool = 0):
         self.video = video
@@ -2816,7 +2723,6 @@ class PipelineTracking():
             Array with dimensions [S, T, C].
         std_intensities_normalized : Numpy array
             Array with dimensions [S, T, C].
-
         '''
         start = timer()
         selected_masks = Cellpose(self.image, num_iterations = self.NUM_ITERATIONS_CELLPOSE, selection_method = 'max_area', diameter = self.average_cell_diameter ).calculate_masks() # options are 'max_area' or 'max_cells'
@@ -2874,14 +2780,8 @@ class PipelineTracking():
         return dataframe_particles, array_intensities, time_vector, mean_intensities, std_intensities, mean_intensities_normalized, std_intensities_normalized
 
 
-
-
-
-
 #def __init__(self, video:np.ndarray, particle_size:int = 5, trackpy_dataframe: Union[object , None ] = None, spot_positions_movement: Union[np.ndarray, None] = None, method:str = 'disk_donut', step_size:float = 1, show_plot:bool = 1):
    
-
-
 class PhotobleachingCalculation():
     '''
     This class is intended to calculate the intensity in the detected spots.

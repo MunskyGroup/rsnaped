@@ -3,7 +3,7 @@ DEFINITION  .
 KEYWORDS    "creator:Stasevich" "marker:3' LTR, AmpR"                          
 FEATURES             Location/Qualifiers
      LTR             1..634
-                     /label="3LTR"
+                     /label="3' LTR"
                      /ApEinfo_revcolor=#f8d3a9
                      /ApEinfo_fwdcolor=#f8d3a9
      misc_feature    681..806
@@ -22,8 +22,52 @@ FEATURES             Location/Qualifiers
                      /label="UBC"
                      /ApEinfo_revcolor=#ffef86
                      /ApEinfo_fwdcolor=#ffef86
-     FLAG             2628..3602
-                     /label="10x-FLAG"
+     CDS             2628..3602
+                     /label="FLAG"
+                     /ApEinfo_revcolor=#ff9ccd
+                     /ApEinfo_fwdcolor=#ff9ccd
+     CDS             2628..3637
+                     /label="SM_actb"
+                     /ApEinfo_revcolor=#c6c9d1
+                     /ApEinfo_fwdcolor=#c6c9d1
+     CDS             2631..2654
+                     /label="FLAG"
+                     /ApEinfo_revcolor=#ff9ccd
+                     /ApEinfo_fwdcolor=#ff9ccd
+     CDS             2658..2681
+                     /label="FLAG"
+                     /ApEinfo_revcolor=#ff9ccd
+                     /ApEinfo_fwdcolor=#ff9ccd
+     CDS             2685..2708
+                     /label="FLAG"
+                     /ApEinfo_revcolor=#ff9ccd
+                     /ApEinfo_fwdcolor=#ff9ccd
+     CDS             3213..3236
+                     /label="FLAG"
+                     /ApEinfo_revcolor=#ff9ccd
+                     /ApEinfo_fwdcolor=#ff9ccd
+     CDS             3243..3266
+                     /label="FLAG"
+                     /ApEinfo_revcolor=#ff9ccd
+                     /ApEinfo_fwdcolor=#ff9ccd
+     CDS             3279..3302
+                     /label="FLAG"
+                     /ApEinfo_revcolor=#ff9ccd
+                     /ApEinfo_fwdcolor=#ff9ccd
+     CDS             3309..3332
+                     /label="FLAG"
+                     /ApEinfo_revcolor=#ff9ccd
+                     /ApEinfo_fwdcolor=#ff9ccd
+     CDS             3525..3548
+                     /label="FLAG"
+                     /ApEinfo_revcolor=#ff9ccd
+                     /ApEinfo_fwdcolor=#ff9ccd
+     CDS             3552..3575
+                     /label="FLAG"
+                     /ApEinfo_revcolor=#ff9ccd
+                     /ApEinfo_fwdcolor=#ff9ccd
+     CDS             3579..3602
+                     /label="FLAG"
                      /ApEinfo_revcolor=#ff9ccd
                      /ApEinfo_fwdcolor=#ff9ccd
      CDS             3648..8279
@@ -34,36 +78,148 @@ FEATURES             Location/Qualifiers
                      /label="Zipcode"
                      /ApEinfo_revcolor=#85dae9
                      /ApEinfo_fwdcolor=#85dae9
-     PP7             8776..10176
-                     /label="24-PP7"
+     stem_loop       8776..8800
+                     /label="PP7"
+                     /ApEinfo_revcolor=#b4abac
+                     /ApEinfo_fwdcolor=#b4abac
+     stem_loop       8821..8845
+                     /label="PP7"
+                     /ApEinfo_revcolor=#b4abac
+                     /ApEinfo_fwdcolor=#b4abac
+     stem_loop       8897..8921
+                     /label="PP7"
+                     /ApEinfo_revcolor=#b4abac
+                     /ApEinfo_fwdcolor=#b4abac
+     stem_loop       8942..8966
+                     /label="PP7"
+                     /ApEinfo_revcolor=#b4abac
+                     /ApEinfo_fwdcolor=#b4abac
+     stem_loop       9018..9042
+                     /label="PP7"
+                     /ApEinfo_revcolor=#b4abac
+                     /ApEinfo_fwdcolor=#b4abac
+     stem_loop       9063..9087
+                     /label="PP7"
+                     /ApEinfo_revcolor=#b4abac
+                     /ApEinfo_fwdcolor=#b4abac
+     stem_loop       9139..9163
+                     /label="PP7"
+                     /ApEinfo_revcolor=#b4abac
+                     /ApEinfo_fwdcolor=#b4abac
+     stem_loop       9184..9208
+                     /label="PP7"
+                     /ApEinfo_revcolor=#b4abac
+                     /ApEinfo_fwdcolor=#b4abac
+     stem_loop       9260..9284
+                     /label="PP7"
+                     /ApEinfo_revcolor=#b4abac
+                     /ApEinfo_fwdcolor=#b4abac
+     stem_loop       9305..9329
+                     /label="PP7"
+                     /ApEinfo_revcolor=#b4abac
+                     /ApEinfo_fwdcolor=#b4abac
+     stem_loop       9381..9405
+                     /label="PP7"
+                     /ApEinfo_revcolor=#b4abac
+                     /ApEinfo_fwdcolor=#b4abac
+     stem_loop       9426..9450
+                     /label="PP7"
+                     /ApEinfo_revcolor=#b4abac
+                     /ApEinfo_fwdcolor=#b4abac
+     stem_loop       9502..9526
+                     /label="PP7"
+                     /ApEinfo_revcolor=#b4abac
+                     /ApEinfo_fwdcolor=#b4abac
+     stem_loop       9547..9571
+                     /label="PP7"
+                     /ApEinfo_revcolor=#b4abac
+                     /ApEinfo_fwdcolor=#b4abac
+     stem_loop       9623..9647
+                     /label="PP7"
+                     /ApEinfo_revcolor=#b4abac
+                     /ApEinfo_fwdcolor=#b4abac
+     stem_loop       9668..9692
+                     /label="PP7"
+                     /ApEinfo_revcolor=#b4abac
+                     /ApEinfo_fwdcolor=#b4abac
+     stem_loop       9744..9768
+                     /label="PP7"
+                     /ApEinfo_revcolor=#b4abac
+                     /ApEinfo_fwdcolor=#b4abac
+     stem_loop       9789..9813
+                     /label="PP7"
+                     /ApEinfo_revcolor=#b4abac
+                     /ApEinfo_fwdcolor=#b4abac
+     stem_loop       9865..9889
+                     /label="PP7"
+                     /ApEinfo_revcolor=#b4abac
+                     /ApEinfo_fwdcolor=#b4abac
+     stem_loop       9910..9934
+                     /label="PP7"
+                     /ApEinfo_revcolor=#b4abac
+                     /ApEinfo_fwdcolor=#b4abac
+     stem_loop       9986..10010
+                     /label="PP7"
+                     /ApEinfo_revcolor=#b4abac
+                     /ApEinfo_fwdcolor=#b4abac
+     stem_loop       10031..10055
+                     /label="PP7"
+                     /ApEinfo_revcolor=#b4abac
+                     /ApEinfo_fwdcolor=#b4abac
+     stem_loop       10107..10131
+                     /label="PP7"
+                     /ApEinfo_revcolor=#b4abac
+                     /ApEinfo_fwdcolor=#b4abac
+     stem_loop       10152..10176
+                     /label="PP7"
                      /ApEinfo_revcolor=#b4abac
                      /ApEinfo_fwdcolor=#b4abac
      misc_feature    10249..10837
                      /label="WPRE"
                      /ApEinfo_revcolor=#c6c9d1
                      /ApEinfo_fwdcolor=#c6c9d1
+     CDS             complement(10720..10731)
+                     /label="Factor Xa site"
+                     /ApEinfo_revcolor=#ff9ccd
+                     /ApEinfo_fwdcolor=#ff9ccd
      LTR             10912..11145
-                     /label="3LTR"
+                     /label="3' LTR (ΔU3)"
                      /ApEinfo_revcolor=#f8d3a9
                      /ApEinfo_fwdcolor=#f8d3a9
-     promoter        11350..12315
-                     /label="AmpR"
+     promoter        11350..11454
+                     /label="AmpR promoter"
                      /ApEinfo_revcolor=#c6c9d1
                      /ApEinfo_fwdcolor=#c6c9d1
+     CDS             11455..12315
+                     /label="AmpR"
+                     /ApEinfo_revcolor=#f58a5e
+                     /ApEinfo_fwdcolor=#f58a5e
      rep_origin      12486..13074
                      /label="ori"
                      /ApEinfo_revcolor=#ffef86
                      /ApEinfo_fwdcolor=#ffef86
      protein_bind    13485..13506
-                     /label="CAPbs"
+                     /label="CAP bs"
                      /ApEinfo_revcolor=#31849b
                      /ApEinfo_fwdcolor=#31849b
-     promoter        13521..13575
-                     /label="lac"
+     promoter        13521..13526
+                     /label="lac pr"
                      /ApEinfo_revcolor=#c6c9d1
                      /ApEinfo_fwdcolor=#c6c9d1
+     promoter        13527..13544
+                     /label="lac pr"
+                     /ApEinfo_revcolor=#c6c9d1
+                     /ApEinfo_fwdcolor=#c6c9d1
+     promoter        13545..13551
+                     /label="lac pro"
+                     /ApEinfo_revcolor=#c6c9d1
+                     /ApEinfo_fwdcolor=#c6c9d1
+     protein_bind    13559..13575
+                     /label="lac op"
+                     /ApEinfo_revcolor=#31849b
+                     /ApEinfo_fwdcolor=#31849b
      primer_bind     13583..13599
-                     /label="M13r"
+                     /label="M13 rev"
                      /ApEinfo_revcolor=#a020f0
                      /ApEinfo_fwdcolor=#a020f0
 ORIGIN

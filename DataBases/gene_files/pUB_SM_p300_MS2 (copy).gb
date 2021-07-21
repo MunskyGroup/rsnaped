@@ -19,11 +19,55 @@ FEATURES             Location/Qualifiers
                      /ApEinfo_revcolor=#f8d3a9
                      /ApEinfo_fwdcolor=#f8d3a9
      promoter        2218..2616
-                     /label="UBC"
+                     /label="UBC_human promoter"
                      /ApEinfo_revcolor=#ffef86
                      /ApEinfo_fwdcolor=#ffef86
-     FLAG             2628..3602
-                     /label="10x-FLAG"
+     CDS             2628..3602
+                     /label="FLAG"
+                     /ApEinfo_revcolor=#ff9ccd
+                     /ApEinfo_fwdcolor=#ff9ccd
+     CDS             2628..3637
+                     /label="SM"
+                     /ApEinfo_revcolor=#c6c9d1
+                     /ApEinfo_fwdcolor=#c6c9d1
+     CDS             2631..2654
+                     /label="FLAG"
+                     /ApEinfo_revcolor=#ff9ccd
+                     /ApEinfo_fwdcolor=#ff9ccd
+     CDS             2658..2681
+                     /label="FLAG"
+                     /ApEinfo_revcolor=#ff9ccd
+                     /ApEinfo_fwdcolor=#ff9ccd
+     CDS             2685..2708
+                     /label="FLAG"
+                     /ApEinfo_revcolor=#ff9ccd
+                     /ApEinfo_fwdcolor=#ff9ccd
+     CDS             3213..3236
+                     /label="FLAG"
+                     /ApEinfo_revcolor=#ff9ccd
+                     /ApEinfo_fwdcolor=#ff9ccd
+     CDS             3243..3266
+                     /label="FLAG"
+                     /ApEinfo_revcolor=#ff9ccd
+                     /ApEinfo_fwdcolor=#ff9ccd
+     CDS             3279..3302
+                     /label="FLAG"
+                     /ApEinfo_revcolor=#ff9ccd
+                     /ApEinfo_fwdcolor=#ff9ccd
+     CDS             3309..3332
+                     /label="FLAG"
+                     /ApEinfo_revcolor=#ff9ccd
+                     /ApEinfo_fwdcolor=#ff9ccd
+     CDS             3525..3548
+                     /label="FLAG"
+                     /ApEinfo_revcolor=#ff9ccd
+                     /ApEinfo_fwdcolor=#ff9ccd
+     CDS             3552..3575
+                     /label="FLAG"
+                     /ApEinfo_revcolor=#ff9ccd
+                     /ApEinfo_fwdcolor=#ff9ccd
+     CDS             3579..3602
+                     /label="FLAG"
                      /ApEinfo_revcolor=#ff9ccd
                      /ApEinfo_fwdcolor=#ff9ccd
      CDS             3648..10889
@@ -34,41 +78,148 @@ FEATURES             Location/Qualifiers
                      /label="Zipcode"
                      /ApEinfo_revcolor=#85dae9
                      /ApEinfo_fwdcolor=#85dae9
-     
-     MS2             11364..12605
-                     /label="24x-MS2"
+     protein_bind    11364..11386
+                     /label="MS2"
                      /ApEinfo_revcolor=#008000
                      /ApEinfo_fwdcolor=#008000
-
+     protein_bind    11417..11439
+                     /label="MS2"
+                     /ApEinfo_revcolor=#008000
+                     /ApEinfo_fwdcolor=#008000
+     protein_bind    11470..11492
+                     /label="MS2"
+                     /ApEinfo_revcolor=#008000
+                     /ApEinfo_fwdcolor=#008000
+     protein_bind    11524..11544
+                     /label="MS2"
+                     /ApEinfo_revcolor=#008000
+                     /ApEinfo_fwdcolor=#008000
+     protein_bind    11576..11598
+                     /label="MS2"
+                     /ApEinfo_revcolor=#008000
+                     /ApEinfo_fwdcolor=#008000
+     protein_bind    11629..11651
+                     /label="MS2"
+                     /ApEinfo_revcolor=#008000
+                     /ApEinfo_fwdcolor=#008000
+     protein_bind    11682..11704
+                     /label="MS2"
+                     /ApEinfo_revcolor=#008000
+                     /ApEinfo_fwdcolor=#008000
+     protein_bind    11735..11757
+                     /label="MS2"
+                     /ApEinfo_revcolor=#008000
+                     /ApEinfo_fwdcolor=#008000
+     protein_bind    11788..11810
+                     /label="MS2"
+                     /ApEinfo_revcolor=#008000
+                     /ApEinfo_fwdcolor=#008000
+     protein_bind    11841..11863
+                     /label="MS2"
+                     /ApEinfo_revcolor=#008000
+                     /ApEinfo_fwdcolor=#008000
+     protein_bind    11894..11916
+                     /label="MS2"
+                     /ApEinfo_revcolor=#008000
+                     /ApEinfo_fwdcolor=#008000
+     protein_bind    11947..11969
+                     /label="MS2"
+                     /ApEinfo_revcolor=#008000
+                     /ApEinfo_fwdcolor=#008000
+     protein_bind    12000..12022
+                     /label="MS2"
+                     /ApEinfo_revcolor=#008000
+                     /ApEinfo_fwdcolor=#008000
+     protein_bind    12053..12075
+                     /label="MS2"
+                     /ApEinfo_revcolor=#008000
+                     /ApEinfo_fwdcolor=#008000
+     protein_bind    12106..12128
+                     /label="MS2"
+                     /ApEinfo_revcolor=#008000
+                     /ApEinfo_fwdcolor=#008000
+     protein_bind    12159..12181
+                     /label="MS2"
+                     /ApEinfo_revcolor=#008000
+                     /ApEinfo_fwdcolor=#008000
+     protein_bind    12212..12234
+                     /label="MS2"
+                     /ApEinfo_revcolor=#008000
+                     /ApEinfo_fwdcolor=#008000
+     protein_bind    12265..12287
+                     /label="MS2"
+                     /ApEinfo_revcolor=#008000
+                     /ApEinfo_fwdcolor=#008000
+     protein_bind    12318..12340
+                     /label="MS2"
+                     /ApEinfo_revcolor=#008000
+                     /ApEinfo_fwdcolor=#008000
+     protein_bind    12371..12393
+                     /label="MS2"
+                     /ApEinfo_revcolor=#008000
+                     /ApEinfo_fwdcolor=#008000
+     protein_bind    12424..12446
+                     /label="MS2"
+                     /ApEinfo_revcolor=#008000
+                     /ApEinfo_fwdcolor=#008000
+     protein_bind    12477..12499
+                     /label="MS2"
+                     /ApEinfo_revcolor=#008000
+                     /ApEinfo_fwdcolor=#008000
+     protein_bind    12530..12552
+                     /label="MS2"
+                     /ApEinfo_revcolor=#008000
+                     /ApEinfo_fwdcolor=#008000
+     protein_bind    12583..12605
+                     /label="MS2_24"
+                     /ApEinfo_revcolor=#008000
+                     /ApEinfo_fwdcolor=#008000
      misc_feature    12642..13230
                      /label="WPRE"
                      /ApEinfo_revcolor=#c6c9d1
                      /ApEinfo_fwdcolor=#c6c9d1
-     
+     CDS             complement(13113..13124)
+                     /label="Xa"
+                     /ApEinfo_revcolor=#ff9ccd
+                     /ApEinfo_fwdcolor=#ff9ccd
      LTR             13305..13538
                      /label="3' LTR (ΔU3)"
                      /ApEinfo_revcolor=#f8d3a9
                      /ApEinfo_fwdcolor=#f8d3a9
      promoter        13743..13847
-                     /label="AmpR"
+                     /label="AmpR promoter"
                      /ApEinfo_revcolor=#c6c9d1
                      /ApEinfo_fwdcolor=#c6c9d1
-   
+     CDS             13848..14708
+                     /label="AmpR"
+                     /ApEinfo_revcolor=#f58a5e
+                     /ApEinfo_fwdcolor=#f58a5e
      rep_origin      14879..15467
                      /label="ori"
                      /ApEinfo_revcolor=#ffef86
                      /ApEinfo_fwdcolor=#ffef86
      protein_bind    15878..15899
-                     /label="CAPbs"
+                     /label="CAP binding site"
                      /ApEinfo_revcolor=#31849b
                      /ApEinfo_fwdcolor=#31849b
-     promoter        15914..15968
-                     /label="lac"
+     promoter        15914..15919
+                     /label="lac pro"
                      /ApEinfo_revcolor=#c6c9d1
                      /ApEinfo_fwdcolor=#c6c9d1
-
+     promoter        15920..15937
+                     /label="lac pro"
+                     /ApEinfo_revcolor=#c6c9d1
+                     /ApEinfo_fwdcolor=#c6c9d1
+     promoter        15938..15944
+                     /label="lac pro"
+                     /ApEinfo_revcolor=#c6c9d1
+                     /ApEinfo_fwdcolor=#c6c9d1
+     protein_bind    15952..15968
+                     /label="lac op"
+                     /ApEinfo_revcolor=#31849b
+                     /ApEinfo_fwdcolor=#31849b
      primer_bind     15976..15992
-                     /label="M13r"
+                     /label="M13 rev"
                      /ApEinfo_revcolor=#a020f0
                      /ApEinfo_fwdcolor=#a020f0
 ORIGIN
