@@ -1118,7 +1118,7 @@ class Cellpose():
         self.diameter = diameter
         self.model_type = model_type # options are 'cyto' or 'nuclei'
         self.selection_method = selection_method # options are 'max_area' or 'max_cells'
-        self.NUMBER_OF_CORES = 1 # multiprocessing.cpu_count()
+        self.NUMBER_OF_CORES = multiprocessing.cpu_count()
     def calculate_masks(self):
         '''
         This method performs the process of image masking using **Cellpose**.
@@ -1500,7 +1500,7 @@ class Trackpy():
         This parameter allows the user to use FISH images and connect spots detected along multiple z-slices. The default is 0.
     '''
     def __init__(self, video:np.ndarray, mask:np.ndarray, particle_size:int = 5, selected_channel:int = 0, minimal_frames:int = 5, optimization_iterations:int = 40, use_default_filter:int = 1, FISH_image: bool = 0, show_plot:bool = 1):
-        self.num_cores = 1# multiprocessing.cpu_count()
+        self.num_cores = multiprocessing.cpu_count()
         self.time_points = video.shape[0]
         self.selected_channel = selected_channel
         # function that remove outliers from the video
@@ -1739,7 +1739,7 @@ class Intensity():
             print ('Error a trackpy_dataframe or spot_positions_movement should be given')
             raise
         self.step_size = step_size
-        self.NUMBER_OF_CORES = 1#multiprocessing.cpu_count()
+        self.NUMBER_OF_CORES = multiprocessing.cpu_count()
     def calculate_intensity(self):
         '''
         This method calculates the spot intensity.
