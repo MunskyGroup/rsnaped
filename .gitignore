@@ -3,7 +3,7 @@
 # Ignore folders
 Output/
 .ipynb_checkpoints
-__pycache__
+__pycache__/
 rsnaped.egg-info
 DataSets/
 .vscode
