@@ -3,11 +3,11 @@
 # Ignore folders
 Output/
 .ipynb_checkpoints
-
+__pycache__
+rsnaped.egg-info
 DataSets/
-
+.vscode
 
 # rSNAPsim_IP/temp
-
 temp/
 FISH_ONeil/
