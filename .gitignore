@@ -6,7 +6,7 @@ Output/
 __pycache__
 rsnaped.egg-info
 DataSets/
-
+.vscode
 
 # rSNAPsim_IP/temp
 temp/
