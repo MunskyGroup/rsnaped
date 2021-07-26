@@ -1118,7 +1118,7 @@ class Cellpose():
         self.diameter = diameter
         self.model_type = model_type # options are 'cyto' or 'nuclei'
         self.selection_method = selection_method # options are 'max_area' or 'max_cells'
-        self.NUMBER_OF_CORES = multiprocessing.cpu_count()
+        self.NUMBER_OF_CORES = 1
     def calculate_masks(self):
         '''
         This method performs the process of image masking using **Cellpose**.
