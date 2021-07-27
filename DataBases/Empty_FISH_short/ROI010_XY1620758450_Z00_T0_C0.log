@@ -1,0 +1,12 @@
+Export Date-Time: 05/11/2021 12:41:51
+Capture Date-Time: 5/11/2021 12:41:30
+Z Planes: 23
+Time Points: 1
+Channels: 4
+Microns Per Pixel: 0.0962963
+Z Step Size Microns: 0.5
+IFD	X Position (um)	Y Position (um)	Z Position (um)	Elapsed Time (ms)	Channel Name	TIFF File Name
+0	-3833.6	3782.4	5476.55	0	405	ROI010_XY1620758450_Z00_T0_C0.tif
+0	-3833.6	3782.4	5476.55	0	488	ROI010_XY1620758450_Z00_T0_C1.tif
+0	-3833.6	3782.4	5476.55	0	561	ROI010_XY1620758450_Z00_T0_C2.tif
+0	-3833.6	3782.4	5476.55	0	640	ROI010_XY1620758450_Z00_T0_C3.tif
