@@ -97,6 +97,7 @@ if import_libraries == 1:
 class MergeChannels():
     '''
     This class takes images as arrays with format [Z,Y,X] and merge then in a numpy array with format [Z, Y, X, C].
+    It recursively merges the channels in a new dimenssion in the array. Minimal number of Channels 2 maximum is 4
     
 
     '''
