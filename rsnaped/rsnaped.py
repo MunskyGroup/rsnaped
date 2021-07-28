@@ -94,6 +94,20 @@ if import_libraries == 1:
     plt.style.use("dark_background")
 
 
+class MergeChannels():
+    '''
+    This class takes images as arrays with format [Z,Y,X] and merge then in a numpy array with format [Z, Y, X, C].
+    
+
+    '''
+
+    def __init__(self, video:np.ndarray):
+        self.video = video
+
+
+        merged_image = np.concatenate([list_images_separated_ch[i][..., np.newaxis] for i,_ in enumerate(list_images_separated_ch)],axis=-1)
+
+
 class ConvertToStandardFormat():
     '''
     This class contains two methods to:
