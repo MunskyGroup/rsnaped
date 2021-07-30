@@ -101,12 +101,11 @@ class MergeChannels():
     
 
     '''
-
-    def __init__(self, video:np.ndarray):
-        self.video = video
-
-
-        merged_image = np.concatenate([list_images_separated_ch[i][..., np.newaxis] for i,_ in enumerate(list_images_separated_ch)],axis=-1)
+    pass
+    #def __init__(self, video:np.ndarray):
+    #    self.video = video
+    
+    #    merged_image = np.concatenate([list_images_separated_ch[i][..., np.newaxis] for i,_ in enumerate(list_images_separated_ch)],axis=-1)
 
 
 class ConvertToStandardFormat():
