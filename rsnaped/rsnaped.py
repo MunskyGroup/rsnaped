@@ -28,7 +28,6 @@ if import_libraries == 1:
     # System libraries
     import io
     import sys
-    import os
     #import statistics
     from statistics import median_low
     import random
@@ -59,6 +58,7 @@ if import_libraries == 1:
     from skimage.draw import polygon_perimeter
     from skimage.restoration import denoise_nl_means, estimate_sigma, denoise_wavelet
     from skimage.morphology import square, dilation
+    from skimage.io import imread
     # Parallel computing
     from joblib import Parallel, delayed
     import multiprocessing
@@ -82,7 +82,6 @@ if import_libraries == 1:
     # to create gifs
     import imageio
     # time libraries
-    import pathlib
     from timeit import default_timer as timer
     import time
     # Cellpose
@@ -91,7 +90,53 @@ if import_libraries == 1:
     import matplotlib.pyplot as plt
     import matplotlib.path as mpltPath
     from matplotlib import gridspec
+    # To work with files
+    import os; from os import listdir; from os.path import isfile, join
+    import re # to iterate in files
+    import glob # to iterate in files
+    import pathlib
+    from pathlib import Path
+
     plt.style.use("dark_background")
+
+
+
+class ReadImages():
+    '''
+    This class reads all .tif images in a given folder and returns the names of these files, path, and number of files.
+    
+    Parameters
+    --  --  --  --  -- 
+
+    directory: str or PosixPath
+        Directory containing the images to merge.
+    '''    
+    def __init__(self, directory:str ):
+        if type(directory)== pathlib.PosixPath:
+            self.directory = directory
+        else:
+            self.directory = Path(directory)
+    def read(self):
+        '''
+        Method takes all the videos in the folder and merge those with similar names.
+
+        Returns
+        --  --  -- -
+        list_images : List of NumPy arrays. 
+            List of NumPy arrays with format np.uint16 and dimensions [Z, Y, X, C] or [T, Y, X, C] . 
+        list_file_names : List of strings 
+            List with strings of names.
+        number_files : int. 
+            Number of images in the folder.
+        '''
+        list_files_names = sorted([f for f in listdir(self.directory) if isfile(join(self.directory, f)) and ('.tif') in f], key=str.lower)  # reading all tif files in the folder
+        list_files_names.sort(key=lambda f: int(re.sub('\D', '', f)))  # sorting the index in numerical order
+        path_files = [ str(self.directory.joinpath(f).resolve()) for f in list_files_names ] # creating the complete path for each file
+        number_files = len(path_files)
+        list_images = [imread(f) for f in path_files]
+
+        return list_images, path_files, list_files_names, number_files
+
 
 
 class MergeChannels():
@@ -99,13 +144,56 @@ class MergeChannels():
     This class takes images as arrays with format [Z,Y,X] and merge then in a numpy array with format [Z, Y, X, C].
     It recursively merges the channels in a new dimenssion in the array. Minimal number of Channels 2 maximum is 4
     
+    Parameters
+    --  --  --  --  -- 
 
+    directory: str or PosixPath
+        Directory containing the images to merge.
+    substring_to_detect_in_file_name: str
+        String with the prefix to detect in the files names. 
+    save_figure: bool, optional
+        Flag to save the merged images as .tif. The default is False. 
     '''
-    pass
-    #def __init__(self, video:np.ndarray):
-    #    self.video = video
+    def __init__(self, directory:str ,substring_to_detect_in_file_name:str = '.*_C0.tif', save_figure:bool = False ):
+        if type(directory)== pathlib.PosixPath:
+            self.directory = directory
+        else:
+            self.directory = Path(directory)
+        self.substring_to_detect_in_file_name = substring_to_detect_in_file_name
+        self.save_figure=save_figure
     
-    #    merged_image = np.concatenate([list_images_separated_ch[i][..., np.newaxis] for i,_ in enumerate(list_images_separated_ch)],axis=-1)
+    def merge(self):
+        '''
+        Method takes all the videos in the folder and merge those with similar names.
+
+        Returns
+        --  --  -- -
+        list_file_names : List of strings 
+            List with strings of names.
+        list_merged_images : List of NumPy arrays. 
+            List of NumPy arrays with format np.uint16 and dimensions [Z, Y, X, C].
+        number_files : int. 
+            Number of merged images in the folder.
+        '''
+        # This function 
+        list_file_names =[]
+        list_merged_images =[]  # list that stores all files belonging to the same image in a sublist
+        ending_string = re.compile(self.substring_to_detect_in_file_name)  # detecting files ending in _C0.tif
+        for _, _, files in os.walk(self.directory):
+            for file in files:
+                if ending_string.match(file):
+                    prefix = file.rpartition('_')[0]  # stores a string with the first part of the file name before the last underscore character in the file name string.
+                    list_files_per_image = glob.glob( str(self.directory.joinpath(prefix)) + '*.tif')
+                    list_file_names.append(prefix)
+                    merged_img = np.concatenate([ imread(list_files_per_image[i])[..., np.newaxis] for i,_ in enumerate(list_files_per_image)],axis=-1).astype('uint16')
+                    list_merged_images.append(merged_img) 
+                    if self.save_figure ==1:
+                        save_to_path = self.directory.joinpath('merged')
+                        if not os.path.exists(str(save_to_path)):
+                            os.makedirs(str(save_to_path))
+                        tifffile.imsave(str(save_to_path.joinpath(prefix+'_merged'+'.tif')), merged_img, metadata={'axes': 'ZYXC'})
+        number_files = len(list_file_names)
+        return list_file_names, list_merged_images, number_files
 
 
 class ConvertToStandardFormat():
@@ -1268,13 +1356,16 @@ class CellposeFISH():
         def separate_masks (masks):
             list_masks = []
             n_masks = np.amax(masks)
-            if n_masks > 1: # detecting if more than 1 mask are detected per cell
-                #number_particles = []
-                for nm in range (1, n_masks+1): # iterating for each mask in a given cell. The mask has values from 0 for background, to int n, where n is the number of detected masks.
-                    mask_copy = masks.copy()
-                    tested_mask = np.where(mask_copy == nm, 1, 0) # making zeros all elements outside each mask, and once all elements inside of each mask.
-                    list_masks.append(tested_mask)
-            else:  # do nothing if only a single mask is detected per image.
+            if not ( n_masks is None):
+                if n_masks > 1: # detecting if more than 1 mask are detected per cell
+                    #number_particles = []
+                    for nm in range (1, n_masks+1): # iterating for each mask in a given cell. The mask has values from 0 for background, to int n, where n is the number of detected masks.
+                        mask_copy = masks.copy()
+                        tested_mask = np.where(mask_copy == nm, 1, 0) # making zeros all elements outside each mask, and once all elements inside of each mask.
+                        list_masks.append(tested_mask)
+                else:  # do nothing if only a single mask is detected per image.
+                    list_masks.append(masks)
+            else:
                 list_masks.append(masks)
             return list_masks
         # function that determines if the nucleus is in the cytosol
@@ -1354,21 +1445,15 @@ class CellposeFISH():
             # removing from index
             new_index_paired_masks = np.delete(index_paired_masks, idxs_to_delete, axis = 0)
             return list_mask_joined, new_index_paired_masks
+        
         ##### IMPLEMENTATION #####
-        # Correcting the 3D video to 2D and normalized
         if len(self.video.shape) > 3:
-            video_correct_order = np.zeros((1, self.video.shape[1], self.video.shape[2], self.video.shape[3]) , dtype = np.uint16)
-            video_correct_order[0, :, :, :] = self.video[self.selected_z_slice, :, :, :]
-            video_normalized = RemoveExtrema(video_correct_order, 1, 99).remove_outliers()
-            # Cellpose
-            masks_cyto = Cellpose(video_normalized[0, :, :, self.channel_with_cytosol], diameter = self.diameter_cytosol, model_type = 'cyto', selection_method = 'max_cells' ).calculate_masks()
-            masks_nuclei = Cellpose(video_normalized[0, :, :, self.channel_with_nucleus], diameter = self.diamter_nucleus, model_type = 'nuclei', selection_method = 'max_cells').calculate_masks()
+            video_normalized = np.max(self.video,axis=0)
         else:
             video_normalized = self.video
-            # Cellpose
-            masks_cyto = Cellpose(self.video[:, :, self.channel_with_cytosol], diameter = self.diameter_cytosol, model_type = 'cyto', selection_method = 'max_cells' ).calculate_masks()
-            masks_nuclei = Cellpose(self.video[:, :, self.channel_with_nucleus], diameter = self.diamter_nucleus, model_type = 'nuclei', selection_method = 'max_cells').calculate_masks()
-
+        # Cellpose
+        masks_cyto = Cellpose(self.video[:, :, self.channel_with_cytosol], diameter = self.diameter_cytosol, model_type = 'cyto', selection_method = 'max_cells' ).calculate_masks()
+        masks_nuclei = Cellpose(self.video[:, :, self.channel_with_nucleus], diameter = self.diamter_nucleus, model_type = 'nuclei', selection_method = 'max_cells').calculate_masks()
         # Implementation
         list_separated_masks_nuclei = separate_masks(masks_nuclei)
         list_separated_masks_cyto = separate_masks(masks_cyto)
@@ -1383,14 +1468,12 @@ class CellposeFISH():
         list_masks_complete_cells = generate_masks_complete_cell(index_paired_masks, list_separated_masks_cyto)
         list_masks_nuclei = generate_masks_nuclei(index_paired_masks, list_separated_masks_nuclei)
         list_masks_cytosol_no_nuclei = generate_masks_cytosol_no_nuclei(index_paired_masks, list_masks_complete_cells, list_masks_nuclei)
+        
+        
         if self.show_plot == 1:
+            #number_channels= self.video.shape[-1]
             _, axes = plt.subplots(nrows = 1, ncols = 4, figsize = (20, 10))
-            
-            if len(self.video.shape) > 3:
-                im = video_normalized[0, :, :, 0:3].copy()
-            else:
-                im = video_normalized[ :, :, 0:3].copy()
-            
+            im = video_normalized[ :, :, 0:3].copy()
             imin, imax = np.min(im), np.max(im); im -= imin;
             imf = np.array(im, 'float32');
             imf *= 255./(imax-imin);
