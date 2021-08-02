@@ -304,24 +304,28 @@ class AugmentationVideo():
 
 class RemoveExtrema():
     '''
-    This class is intended to remove extreme values from a video. The format of the video must be [T, Y, X, C].
+    This class is intended to remove extreme values from a video. The format of the video must be [Y, X] , [Y, X, C] , [Z, Y, X, C] or [T, Y, X, C].
 
     Parameters
     --  --  --  --  -- 
     video : NumPy array
-        Array of images with dimensions [T, Y, X, C] or single image with dimensions [Y, X].
+        Array of images with dimensions [Y, X] , [Y, X, C] , [Z, Y, X, C] or [T, Y, X, C].
     min_percentile : float, optional
         Lower bound to normalize intensity. The default is 1.
     max_percentile : float, optional
         Higher bound to normalize intensity. The default is 99.
-    ignore_channel : int or None, optional
-        Use this option to ignore the normalization of a given channel. The default is None.
+    selected_channels : List or None, optional
+        Use this option to select a list channels to remove extrema. The default is None and applies the removal of extrema to all the channels.
     '''
-    def __init__(self, video:np.ndarray, min_percentile:float = 1, max_percentile:float = 99, ignore_channel: Union[bool, None] = None):
+    def __init__(self, video:np.ndarray, min_percentile:float = 1, max_percentile:float = 99, selected_channels:Union[list, None] = None):
         self.video = video
         self.min_percentile = min_percentile
         self.max_percentile = max_percentile
-        self.ignore_channel = ignore_channel
+        #self.ignore_channel = ignore_channel
+        if not (type(selected_channels) is list):
+                self.selected_channels = [selected_channels]
+        else:
+            self.selected_channels =selected_channels
 
     def remove_outliers(self):
         '''
@@ -343,20 +347,35 @@ class RemoveExtrema():
                 max_val = np.percentile(normalized_video_temp, self.max_percentile)
                 min_val = np.percentile(normalized_video_temp, self.min_percentile)
                 normalized_video_temp [normalized_video_temp > max_val] = max_val
-                normalized_video_temp [normalized_video_temp < min_val] = min_val
+                normalized_video_temp [normalized_video_temp < min_val] = 0 #  min_val
                 normalized_video_temp [normalized_video_temp < 0] = 0
-        # Normalization for video with format [T, Y, X, C].
-        else:
+        
+        # Normalization for video with format [Y, X, C].
+        if len(self.video.shape) == 3:
+            number_channels   = self.video.shape[2]
+            for index_channels in range (number_channels):
+                if (index_channels in self.selected_channels) or (self.selected_channels is None) :
+                    normalized_video_temp = normalized_video[ :, :, index_channels]
+                    if not np.amax(normalized_video_temp) == 0: # this section detect that the channel is not empty to perform the normalization.
+                        max_val = np.percentile(normalized_video_temp, self.max_percentile)
+                        min_val = np.percentile(normalized_video_temp, self.min_percentile)
+                        normalized_video_temp [normalized_video_temp > max_val] = max_val
+                        normalized_video_temp [normalized_video_temp < min_val] = 0 # min_val
+                        normalized_video_temp [normalized_video_temp < 0] = 0
+        
+        # Normalization for video with format [T, Y, X, C] or [Z, Y, X, C].
+        if len(self.video.shape) == 4:
             number_timepoints, number_channels   = self.video.shape[0], self.video.shape[3]
             for index_channels in range (number_channels):
-                if not self.ignore_channel == index_channels:
+                if (index_channels in self.selected_channels) or (self.selected_channels is None) :
+                #if not self.ignore_channel == index_channels:
                     for index_time in range (number_timepoints):
                         normalized_video_temp = normalized_video[index_time, :, :, index_channels]
                         if not np.amax(normalized_video_temp) == 0: # this section detect that the channel is not empty to perform the normalization.
                             max_val = np.percentile(normalized_video_temp, self.max_percentile)
                             min_val = np.percentile(normalized_video_temp, self.min_percentile)
                             normalized_video_temp [normalized_video_temp > max_val] = max_val
-                            normalized_video_temp [normalized_video_temp < min_val] = min_val
+                            normalized_video_temp [normalized_video_temp < min_val] = 0 # min_val
                             normalized_video_temp [normalized_video_temp < 0] = 0
         return np.asarray(normalized_video, 'uint16')
 
@@ -1316,10 +1335,10 @@ class CellposeFISH():
     --  --  --  --  -- 
     video : NumPy array
         Array of images with dimensions [Z, Y, X, C] or maximum projection with dimensions [Y,X,C].
-    channel_with_cytosol : int, optional
-        DESCRIPTION. The default is [0, 1].
-    channel_with_nucleus : list or int, optional
-        DESCRIPTION. The default is 2.
+    channel_with_cytosol : List of int or None, optional
+        DESCRIPTION. The default is None.
+    channel_with_nucleus : list of int or None, optional
+        DESCRIPTION. The default is None.
     selected_z_slice : int, optional
         DESCRIPTION. The default is 5.
     diameter_cytosol : float, optional
@@ -1329,7 +1348,7 @@ class CellposeFISH():
     show_plot : bool, optional
         If true, it shows a plot with the detected masks. The default is 1.
     '''
-    def __init__(self, video:np.ndarray, channel_with_cytosol:list = [0, 1], channel_with_nucleus:int = 2, selected_z_slice:int = 5, diameter_cytosol:float = 150, diamter_nucleus:float = 100, show_plot: bool = 1):
+    def __init__(self, video:np.ndarray, channel_with_cytosol: Union[list, None] = None, channel_with_nucleus: Union[list, None] = None, selected_z_slice:int = 5, diameter_cytosol:float = 150, diamter_nucleus:float = 100, show_plot: bool = 1):
         self.video = video
         self.selected_z_slice = selected_z_slice
         self.channel_with_cytosol = channel_with_cytosol
@@ -1394,7 +1413,10 @@ class CellposeFISH():
             array_paired_masks = np.zeros((n_masks_cyto, n_masks_nuclei)) # This array has dimensions n_masks_cyto, n_masks_nuclei and each entry indicate if the masks are paired
             for i in range(0, n_masks_cyto):
                 for j in range (0, n_masks_nuclei):
-                    array_paired_masks[i, j] = is_nucleus_in_cytosol(list_masks_nuclei[j], list_masks_cyto[i])
+                    try:
+                        array_paired_masks[i, j] = is_nucleus_in_cytosol(list_masks_nuclei[j], list_masks_cyto[i])
+                    except:
+                        array_paired_masks[i, j] = 0
             # vertical array with paired masks
             itemindex = np.where(array_paired_masks == 1)
             index_paired_masks = np.vstack((itemindex[0], itemindex[1])).T
@@ -1446,52 +1468,141 @@ class CellposeFISH():
             new_index_paired_masks = np.delete(index_paired_masks, idxs_to_delete, axis = 0)
             return list_mask_joined, new_index_paired_masks
         
+        
+        
+                
         ##### IMPLEMENTATION #####
-        if len(self.video.shape) > 3:
-            video_normalized = np.max(self.video,axis=0)
+        if len(self.video.shape) > 3:  # [ZYXC]
+            video_normalized = np.mean(self.video[1:-1,:,:,:],axis=0)
         else:
-            video_normalized = self.video
-        # Cellpose
-        masks_cyto = Cellpose(self.video[:, :, self.channel_with_cytosol], diameter = self.diameter_cytosol, model_type = 'cyto', selection_method = 'max_cells' ).calculate_masks()
-        masks_nuclei = Cellpose(self.video[:, :, self.channel_with_nucleus], diameter = self.diamter_nucleus, model_type = 'nuclei', selection_method = 'max_cells').calculate_masks()
-        # Implementation
-        list_separated_masks_nuclei = separate_masks(masks_nuclei)
-        list_separated_masks_cyto = separate_masks(masks_cyto)
-        # Array with paired masks
-        index_paired_masks  =  paired_masks(list_separated_masks_nuclei, list_separated_masks_cyto)
-        # Optional section that joins multiple nucleus masks
-        id_c = index_paired_masks[:, 0].tolist()
-        duplicated_nuclei_in_masks = any(id_c.count(x) > 1 for x in id_c)
-        if duplicated_nuclei_in_masks == True:
-            list_masks_nuclei, index_paired_masks = join_nulcei_masks(index_paired_masks, list_separated_masks_nuclei)
-        # List of mask
-        list_masks_complete_cells = generate_masks_complete_cell(index_paired_masks, list_separated_masks_cyto)
-        list_masks_nuclei = generate_masks_nuclei(index_paired_masks, list_separated_masks_nuclei)
-        list_masks_cytosol_no_nuclei = generate_masks_cytosol_no_nuclei(index_paired_masks, list_masks_complete_cells, list_masks_nuclei)
+            video_normalized = self.video # [YXC]       
         
         
-        if self.show_plot == 1:
-            #number_channels= self.video.shape[-1]
-            _, axes = plt.subplots(nrows = 1, ncols = 4, figsize = (20, 10))
-            im = video_normalized[ :, :, 0:3].copy()
-            imin, imax = np.min(im), np.max(im); im -= imin;
-            imf = np.array(im, 'float32');
-            imf *= 255./(imax-imin);
-            im = np.asarray(np.round(imf), 'uint8')
-            axes[0].imshow(im)
-            axes[0].set(title = 'All channels')
-            axes[1].imshow(masks_cyto)
-            axes[1].set(title = 'Cytosol mask')
-            axes[2].imshow(masks_nuclei)
-            axes[2].set(title = 'Nuclei mask')
-            axes[3].imshow(im)
-            for i in range(0, index_paired_masks.shape[0]):
-                contuour_n = find_contours(list_masks_nuclei[i], 0.5)
-                contuour_c = find_contours(list_masks_complete_cells[i], 0.5)
-                axes[3].fill(contuour_n[0][:, 1], contuour_n[0][:, 0], facecolor = 'none', edgecolor = 'yellow') # mask nucleus
-                axes[3].fill(contuour_c[0][:, 1], contuour_c[0][:, 0], facecolor = 'none', edgecolor = 'yellow') # mask cytosol
-                axes[3].set(title = 'Paired masks')
-            plt.show()
+        def function_to_find_masks (video):
+            # Cellpose
+            try:
+                if not (self.channel_with_cytosol is None):
+                    masks_cyto = Cellpose(video[:, :, self.channel_with_cytosol], diameter = self.diameter_cytosol, model_type = 'cyto', selection_method = 'max_cells' ).calculate_masks()
+                if not (self.channel_with_nucleus is None):
+                    masks_nuclei = Cellpose(video[:, :, self.channel_with_nucleus], diameter = self.diamter_nucleus, model_type = 'nuclei', selection_method = 'max_cells').calculate_masks()
+            except:
+                masks_cyto = None
+                masks_nuclei = None
+            if not (self.channel_with_cytosol is None) and not(self.channel_with_nucleus is None):
+                # Implementation
+                list_separated_masks_nuclei = separate_masks(masks_nuclei)
+                list_separated_masks_cyto = separate_masks(masks_cyto)
+                # Array with paired masks
+                index_paired_masks  =  paired_masks(list_separated_masks_nuclei, list_separated_masks_cyto)
+                # Optional section that joins multiple nucleus masks
+                id_c = index_paired_masks[:, 0].tolist()
+                duplicated_nuclei_in_masks = any(id_c.count(x) > 1 for x in id_c)
+                if duplicated_nuclei_in_masks == True:
+                    list_masks_nuclei, index_paired_masks = join_nulcei_masks(index_paired_masks, list_separated_masks_nuclei)
+                # List of mask
+                list_masks_complete_cells = generate_masks_complete_cell(index_paired_masks, list_separated_masks_cyto)
+                list_masks_nuclei = generate_masks_nuclei(index_paired_masks, list_separated_masks_nuclei)
+                list_masks_cytosol_no_nuclei = generate_masks_cytosol_no_nuclei(index_paired_masks, list_masks_complete_cells, list_masks_nuclei)
+            else:
+                if not (self.channel_with_cytosol is None):
+                    list_masks_complete_cells = []
+                    list_masks_nuclei = []
+                    list_masks_cytosol_no_nuclei = separate_masks(masks_cyto)
+                    index_paired_masks =[]
+                if not (self.channel_with_nucleus is None):
+                    list_masks_complete_cells = []
+                    list_masks_nuclei = separate_masks(masks_nuclei)
+                    list_masks_cytosol_no_nuclei = []
+                    index_paired_masks =[]
+            return list_masks_complete_cells, list_masks_nuclei, list_masks_cytosol_no_nuclei, index_paired_masks, masks_cyto, masks_nuclei
+
+        # Section of the code that optimizes to find the maximum number of index_paired_masks
+        NUMBER_TESTED_THRESHOLDS = 5
+        tested_thresholds = np.round(np.linspace(0, 20, NUMBER_TESTED_THRESHOLDS), 0)
+        if not (self.channel_with_cytosol is None) and not(self.channel_with_nucleus is None):
+            list_sotring_number_paired_masks = []
+            for idx, threshold in enumerate(tested_thresholds):
+                video_copy = video_normalized.copy()
+                video_temp = RemoveExtrema(video_copy,min_percentile=threshold,max_percentile=100-threshold,selected_channels=self.channel_with_cytosol).remove_outliers() 
+                list_masks_complete_cells, list_masks_nuclei, list_masks_cytosol_no_nuclei, index_paired_masks, masks_cyto,masks_nuclei = function_to_find_masks (video_temp)
+                list_sotring_number_paired_masks.append(len(list_masks_cytosol_no_nuclei))
+            array_number_paired_masks = np.asarray(list_sotring_number_paired_masks)
+            print('arr',array_number_paired_masks)
+            print('amax',np.argmax(array_number_paired_masks))
+            selected_threshold = tested_thresholds[np.argmax(array_number_paired_masks)]
+            print('sel',selected_threshold)
+        else:
+            selected_threshold = 0
+        # Running the mask selection once a threshold is obtained
+        video_copy = video_normalized.copy()
+        video_temp = RemoveExtrema(video_copy,min_percentile=selected_threshold,max_percentile=100-selected_threshold,selected_channels=self.channel_with_cytosol).remove_outliers() 
+        list_masks_complete_cells, list_masks_nuclei, list_masks_cytosol_no_nuclei, index_paired_masks, masks_cyto,masks_nuclei  = function_to_find_masks (video_temp)
+
+
+        if len(index_paired_masks) != 0 and not(self.channel_with_cytosol is None) and not(self.channel_with_nucleus is None):
+            if self.show_plot == 1:
+                #number_channels= self.video.shape[-1]
+                _, axes = plt.subplots(nrows = 1, ncols = 4, figsize = (20, 10))
+                im = video_normalized[ :, :, 0:3].copy()
+                imin, imax = np.min(im), np.max(im); im -= imin;
+                imf = np.array(im, 'float32');
+                imf *= 255./(imax-imin);
+                im = np.asarray(np.round(imf), 'uint8')
+                axes[0].imshow(im)
+                axes[0].set(title = 'All channels')
+                axes[1].imshow(masks_cyto)
+                axes[1].set(title = 'Cytosol mask')
+                axes[2].imshow(masks_nuclei)
+                axes[2].set(title = 'Nuclei mask')
+                axes[3].imshow(im)
+                for i in range(0, index_paired_masks.shape[0]):
+                    contuour_n = find_contours(list_masks_nuclei[i], 0.5)
+                    contuour_c = find_contours(list_masks_complete_cells[i], 0.5)
+                    axes[3].fill(contuour_n[0][:, 1], contuour_n[0][:, 0], facecolor = 'none', edgecolor = 'yellow') # mask nucleus
+                    axes[3].fill(contuour_c[0][:, 1], contuour_c[0][:, 0], facecolor = 'none', edgecolor = 'yellow') # mask cytosol
+                    axes[3].set(title = 'Paired masks')
+                plt.show()
+        else:
+            if not(self.channel_with_cytosol is None) and (self.channel_with_nucleus is None):
+                if self.show_plot == 1:
+                    #number_channels= self.video.shape[-1]
+                    _, axes = plt.subplots(nrows = 1, ncols = 2, figsize = (20, 10))
+                    im = video_normalized[ :, :, 0:3].copy()
+                    imin, imax = np.min(im), np.max(im); im -= imin;
+                    imf = np.array(im, 'float32');
+                    imf *= 255./(imax-imin);
+                    im = np.asarray(np.round(imf), 'uint8')
+                    axes[0].imshow(im)
+                    axes[0].set(title = 'All channels')
+                    axes[1].imshow(masks_cyto)
+                    axes[1].set(title = 'Cytosol mask')
+                    #axes[2].imshow(im)
+                    #for i in range(0, index_paired_masks.shape[0]):
+                    #    contuour_c = find_contours(list_masks_complete_cells[i], 0.5)
+                    #    axes[2].fill(contuour_c[0][:, 1], contuour_c[0][:, 0], facecolor = 'none', edgecolor = 'yellow') # mask cytosol
+                    #    axes[2].set(title = 'Paired masks')
+                    plt.show()
+
+            if (self.channel_with_cytosol is None) and not(self.channel_with_nucleus is None):
+                if self.show_plot == 1:
+                    #number_channels= self.video.shape[-1]
+                    _, axes = plt.subplots(nrows = 1, ncols = 2, figsize = (20, 10))
+                    im = video_normalized[ :, :, 0:3].copy()
+                    imin, imax = np.min(im), np.max(im); im -= imin;
+                    imf = np.array(im, 'float32');
+                    imf *= 255./(imax-imin);
+                    im = np.asarray(np.round(imf), 'uint8')
+                    axes[0].imshow(im)
+                    axes[0].set(title = 'All channels')
+                    axes[1].imshow(masks_nuclei)
+                    axes[1].set(title = 'Nuclei mask')
+                    #axes[2].imshow(im)
+                    #for i in range(0, index_paired_masks.shape[0]):
+                    #    contuour_n = find_contours(list_masks_nuclei[i], 0.5)
+                    #    axes[2].fill(contuour_n[0][:, 1], contuour_n[0][:, 0], facecolor = 'none', edgecolor = 'yellow') # mask nucleus
+                    #    axes[2].set(title = 'Paired masks')
+                    plt.show()
+            print('No paired masks were detected for this image')
         return list_masks_complete_cells, list_masks_nuclei, list_masks_cytosol_no_nuclei, index_paired_masks
 
 
