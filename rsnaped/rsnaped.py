@@ -1228,9 +1228,9 @@ class Cellpose():
     model_type : str, optional
         To detect between the two options: 'cyto' or 'nuclei'. The default is 'cyto'.
     selection_method : str, optional
-        Option to use the optimization algorithm to maximize the number of cells or maximize the size options are 'max_area' or 'max_cells'. The default is 'max_area'.
+        Option to use the optimization algorithm to maximize the number of cells or maximize the size options are 'max_area' or 'max_cells' or 'max_cells_and_area'. The default is 'max_cells_and_area'.
     '''
-    def __init__(self, video:np.ndarray, num_iterations:int = 5, channels:list = [0, 0], diameter:float = 120, model_type:str = 'cyto', selection_method:str = 'max_area'):
+    def __init__(self, video:np.ndarray, num_iterations:int = 5, channels:list = [0, 0], diameter:float = 120, model_type:str = 'cyto', selection_method:str = 'max_cells_and_area'):
         self.video = video
         self.num_iterations = num_iterations
         self.minimumm_probability = 0
@@ -1239,7 +1239,10 @@ class Cellpose():
         self.diameter = diameter
         self.model_type = model_type # options are 'cyto' or 'nuclei'
         self.selection_method = selection_method # options are 'max_area' or 'max_cells'
-        self.NUMBER_OF_CORES = 1
+        #self.NUMBER_OF_CORES = 1
+        #self.range_diameter = np.round(np.linspace(100, 300, num_iterations), 0)
+        self.tested_probabilities = np.round(np.linspace(self.minimumm_probability, self.maximum_probability, self.num_iterations), 2)
+
     def calculate_masks(self):
         '''
         This method performs the process of image masking using **Cellpose**.
@@ -1254,11 +1257,14 @@ class Cellpose():
         sys.stdout = open(os.devnull, "w")
         model = models.Cellpose(gpu = 1, model_type = self.model_type) # model_type = 'cyto' or model_type = 'nuclei'
         # Loop that test multiple probabilities in cell pose and returns the masks with the longest area.
-        tested_probabilities = np.round(np.linspace(self.minimumm_probability, self.maximum_probability, self.num_iterations), 2)
-        area_longest_mask = np.zeros(self.num_iterations)
+        
+        #area_longest_mask = np.zeros(self.num_iterations)
 
         def cellpose_max_area( cell_prob):
-            masks, _, _, _ = model.eval(self.video, normalize = True, cellprob_threshold = cell_prob, diameter = self.diameter, min_size = -1, channels = self.channels, progress = None)
+            try:
+                masks, _, _, _ = model.eval(self.video, normalize = True, cellprob_threshold = cell_prob, diameter = self.diameter, min_size = -1, channels = self.channels, progress = None)
+            except:
+                masks =0
             n_masks = np.amax(masks)
             if n_masks > 1: # detecting if more than 1 mask are detected per cell
                 size_mask = []
@@ -1272,20 +1278,55 @@ class Cellpose():
                 return np.sum(masks)
         
         def cellpose_max_cells(cell_prob):
-            masks, _, _, _ = model.eval(self.video, normalize = True, cellprob_threshold = cell_prob, diameter = self.diameter, min_size = -1, channels = self.channels, progress = None)
+            try:
+                masks, _, _, _ = model.eval(self.video, normalize = True, cellprob_threshold = cell_prob, diameter =self.diameter, min_size = -1, channels = self.channels, progress = None)
+            except:
+                masks =0
             return np.amax(masks)
-        
+
+        def cellpose_max_cells_and_area( cell_prob):
+            try:
+                masks, _, _, _ = model.eval(self.video, normalize = True, cellprob_threshold = cell_prob, diameter = self.diameter, min_size = -1, channels = self.channels, progress = None)
+            except:
+                masks =0
+            n_masks = np.amax(masks)
+            if n_masks > 1: # detecting if more than 1 mask are detected per cell
+                size_mask = []
+                for nm in range (1, n_masks+1): # iterating for each mask in a given cell. The mask has values from 0 for background, to int n, where n is the number of detected masks.
+                    size_mask.append(np.sum(masks == nm)) # creating a list with the size of each mask
+                number_masks= np.amax(masks)
+                metric = np.sum(np.asarray(size_mask)) * number_masks
+                return metric
+            if n_masks == 1: # do nothing if only a single mask is detected per image.
+                return np.sum(masks == 1)
+            else:  # return zero if no mask are detected
+                return 0     
+
         if self.selection_method == 'max_area':
-            list_metrics_masks = Parallel(n_jobs = self.NUMBER_OF_CORES)(delayed(cellpose_max_area)(tested_probabilities[i] ) for i,_ in enumerate(tested_probabilities))
-            evaluated_metric_for_masks = np.asarray([list_metrics_masks[i]  for i,_ in enumerate(tested_probabilities)]   )
+            #list_metrics_masks = Parallel(n_jobs = self.NUMBER_OF_CORES)(delayed(cellpose_max_area)(tested_probabilities[i] ) for i,_ in enumerate(tested_probabilities))
+            list_metrics_masks = [cellpose_max_area(self.tested_probabilities[i],  ) for i,_ in enumerate(self.tested_probabilities)]
+            #evaluated_metric_for_masks = np.asarray([list_metrics_masks[i]  for i,_ in enumerate(self.tested_probabilities)]   )
+            #list_metrics_masks = [[cellpose_max_area(self.tested_probabilities[i],self.range_diameter[j] ) for i,_ in enumerate(self.tested_probabilities)] for j,_ in enumerate(self.range_diameter)]
+            evaluated_metric_for_masks = np.asarray(list_metrics_masks)
 
         if self.selection_method == 'max_cells':
-            list_metrics_masks = Parallel(n_jobs = self.NUMBER_OF_CORES)(delayed(cellpose_max_cells)(tested_probabilities[i] ) for i,_ in enumerate(tested_probabilities))
-            evaluated_metric_for_masks = np.asarray([list_metrics_masks[i]  for i,_ in enumerate(tested_probabilities)]   )
+            #list_metrics_masks = Parallel(n_jobs = self.NUMBER_OF_CORES)(delayed(cellpose_max_cells)(tested_probabilities[i] ) for i,_ in enumerate(tested_probabilities))
+            list_metrics_masks = [cellpose_max_cells(self.tested_probabilities[i] ) for i,_ in enumerate(self.tested_probabilities)]
+            #evaluated_metric_for_masks = np.asarray([list_metrics_masks[i]  for i,_ in enumerate(self.tested_probabilities)]   )
+            #list_metrics_masks = [[cellpose_max_cells(self.tested_probabilities[i],self.range_diameter[j] ) for i,_ in enumerate(self.tested_probabilities)] for j,_ in enumerate(self.range_diameter)]
+            evaluated_metric_for_masks = np.asarray(list_metrics_masks)
+
+        if self.selection_method == 'max_cells_and_area':
+            list_metrics_masks = [cellpose_max_cells_and_area(self.tested_probabilities[i] ) for i,_ in enumerate(self.tested_probabilities)]
+            #evaluated_metric_for_masks = np.asarray([list_metrics_masks[i]  for i,_ in enumerate(self.tested_probabilities)]   )
+            #list_metrics_masks = [[cellpose_max_cells_and_area(self.tested_probabilities[i],self.range_diameter[j] ) for i,_ in enumerate(self.tested_probabilities)] for j,_ in enumerate(self.range_diameter)]
+            evaluated_metric_for_masks = np.asarray(list_metrics_masks)
 
         # This section of the code selects the probability that should be used in cellpose.
         #selected_probability = tested_probabilities[np.argmax(area_longest_mask)]
-        selected_probability = tested_probabilities[np.argmax(evaluated_metric_for_masks)]
+        #selected_probability = self.tested_probabilities[np.argmax(evaluated_metric_for_masks)]
+
+
         
         # if self.selection_method == 'max_area':
         #     # Loop that iterates in the selected probabilities
@@ -1315,13 +1356,17 @@ class Cellpose():
         #     selected_probability = tested_probabilities[np.argmax(num_masks)]
         
         # This line re-runs the cellpose algorithm using the selected probability threshold
-        selected_masks, _, _, _ = model.eval(self.video, normalize = True, cellprob_threshold = selected_probability, diameter = self.diameter, min_size = -1, channels = self.channels, progress = None)
-        selected_masks[0, :] = 0;selected_masks[:, 0] = 0;selected_masks[selected_masks.shape[0]-1, :] = 0;selected_masks[:, selected_masks.shape[1]-1] = 0#This line of code ensures that the corners are zeros.
+        #selected_masks, _, _, _ = model.eval(self.video, normalize = True, cellprob_threshold = selected_probability, diameter = self.diameter, min_size = -1, channels = self.channels, progress = None)
         
-        # reactivating outputs
-        if np.amax(selected_masks) == 0:
+        if np.amax(evaluated_metric_for_masks) >0:
+            selected_conditions = self.tested_probabilities[np.argmax(evaluated_metric_for_masks)]
+            #selected_conditions = np.argwhere(evaluated_metric_for_masks==evaluated_metric_for_masks.max())
+            selected_masks, _, _, _ = model.eval(self.video, normalize = True, cellprob_threshold = selected_conditions, diameter = self.diameter, min_size = -1, channels = self.channels, progress = None)
+            selected_masks[0, :] = 0;selected_masks[:, 0] = 0;selected_masks[selected_masks.shape[0]-1, :] = 0;selected_masks[:, selected_masks.shape[1]-1] = 0#This line of code ensures that the corners are zeros.
+        else:
             selected_masks = None
             print('No cells detected on the image')
+
         sys.stdout.close()
         sys.stdout = old_stdout
         return selected_masks
@@ -1356,6 +1401,8 @@ class CellposeFISH():
         self.diameter_cytosol = diameter_cytosol
         self.diamter_nucleus = diamter_nucleus
         self.show_plot = show_plot
+        NUMBER_TESTED_THRESHOLDS = 5
+        self.tested_thresholds = np.round(np.linspace(0, 1, NUMBER_TESTED_THRESHOLDS), 0)
     def calculate_masks(self):
         '''
         This method performs the process of cell detection for FISH images using **Cellpose**.
@@ -1468,23 +1515,19 @@ class CellposeFISH():
             new_index_paired_masks = np.delete(index_paired_masks, idxs_to_delete, axis = 0)
             return list_mask_joined, new_index_paired_masks
         
-        
-        
-                
         ##### IMPLEMENTATION #####
         if len(self.video.shape) > 3:  # [ZYXC]
-            video_normalized = np.mean(self.video[1:-1,:,:,:],axis=0)
+            video_normalized = np.mean(self.video[2:-2,:,:,:],axis=0)    # taking the mean value
         else:
             video_normalized = self.video # [YXC]       
-        
         
         def function_to_find_masks (video):
             # Cellpose
             try:
                 if not (self.channel_with_cytosol is None):
-                    masks_cyto = Cellpose(video[:, :, self.channel_with_cytosol], diameter = self.diameter_cytosol, model_type = 'cyto', selection_method = 'max_cells' ).calculate_masks()
+                    masks_cyto = Cellpose(video[:, :, self.channel_with_cytosol], diameter = self.diameter_cytosol, model_type = 'cyto', selection_method = 'max_cells_and_area' ).calculate_masks()
                 if not (self.channel_with_nucleus is None):
-                    masks_nuclei = Cellpose(video[:, :, self.channel_with_nucleus], diameter = self.diamter_nucleus, model_type = 'nuclei', selection_method = 'max_cells').calculate_masks()
+                    masks_nuclei = Cellpose(video[:, :, self.channel_with_nucleus], diameter = self.diamter_nucleus, model_type = 'nuclei', selection_method = 'max_cells_and_area').calculate_masks()
             except:
                 masks_cyto = None
                 masks_nuclei = None
@@ -1509,27 +1552,28 @@ class CellposeFISH():
                     list_masks_nuclei = []
                     list_masks_cytosol_no_nuclei = separate_masks(masks_cyto)
                     index_paired_masks =[]
+                    masks_nuclei= None
                 if not (self.channel_with_nucleus is None):
                     list_masks_complete_cells = []
                     list_masks_nuclei = separate_masks(masks_nuclei)
                     list_masks_cytosol_no_nuclei = []
                     index_paired_masks =[]
+                    masks_cyto = None
             return list_masks_complete_cells, list_masks_nuclei, list_masks_cytosol_no_nuclei, index_paired_masks, masks_cyto, masks_nuclei
 
         # Section of the code that optimizes to find the maximum number of index_paired_masks
-        NUMBER_TESTED_THRESHOLDS = 5
-        tested_thresholds = np.round(np.linspace(0, 20, NUMBER_TESTED_THRESHOLDS), 0)
+
         if not (self.channel_with_cytosol is None) and not(self.channel_with_nucleus is None):
             list_sotring_number_paired_masks = []
-            for idx, threshold in enumerate(tested_thresholds):
+            for idx, threshold in enumerate(self.tested_thresholds):
                 video_copy = video_normalized.copy()
-                video_temp = RemoveExtrema(video_copy,min_percentile=threshold,max_percentile=100-threshold,selected_channels=self.channel_with_cytosol).remove_outliers() 
+                video_temp = RemoveExtrema(video_copy,min_percentile=threshold, max_percentile=100-threshold,selected_channels=self.channel_with_cytosol).remove_outliers() 
                 list_masks_complete_cells, list_masks_nuclei, list_masks_cytosol_no_nuclei, index_paired_masks, masks_cyto,masks_nuclei = function_to_find_masks (video_temp)
                 list_sotring_number_paired_masks.append(len(list_masks_cytosol_no_nuclei))
             array_number_paired_masks = np.asarray(list_sotring_number_paired_masks)
             print('arr',array_number_paired_masks)
             print('amax',np.argmax(array_number_paired_masks))
-            selected_threshold = tested_thresholds[np.argmax(array_number_paired_masks)]
+            selected_threshold = self.tested_thresholds[np.argmax(array_number_paired_masks)]
             print('sel',selected_threshold)
         else:
             selected_threshold = 0
@@ -1653,6 +1697,7 @@ class CellposeSelection():
                 selected_mask = temp_mask + (self.mask == largest_mask) # Selecting a single mask and making this mask equal to one and the background equal to zero.
             else: # do nothing if only a single mask is detected per image.
                 selected_mask = self.mask
+        
         if self.selection_method == 'max_spots':
             # Iterating for each mask to select the mask with the largest area.
             n_masks = np.amax(self.mask)
@@ -1670,11 +1715,11 @@ class CellposeSelection():
                 selected_mask = temp_mask + (self.mask == pre_selected_mask) # Selecting a single mask and making this mask equal to one and the background equal to zero.
             else:  # do nothing if only a single mask is detected per image.
                 selected_mask = self.mask
-
             if np.amax(selected_mask) == 0:
                 selected_mask = None
                 print('No mask was selected in the image.')
                 # This section dilates the mask to connect areas that are isolated.
+        
         mask_int = np.where(selected_mask > 0.5, 1, 0).astype(np.int)
         dilated_image = dilation(mask_int, square(20))
         mask_final = np.where(dilated_image > 0.5, 1, 0).astype(np.int)
@@ -1712,7 +1757,7 @@ class Trackpy():
         self.time_points = video.shape[0]
         self.selected_channel = selected_channel
         # function that remove outliers from the video
-        video = RemoveExtrema(video, min_percentile = 0.5, max_percentile = 99.9, ignore_channel = None).remove_outliers()
+        video = RemoveExtrema(video, min_percentile = 0.5, max_percentile = 99.9).remove_outliers()
         # Function to convert the video to uint
         def img_uint(image):
             temp_vid = img_as_uint(image)
@@ -2046,11 +2091,17 @@ class Intensity():
                     crop_image = return_crop(self.video[j, :, :, i], x_pos, y_pos, self.crop_size) # NOT RECENTERING IMAGE
                     if self.method == 'disk_donut':
                         intensities_mean[current_frame, i], intensities_std[current_frame, i] = disk_donut(crop_image, self.disk_size)
+                        if np.isnan(intensities_mean[current_frame, i]) ==1:
+                            print(crop_image)
                     elif self.method == 'total_intensity':
                         intensities_mean[ current_frame, i] = np.amax((0, np.mean(crop_image))) # mean intensity in image
                         intensities_std[ current_frame, i] = np.amax((0, np.std(crop_image))) # std intensity in image
                     elif self.method == 'gaussian_fit':
                         intensities_mean[current_frame, i], intensities_std[ current_frame, i] = gaussian_fit(crop_image)# disk_donut(crop_image, disk_size)
+            
+
+            intensities_mean[np.isnan(intensities_mean)] = 0 # replacing nans with zeros
+            intensities_std[np.isnan(intensities_std)] = 0 # replacing nans with zeros
             return intensities_mean, intensities_std
 
 
@@ -2311,11 +2362,11 @@ class SimulatedCell():
         self.intensity_calculation_method = intensity_calculation_method
         MAXIMUM_INTENSITY_IN_BASE_VIDEO = 1000
         if using_for_multiplexing == 0:
-            base_video = RemoveExtrema(base_video, min_percentile = 0, max_percentile = 99.8, ignore_channel = None).remove_outliers()
+            base_video = RemoveExtrema(base_video, min_percentile = 0, max_percentile = 99.8).remove_outliers()
             base_video = ScaleIntensity(base_video, scale_maximum_value = MAXIMUM_INTENSITY_IN_BASE_VIDEO, ignore_channel = None).apply_scale()
         self.base_video = base_video
         if not (video_for_mask is None):
-            video_for_mask = RemoveExtrema(video_for_mask, min_percentile = 0, max_percentile = 99.8, ignore_channel = None).remove_outliers()
+            video_for_mask = RemoveExtrema(video_for_mask, min_percentile = 0, max_percentile = 99.8).remove_outliers()
             video_for_mask = ScaleIntensity(video_for_mask, scale_maximum_value = MAXIMUM_INTENSITY_IN_BASE_VIDEO, ignore_channel = None).apply_scale()
             self.video_for_mask = video_for_mask
             video_for_mask = video_for_mask
