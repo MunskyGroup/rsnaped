@@ -55,6 +55,7 @@ if import_libraries == 1:
     from skimage import transform
     from skimage.filters import difference_of_gaussians
     from skimage.filters import gaussian
+    from scipy.ndimage import gaussian_laplace
     from skimage.draw import polygon_perimeter
     from skimage.restoration import denoise_nl_means, estimate_sigma, denoise_wavelet
     from skimage.morphology import square, dilation
@@ -421,6 +422,114 @@ class ScaleIntensity():
         return np.asarray(scaled_video, 'uint16')
 
 
+class GaussianLaplaceFilter():
+    '''
+    This class is intended to apply high and low bandpass filters to the video. The format of the video must be [T, Y, X, C]. This class uses **difference_of_gaussians** from skimage.filters.
+
+    Parameters
+    --  --  --  --  -- 
+    video : NumPy array
+        Array of images with dimensions [T, Y, X, C].
+    low_pass : float, optional
+        Lower pass filter intensity. The default is 0.5.
+    high_pass : float, optional
+        Higher pass filter intensity. The default is 10.
+
+    '''
+    def __init__(self, video:np.ndarray, sigma:float = 1):
+        # Making the values for the filters are odd numbers
+        self.video = video
+        self.sigma = sigma
+        self.NUMBER_OF_CORES = multiprocessing.cpu_count()
+    def apply_filter(self):
+        '''
+        This method applies high and low bandpass filters to the video.
+
+        Returns
+        --  --  -- -
+        video_filtered : np.uint16
+            Filtered video resulting from the bandpass process. Array with format [T, Y, X, C].
+        '''
+
+        # temporal function that converts floats to uint
+        def img_uint(image):
+            temp_vid = img_as_uint(image)
+            return temp_vid
+
+        # temporal function that converts uint to float
+        def img_float(image):
+            temp_vid = img_as_float64(image)
+            return temp_vid
+
+        # Prealocating arrays
+        number_timepoints, number_channels   = self.video.shape[0], self.video.shape[3]
+        #video_bp_filtered_float = np.zeros_like(self.video, dtype = np.float64)
+        #video_float = np.zeros_like(self.video, dtype = np.float64)
+        video_filtered = np.zeros_like(self.video, dtype = np.uint16)
+
+        # returning the image normalized as uint. Notice that difference_of_gaussians converts the image into float.
+        #for index_channels in range(0, number_channels):
+        #    temp_video = Parallel(n_jobs = self.NUMBER_OF_CORES)(delayed(img_float)(self.video [i, :, :, index_channels]) for i in range(0, number_timepoints))
+        #    video_float[:,:,:,index_channels] = np.asarray(temp_video)
+
+        # Applying the filter
+        
+        for index_channels in range(0, number_channels):
+            for index_time in range(0, number_timepoints):
+                video_filtered[index_time, :, :, index_channels] = gaussian_laplace(self.video[index_time, :, :, index_channels], self.sigma)
+
+
+        # returning the image normalized as uint. Notice that difference_of_gaussians converts the image into float.
+        #for index_channels in range(0, number_channels):
+        #    init_video = Parallel(n_jobs = self.NUMBER_OF_CORES)(delayed(img_uint)(video_bp_filtered_float[i, :, :, index_channels]) for i in range(0, number_timepoints))
+        #    video_filtered[:,:,:,index_channels] = np.asarray(init_video)
+        return video_filtered
+
+class GaussianFilter():
+    '''
+    This class is intended to apply high and low bandpass filters to the video. The format of the video must be [T, Y, X, C]. This class uses **difference_of_gaussians** from skimage.filters.
+
+    Parameters
+    --  --  --  --  -- 
+    video : NumPy array
+        Array of images with dimensions [T, Y, X, C].
+    low_pass : float, optional
+        Lower pass filter intensity. The default is 0.5.
+    high_pass : float, optional
+        Higher pass filter intensity. The default is 10.
+
+    '''
+    def __init__(self, video:np.ndarray, sigma:float = 1):
+        # Making the values for the filters are odd numbers
+        self.video = video
+        self.sigma = sigma
+        self.NUMBER_OF_CORES = multiprocessing.cpu_count()
+    def apply_filter(self):
+        '''
+        This method applies high and low bandpass filters to the video.
+
+        Returns
+        --  --  -- -
+        video_filtered : np.uint16
+            Filtered video resulting from the bandpass process. Array with format [T, Y, X, C].
+        '''
+        video_bp_filtered_float = np.zeros_like(self.video, dtype = np.float64)
+        video_filtered = np.zeros_like(self.video, dtype = np.uint16)
+        number_timepoints, number_channels   = self.video.shape[0], self.video.shape[3]
+        for index_channels in range(0, number_channels):
+            for index_time in range(0, number_timepoints):
+                video_bp_filtered_float[index_time, :, :, index_channels] = gaussian(self.video[index_time, :, :, index_channels], self.sigma)
+        # temporal function that converts floats to uint
+        def img_uint(image):
+            temp_vid = img_as_uint(image)
+            return temp_vid
+        # returning the image normalized as uint. Notice that difference_of_gaussians converts the image into float.
+        for index_channels in range(0, number_channels):
+            init_video = Parallel(n_jobs = self.NUMBER_OF_CORES)(delayed(img_uint)(video_bp_filtered_float[i, :, :, index_channels]) for i in range(0, number_timepoints))
+            video_filtered[:,:,:,index_channels] = np.asarray(init_video)
+        return video_filtered
+
+
 class BandpassFilter():
     '''
     This class is intended to apply high and low bandpass filters to the video. The format of the video must be [T, Y, X, C]. This class uses **difference_of_gaussians** from skimage.filters.
@@ -454,20 +563,50 @@ class BandpassFilter():
         video_filtered : np.uint16
             Filtered video resulting from the bandpass process. Array with format [T, Y, X, C].
         '''
-        video_bp_filtered_float = np.zeros_like(self.video, dtype = np.float64)
-        number_timepoints, number_channels   = self.video.shape[0], self.video.shape[3]
-        for index_channels in range(0, number_channels):
-            for index_time in range(0, number_timepoints):
-                video_bp_filtered_float[index_time, :, :, index_channels] = difference_of_gaussians(self.video[index_time, :, :, index_channels], self.low_pass, self.high_pass)
-        # temporal function that converts floats to uint
+        # video_bp_filtered_float = np.zeros_like(self.video, dtype = np.float64)
+        # video_filtered = np.zeros_like(self.video, dtype = np.uint16)
+        # number_timepoints, number_channels   = self.video.shape[0], self.video.shape[3]
+        # for index_channels in range(0, number_channels):
+        #     for index_time in range(0, number_timepoints):
+        #         video_bp_filtered_float[index_time, :, :, index_channels] = difference_of_gaussians(self.video[index_time, :, :, index_channels], self.low_pass, self.high_pass)
+        # # temporal function that converts floats to uint
+        # def img_uint(image):
+        #     temp_vid = img_as_uint(image)
+        #     return temp_vid
+        # # returning the image normalized as uint. Notice that difference_of_gaussians converts the image into float.
+        # for index_channels in range(0, number_channels):
+        #     init_video = Parallel(n_jobs = self.NUMBER_OF_CORES)(delayed(img_uint)(video_bp_filtered_float[i, :, :, index_channels]) for i in range(0, number_timepoints))
+        #     video_filtered[:,:,:,index_channels] = np.asarray(init_video)
+                # temporal function that converts floats to uint
         def img_uint(image):
             temp_vid = img_as_uint(image)
             return temp_vid
+
+        # temporal function that converts uint to float
+        def img_float(image):
+            temp_vid = img_as_float64(image)
+            return temp_vid
+
+        # Prealocating arrays
+        number_timepoints, number_channels   = self.video.shape[0], self.video.shape[3]
+        video_bp_filtered_float = np.zeros_like(self.video, dtype = np.float64)
+        video_float = np.zeros_like(self.video, dtype = np.float64)
+        video_filtered = np.zeros_like(self.video, dtype = np.uint16)
+
+        # returning the image normalized as uint. Notice that difference_of_gaussians converts the image into float.
+        for index_channels in range(0, number_channels):
+            temp_video = Parallel(n_jobs = self.NUMBER_OF_CORES)(delayed(img_float)(self.video [i, :, :, index_channels]) for i in range(0, number_timepoints))
+            video_float[:,:,:,index_channels] = np.asarray(temp_video)
+
+        # Applying the filter
+        for index_channels in range(0, number_channels):
+            for index_time in range(0, number_timepoints):
+                video_bp_filtered_float[index_time, :, :, index_channels] = difference_of_gaussians(video_float[index_time, :, :, index_channels], self.low_pass, self.high_pass)
+
         # returning the image normalized as uint. Notice that difference_of_gaussians converts the image into float.
         for index_channels in range(0, number_channels):
             init_video = Parallel(n_jobs = self.NUMBER_OF_CORES)(delayed(img_uint)(video_bp_filtered_float[i, :, :, index_channels]) for i in range(0, number_timepoints))
-            video_filtered = np.asarray(init_video)
-
+            video_filtered[:,:,:,index_channels] = np.asarray(init_video)
         return video_filtered
 
 
@@ -1784,8 +1923,8 @@ class Trackpy():
         self.show_plot = show_plot
         self.use_default_filter =  use_default_filter
         # parameters for the filters
-        self.low_pass_filter = 0.1
-        self.default_highpass = 10
+        self.low_pass_filter = 0.5
+        self.default_highpass = 5
         #self.gaussian_filter_sigma = 0.5
         #self.median_filter_size = 5
         #self.max_highpass = 20 #10
