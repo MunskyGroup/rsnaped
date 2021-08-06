@@ -348,7 +348,7 @@ class RemoveExtrema():
                 max_val = np.percentile(normalized_video_temp, self.max_percentile)
                 min_val = np.percentile(normalized_video_temp, self.min_percentile)
                 normalized_video_temp [normalized_video_temp > max_val] = max_val
-                normalized_video_temp [normalized_video_temp < min_val] =   min_val
+                normalized_video_temp [normalized_video_temp < min_val] = min_val
                 normalized_video_temp [normalized_video_temp < 0] = 0
         
         # Normalization for video with format [Y, X, C].
@@ -1541,7 +1541,7 @@ class CellposeFISH():
         self.diamter_nucleus = diamter_nucleus
         self.show_plot = show_plot
         NUMBER_TESTED_THRESHOLDS = 5
-        self.tested_thresholds = np.round(np.linspace(0, 1, NUMBER_TESTED_THRESHOLDS), 0)
+        self.tested_thresholds = np.round(np.linspace(0, 3, NUMBER_TESTED_THRESHOLDS), 0)
     def calculate_masks(self):
         '''
         This method performs the process of cell detection for FISH images using **Cellpose**.
