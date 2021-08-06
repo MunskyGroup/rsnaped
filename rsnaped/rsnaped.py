@@ -348,7 +348,7 @@ class RemoveExtrema():
                 max_val = np.percentile(normalized_video_temp, self.max_percentile)
                 min_val = np.percentile(normalized_video_temp, self.min_percentile)
                 normalized_video_temp [normalized_video_temp > max_val] = max_val
-                normalized_video_temp [normalized_video_temp < min_val] = 0 #  min_val
+                normalized_video_temp [normalized_video_temp < min_val] =   min_val
                 normalized_video_temp [normalized_video_temp < 0] = 0
         
         # Normalization for video with format [Y, X, C].
@@ -361,7 +361,7 @@ class RemoveExtrema():
                         max_val = np.percentile(normalized_video_temp, self.max_percentile)
                         min_val = np.percentile(normalized_video_temp, self.min_percentile)
                         normalized_video_temp [normalized_video_temp > max_val] = max_val
-                        normalized_video_temp [normalized_video_temp < min_val] = 0 # min_val
+                        normalized_video_temp [normalized_video_temp < min_val] =  min_val
                         normalized_video_temp [normalized_video_temp < 0] = 0
         
         # Normalization for video with format [T, Y, X, C] or [Z, Y, X, C].
@@ -376,7 +376,7 @@ class RemoveExtrema():
                             max_val = np.percentile(normalized_video_temp, self.max_percentile)
                             min_val = np.percentile(normalized_video_temp, self.min_percentile)
                             normalized_video_temp [normalized_video_temp > max_val] = max_val
-                            normalized_video_temp [normalized_video_temp < min_val] = 0 # min_val
+                            normalized_video_temp [normalized_video_temp < min_val] = min_val
                             normalized_video_temp [normalized_video_temp < 0] = 0
         return np.asarray(normalized_video, 'uint16')
 
@@ -1923,15 +1923,15 @@ class Trackpy():
         self.show_plot = show_plot
         self.use_default_filter =  use_default_filter
         # parameters for the filters
-        self.low_pass_filter = 0.5
-        self.default_highpass = 5
+        self.low_pass_filter = 1
+        self.default_highpass = 20
         #self.gaussian_filter_sigma = 0.5
         #self.median_filter_size = 5
         #self.max_highpass = 20 #10
         #self.min_highpass = 0.1
         self.perecentile_intensity_selection = 70 #Not modify
         self.default_threshold_int_std = 1.5
-        self.MAX_NUM_STD_OPTIMIZATION = 1.5
+        self.MAX_NUM_STD_OPTIMIZATION = 3
         # This section detects if a FISH image is passed and it adjust accordingly.
         self.FISH_image = FISH_image
         if self.FISH_image == 1:
