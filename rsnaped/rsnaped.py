@@ -1687,10 +1687,11 @@ class CellposeFISH():
                 list_masks_cytosol_no_nuclei = generate_masks_cytosol_no_nuclei(index_paired_masks, list_masks_complete_cells, list_masks_nuclei)
             else:
                 if not (self.channel_with_cytosol is None):
-                    list_masks_complete_cells = []
+                    list_masks_complete_cells = separate_masks(masks_cyto) # []
                     list_masks_nuclei = []
-                    list_masks_cytosol_no_nuclei = separate_masks(masks_cyto)
+                    list_masks_cytosol_no_nuclei = []
                     index_paired_masks =[]
+                    masks_cyto = None
                     masks_nuclei= None
                 if not (self.channel_with_nucleus is None):
                     list_masks_complete_cells = []
@@ -1701,7 +1702,6 @@ class CellposeFISH():
             return list_masks_complete_cells, list_masks_nuclei, list_masks_cytosol_no_nuclei, index_paired_masks, masks_cyto, masks_nuclei
 
         # Section of the code that optimizes to find the maximum number of index_paired_masks
-
         if not (self.channel_with_cytosol is None) and not(self.channel_with_nucleus is None):
             list_sotring_number_paired_masks = []
             for idx, threshold in enumerate(self.tested_thresholds):
@@ -1720,7 +1720,6 @@ class CellposeFISH():
         video_copy = video_normalized.copy()
         video_temp = RemoveExtrema(video_copy,min_percentile=selected_threshold,max_percentile=100-selected_threshold,selected_channels=self.channel_with_cytosol).remove_outliers() 
         list_masks_complete_cells, list_masks_nuclei, list_masks_cytosol_no_nuclei, index_paired_masks, masks_cyto,masks_nuclei  = function_to_find_masks (video_temp)
-
 
         if len(index_paired_masks) != 0 and not(self.channel_with_cytosol is None) and not(self.channel_with_nucleus is None):
             if self.show_plot == 1:
@@ -1786,6 +1785,14 @@ class CellposeFISH():
                     #    axes[2].set(title = 'Paired masks')
                     plt.show()
             print('No paired masks were detected for this image')
+
+        if (self.channel_with_cytosol is None):
+            index_paired_masks = np.linspace(0, len(list_masks_nuclei)-1, len(list_masks_nuclei), dtype='int32')
+
+        if (self.channel_with_nucleus is None):
+            index_paired_masks = np.linspace(0, len(list_masks_complete_cells)-1, len(list_masks_complete_cells), dtype='int32')
+        
+        
         return list_masks_complete_cells, list_masks_nuclei, list_masks_cytosol_no_nuclei, index_paired_masks
 
 
