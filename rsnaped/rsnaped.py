@@ -3060,6 +3060,10 @@ class SimulatedCellMultiplexing ():
             dataframe_simulated_cell.to_csv(str(save_to_path.joinpath(self.saved_file_name +'_df'+ '.csv')), index = True)
         return tensor_video, dataframe_simulated_cell, list_ssa
 
+
+#class simulatedFISH():
+
+
 class PipelineTracking():
     '''
     A pipeline that allows cell segmentation, spot detection, and tracking of spots.
