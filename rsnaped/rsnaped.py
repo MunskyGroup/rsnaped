@@ -2000,8 +2000,6 @@ class Trackpy():
             temp_image = img_as_float64(image)
             filtered_image = denoise_wavelet(temp_image, rescale_sigma=True,method='BayesShrink', mode='soft')
             return img_as_uint(filtered_image)
-
-
         if self.use_default_filter == 1: # This section uses a default value for the filter size.
             temp_vid_dif_filter = Parallel(n_jobs = self.num_cores)(delayed(bandpass_filter)(self.video[i, :, :], self.low_pass_filter, self.default_highpass) for i in range(0, self.time_points))
             #temp_vid_dif_filter = Parallel(n_jobs = self.num_cores)(delayed(wavelet_filter)(self.video[i, :, :]) for i in range(0, self.time_points))
@@ -2130,7 +2128,7 @@ class Intensity():
         # temp_crop_around_spot = selected_image[test_points[0]-int(pixel_size_around_spot/2): test_points[0]+int(pixel_size_around_spot/2)+1 , test_points[1]-int(pixel_size_around_spot/2): test_points[1]+int(pixel_size_around_spot/2)+1 ]
         # pixelated_image[center_position[0]-int(size_spot/2): center_position[0]+int(size_spot/2)+1 , center_position[1]-int(size_spot/2): center_position[1]+int(size_spot/2)+1 ] = kernel_value_intensity
         self.disk_size = int(particle_size/2) # size of the half of the crop
-        self.crop_size = particle_size+2#10 #self.disk_size+10
+        self.crop_size = particle_size+10 #self.disk_size+10
         self.show_plot = show_plot
         self.method = method # options are : 'total_intensity' , 'disk_donut' and 'gaussian_fit'
         self.particle_size = particle_size
@@ -2195,7 +2193,10 @@ class Intensity():
             mean_intensity_disk = np.amax(image_in_disk.flatten())
             # Calculate SD in the donut
             recentered_image_donut[center_coordinates-disk_size:center_coordinates+disk_size+1, center_coordinates-disk_size:center_coordinates+disk_size+1] = np.nan
+            
+            mean_intensity_donut = np.nanmean(recentered_image_donut.flatten()) # mean calculation ignoring zeros
             std_intensity_donut = np.nanstd(recentered_image_donut.flatten()) # mean calculation ignoring zeros
+            
             # Calculate SNR
             calculated_signal_to_noise_ratio = mean_intensity_disk / std_intensity_donut
             #calculated_signal_to_noise_ratio[np.isnan(calculated_signal_to_noise_ratio)] = 0 # replacing nans with zero
@@ -2550,7 +2551,8 @@ class SimulatedCell():
         if (perform_video_augmentation == 1) and (video_for_mask is None):
             base_video = AugmentationVideo(base_video).random_rotation()
         self.intensity_calculation_method = intensity_calculation_method
-        MAXIMUM_INTENSITY_IN_BASE_VIDEO = 1000
+        MAXIMUM_INTENSITY_IN_BASE_VIDEO = 10000
+        self.MAXIMUM_INTENSITY_IN_BASE_VIDEO = MAXIMUM_INTENSITY_IN_BASE_VIDEO
         if using_for_multiplexing == 0:
             base_video = RemoveExtrema(base_video, min_percentile = 1, max_percentile = 99).remove_outliers()
             base_video = ScaleIntensity(base_video, scale_maximum_value = MAXIMUM_INTENSITY_IN_BASE_VIDEO, ignore_channel = None).apply_scale()
@@ -2597,7 +2599,7 @@ class SimulatedCell():
         self.max_int_multiplexing = max_int_multiplexing
         self.frame_selection_empty_video = frame_selection_empty_video
         # The following two constants are weights used to define a range of intensities for the simulated spots.
-        self.MIN_INTENSITY_SPOT_WEIGHT = 1.2        # 1.05 lower weight that multiplays the mean intensity value in the image to define the simulated spot intensity.
+        self.MIN_INTENSITY_SPOT_WEIGHT = 1.1       # 1.05 lower weight that multiplays the mean intensity value in the image to define the simulated spot intensity.
         self.MAX_INTENSITY_SPOT_WEIGHT = 1.8          # 1.6 higher weight that multiplays the mean intensity value in the image to define the simulated spot intensity.
         self.MAX_STD_INT_IMAGE = 4 # maximum number of standard deviations above the mean that are allowed to draw an spot.
         # This function is intended to detect the mask and then reduce the mask by a given percentage. This reduction ensures that the simulated spots are inclosed inside the cell.
@@ -2668,8 +2670,8 @@ class SimulatedCell():
             pixelated_image = matrix_background.copy()
             pixelated_image_no_spots = matrix_background.copy()
             # Defining constant values
-            MIN_INTENSITY_ALL_SPOTS = 4000 # basal value for each spot
-            MAX_INTENSITY_ALL_SPOTS = 5000 # maximum allowed intensity for a given spot
+            MIN_INTENSITY_ALL_SPOTS = self.MAXIMUM_INTENSITY_IN_BASE_VIDEO #4000 # basal value for each spot
+            MAX_INTENSITY_ALL_SPOTS = 2*self.MAXIMUM_INTENSITY_IN_BASE_VIDEO  #5000 # maximum allowed intensity for a given spot
             MAX_INTENSITY_IN_UINT16 = 65535 # maximum value in a uint16 image
 
             for point_index in range(0, len(center_positions_vector)):
