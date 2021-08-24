@@ -2142,7 +2142,14 @@ class Intensity():
             print ('Error a trackpy_dataframe or spot_positions_movement should be given')
             raise
         self.step_size = step_size
-        self.NUMBER_OF_CORES = multiprocessing.cpu_count()
+        
+        #If the video is longer than 1000 frames  avoid using parallel computing. Necessary to avoid issues with the memory.
+        if video.shape[0] < 1000:
+            self.NUMBER_OF_CORES = multiprocessing.cpu_count()
+        else:
+            self.NUMBER_OF_CORES =1
+
+
     def calculate_intensity(self):
         '''
         This method calculates the spot intensity.
@@ -2650,8 +2657,6 @@ class SimulatedCell():
         --  --  -- -
         tensor_video : NumPy array uint16
             Array with dimensions [T, Y, X, C]
-        tensor_for_image_j : NumPy array uint16
-            Array with dimensions [T, Z, C, Y, X]
         spot_positions_movement : NumPy array
             Array with dimensions [T, Spots, position(y, x)]
         tensor_mean_intensity_in_figure : NumPy array, np.float
@@ -2857,16 +2862,7 @@ class SimulatedCell():
         tensor_video [:, :, :, 0] =  tensor_image_ch0
         tensor_video [:, :, :, 1] =  tensor_image_ch1
         tensor_video [:, :, :, 2] =  tensor_image_ch2
-    # This section saves the tensor as a imagej array 5D. In the orderd :  TZCYX
-        tensor_for_image_j = np.zeros((len(self.time_vector), self.z_slices, self.n_channels, self.image_size[0], self.image_size[1]), dtype = np.uint16)
-        for i, _ in enumerate(self.time_vector):
-            for ch in range(0, 3):
-                if ch == 0:
-                    tensor_for_image_j [i, 0, 0, :, :] = tensor_image_ch0 [i, :, :]
-                if ch == 1:
-                    tensor_for_image_j [i, 0, 1, :, :] = tensor_image_ch1 [i, :, :]
-                if ch == 2:
-                    tensor_for_image_j [i, 0, 2, :, :] = tensor_image_ch2 [i, :, :]
+
         # This section saves dataframes and simulated images
         if (self.save_as_tif_uint8 == 1) or (self.save_as_gif == 1):
             if self.create_temp_folder == True:
@@ -2906,6 +2902,7 @@ class SimulatedCell():
             else:
                 save_to_path = pathlib.Path().absolute()
             tifffile.imwrite(str(save_to_path.joinpath(self.saved_file_name+'.tif')), tensor_video)
+        
         dataframe_particles, _, _, _, _, _, _ = Intensity(tensor_video, particle_size = self.size_spot_ch0, spot_positions_movement = spot_positions_movement, method = self.intensity_calculation_method, step_size = self.step_size, show_plot = 0 ).calculate_intensity()
         if self.save_dataframe == 1:
             if self.create_temp_folder == True:
@@ -2916,7 +2913,7 @@ class SimulatedCell():
             else:
                 save_to_path = pathlib.Path().absolute()
             dataframe_particles.to_csv(str(save_to_path.joinpath(self.saved_file_name +'_df'+ '.csv')), index = True)
-        return tensor_video , tensor_for_image_j , spot_positions_movement, dataframe_particles
+        return tensor_video , spot_positions_movement, dataframe_particles
 
 
 class SimulatedCellMultiplexing ():
@@ -3055,7 +3052,7 @@ class SimulatedCellMultiplexing ():
                 simulated_trajectories_ch1 = None
                 simulated_trajectories_ch2 = ssa
             number_spots_per_cell = ssa.shape[0]
-            tensor_video , _ , _,DataFrame_particles_intensities = SimulatedCell( base_video = base_video, video_for_mask = video_for_mask, number_spots = number_spots_per_cell, number_frames = ssa.shape[1], step_size = step_size, diffusion_coefficient = diffusion_coefficient, simulated_trajectories_ch0 = simulated_trajectories_ch0, size_spot_ch0 = spot_size, spot_sigma_ch0 = spot_sigma, simulated_trajectories_ch1 = simulated_trajectories_ch1, size_spot_ch1 = spot_size, spot_sigma_ch1 = spot_sigma, simulated_trajectories_ch2 = simulated_trajectories_ch2, size_spot_ch2 = spot_size, spot_sigma_ch2 = spot_sigma, save_as_tif_uint8 = 0, save_as_tif = 0, save_as_gif = save_as_gif, save_dataframe = 0, create_temp_folder = 1, intensity_calculation_method = intensity_calculation_method, using_for_multiplexing = using_for_multiplexing, min_int_multiplexing = min_int_multiplexing, max_int_multiplexing = max_int_multiplexing, frame_selection_empty_video = frame_selection_empty_video, ignore_trajectories_ch0 = ignore_trajectories_ch0, ignore_trajectories_ch1 = ignore_trajectories_ch1,ignore_trajectories_ch2 = ignore_trajectories_ch2).make_simulation()
+            tensor_video, _,DataFrame_particles_intensities = SimulatedCell( base_video = base_video, video_for_mask = video_for_mask, number_spots = number_spots_per_cell, number_frames = ssa.shape[1], step_size = step_size, diffusion_coefficient = diffusion_coefficient, simulated_trajectories_ch0 = simulated_trajectories_ch0, size_spot_ch0 = spot_size, spot_sigma_ch0 = spot_sigma, simulated_trajectories_ch1 = simulated_trajectories_ch1, size_spot_ch1 = spot_size, spot_sigma_ch1 = spot_sigma, simulated_trajectories_ch2 = simulated_trajectories_ch2, size_spot_ch2 = spot_size, spot_sigma_ch2 = spot_sigma, save_as_tif_uint8 = 0, save_as_tif = 0, save_as_gif = save_as_gif, save_dataframe = 0, create_temp_folder = 1, intensity_calculation_method = intensity_calculation_method, using_for_multiplexing = using_for_multiplexing, min_int_multiplexing = min_int_multiplexing, max_int_multiplexing = max_int_multiplexing, frame_selection_empty_video = frame_selection_empty_video, ignore_trajectories_ch0 = ignore_trajectories_ch0, ignore_trajectories_ch1 = ignore_trajectories_ch1,ignore_trajectories_ch2 = ignore_trajectories_ch2).make_simulation()
             DataFrame_particles_intensities['cell_number'] = DataFrame_particles_intensities['cell_number'].replace([0], self.cell_number)
             return tensor_video, DataFrame_particles_intensities  # [cell_number, particle, frame, red_int_mean, green_int_mean, blue_int_mean, red_int_std, green_int_std, blue_int_std, x, y].
         # Runs the SSA and the simulated cell functions
