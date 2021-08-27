@@ -2128,7 +2128,7 @@ class Intensity():
         # temp_crop_around_spot = selected_image[test_points[0]-int(pixel_size_around_spot/2): test_points[0]+int(pixel_size_around_spot/2)+1 , test_points[1]-int(pixel_size_around_spot/2): test_points[1]+int(pixel_size_around_spot/2)+1 ]
         # pixelated_image[center_position[0]-int(size_spot/2): center_position[0]+int(size_spot/2)+1 , center_position[1]-int(size_spot/2): center_position[1]+int(size_spot/2)+1 ] = kernel_value_intensity
         self.disk_size = int(particle_size/2) # size of the half of the crop
-        self.crop_size = particle_size+10 #self.disk_size+10
+        self.crop_size = self.disk_size+10
         self.show_plot = show_plot
         self.method = method # options are : 'total_intensity' , 'disk_donut' and 'gaussian_fit'
         self.particle_size = particle_size
@@ -2194,21 +2194,20 @@ class Intensity():
         def signal_to_noise_ratio(test_im:np.ndarray, disk_size:int):
             # Function that calculates intensity using the disk and donut method
             center_coordinates = int(test_im.shape[0]/2)
-            recentered_image_donut = test_im.copy().astype(np.float32)
             # mean intensity in disk
             image_in_disk = test_im[center_coordinates-disk_size:center_coordinates+disk_size+1, center_coordinates-disk_size:center_coordinates+disk_size+1]
-            mean_intensity_disk = np.amax(image_in_disk.flatten())
+            mean_intensity_disk = np.mean(image_in_disk.flatten())
             # Calculate SD in the donut
+            recentered_image_donut = test_im.copy().astype(np.float32)
             recentered_image_donut[center_coordinates-disk_size:center_coordinates+disk_size+1, center_coordinates-disk_size:center_coordinates+disk_size+1] = np.nan
-            
             mean_intensity_donut = np.nanmean(recentered_image_donut.flatten()) # mean calculation ignoring zeros
             std_intensity_donut = np.nanstd(recentered_image_donut.flatten()) # mean calculation ignoring zeros
-            
             # Calculate SNR
             calculated_signal_to_noise_ratio = mean_intensity_disk / std_intensity_donut
+            #num_nonnan = np.count_nonzero(~np.isnan( recentered_image_donut.flatten() ))
+            #num_nonnan = test_im.shape[1]
             #calculated_signal_to_noise_ratio[np.isnan(calculated_signal_to_noise_ratio)] = 0 # replacing nans with zero
             return calculated_signal_to_noise_ratio
-
 
         def disk_donut(test_im:np.ndarray, disk_size:int):
             # Function that calculates intensity using the disk and donut method
@@ -2687,7 +2686,7 @@ class SimulatedCell():
                 #kernel = kernel / np.sum(kernel) # normalized to one
                 # creating a position for each spot
                 center_position = center_positions_vector[point_index]
-                pixel_size_around_spot = size_spot + 5
+                pixel_size_around_spot = size_spot + 2
                 #try:
                 # this section calculates the basal intensity around an spots
                 temp_int_around_spot = pixelated_image_no_spots[center_position[0]-int(pixel_size_around_spot/2): center_position[0]+int(pixel_size_around_spot/2)+1 , center_position[1]-int(pixel_size_around_spot/2): center_position[1]+int(pixel_size_around_spot/2)+1 ]
