@@ -2002,8 +2002,11 @@ class Trackpy():
             return img_as_uint(filtered_image)
         if self.use_default_filter == 1: # This section uses a default value for the filter size.
             temp_vid_dif_filter = Parallel(n_jobs = self.num_cores)(delayed(bandpass_filter)(self.video[i, :, :], self.low_pass_filter, self.default_highpass) for i in range(0, self.time_points))
-            #temp_vid_dif_filter = Parallel(n_jobs = self.num_cores)(delayed(wavelet_filter)(self.video[i, :, :]) for i in range(0, self.time_points))
             temp_video_bp_filtered = np.asarray(temp_vid_dif_filter)
+
+            temp_vid_dif_filter = Parallel(n_jobs = self.num_cores)(delayed(bandpass_filter)(temp_video_bp_filtered[i, :, :], 0.1, 10) for i in range(0, self.time_points))
+            temp_video_bp_filtered = np.asarray(temp_vid_dif_filter)
+
             #temp_video_bp_filtered = self.video
             video_removed_mask = np.einsum('ijk, jk -> ijk', temp_video_bp_filtered, self.mask)
             f_init = tp.locate(video_removed_mask[0, :, :], self.particle_size, minmass = 0, max_iterations = 100, preprocess = False, percentile = percentile)
@@ -2128,7 +2131,7 @@ class Intensity():
         # temp_crop_around_spot = selected_image[test_points[0]-int(pixel_size_around_spot/2): test_points[0]+int(pixel_size_around_spot/2)+1 , test_points[1]-int(pixel_size_around_spot/2): test_points[1]+int(pixel_size_around_spot/2)+1 ]
         # pixelated_image[center_position[0]-int(size_spot/2): center_position[0]+int(size_spot/2)+1 , center_position[1]-int(size_spot/2): center_position[1]+int(size_spot/2)+1 ] = kernel_value_intensity
         self.disk_size = int(particle_size/2) # size of the half of the crop
-        self.crop_size = self.disk_size+10
+        self.crop_size = self.disk_size*2
         self.show_plot = show_plot
         self.method = method # options are : 'total_intensity' , 'disk_donut' and 'gaussian_fit'
         self.particle_size = particle_size
@@ -2562,7 +2565,7 @@ class SimulatedCell():
         if using_for_multiplexing == 0:
             base_video = RemoveExtrema(base_video, min_percentile = 1, max_percentile = 99).remove_outliers()
             base_video = ScaleIntensity(base_video, scale_maximum_value = MAXIMUM_INTENSITY_IN_BASE_VIDEO, ignore_channel = None).apply_scale()
-            base_video = GaussianFilter(base_video, sigma= 3).apply_filter()
+            #base_video = GaussianFilter(base_video, sigma= 3).apply_filter()
         self.base_video = base_video
         if not (video_for_mask is None):
             video_for_mask = RemoveExtrema(video_for_mask, min_percentile = 0, max_percentile = 99.8).remove_outliers()
@@ -2605,9 +2608,9 @@ class SimulatedCell():
         self.max_int_multiplexing = max_int_multiplexing
         self.frame_selection_empty_video = frame_selection_empty_video
         # The following two constants are weights used to define a range of intensities for the simulated spots.
-        self.MIN_INTENSITY_SPOT_WEIGHT = 1.1       # 1.05 lower weight that multiplays the mean intensity value in the image to define the simulated spot intensity.
-        self.MAX_INTENSITY_SPOT_WEIGHT = 1.8          # 1.6 higher weight that multiplays the mean intensity value in the image to define the simulated spot intensity.
-        self.MAX_STD_INT_IMAGE = 4 # maximum number of standard deviations above the mean that are allowed to draw an spot.
+        self.MIN_INTENSITY_SPOT_WEIGHT = 1.2 # 1.1       # 1.05 lower weight that multiplays the mean intensity value in the image to define the simulated spot intensity.
+        self.MAX_INTENSITY_SPOT_WEIGHT = 1.8 # 1.8          # 1.6 higher weight that multiplays the mean intensity value in the image to define the simulated spot intensity.
+        self.MAX_STD_INT_IMAGE = 3 # maximum number of standard deviations above the mean that are allowed to draw an spot.
         # This function is intended to detect the mask and then reduce the mask by a given percentage. This reduction ensures that the simulated spots are inclosed inside the cell.
         def mask_reduction(polygon_array, percentage_reduction:float = 0.2):
             # Reducing the size of the mask to plot only inside the cell.
