@@ -2001,11 +2001,14 @@ class Trackpy():
             filtered_image = denoise_wavelet(temp_image, rescale_sigma=True,method='BayesShrink', mode='soft')
             return img_as_uint(filtered_image)
         if self.use_default_filter == 1: # This section uses a default value for the filter size.
+            
+            #temp_vid_dif_filter = Parallel(n_jobs = self.num_cores)(delayed(gaussian_filter)(self.video[i, :, :], 3) for i in range(0, self.time_points))
+            #temp_video_bp_filtered = np.asarray(temp_vid_dif_filter)
+
             temp_vid_dif_filter = Parallel(n_jobs = self.num_cores)(delayed(bandpass_filter)(self.video[i, :, :], self.low_pass_filter, self.default_highpass) for i in range(0, self.time_points))
             temp_video_bp_filtered = np.asarray(temp_vid_dif_filter)
 
-            temp_vid_dif_filter = Parallel(n_jobs = self.num_cores)(delayed(bandpass_filter)(temp_video_bp_filtered[i, :, :], 0.1, 10) for i in range(0, self.time_points))
-            temp_video_bp_filtered = np.asarray(temp_vid_dif_filter)
+
 
             #temp_video_bp_filtered = self.video
             video_removed_mask = np.einsum('ijk, jk -> ijk', temp_video_bp_filtered, self.mask)
@@ -2608,8 +2611,8 @@ class SimulatedCell():
         self.max_int_multiplexing = max_int_multiplexing
         self.frame_selection_empty_video = frame_selection_empty_video
         # The following two constants are weights used to define a range of intensities for the simulated spots.
-        self.MIN_INTENSITY_SPOT_WEIGHT = 1.2 # 1.1       # 1.05 lower weight that multiplays the mean intensity value in the image to define the simulated spot intensity.
-        self.MAX_INTENSITY_SPOT_WEIGHT = 1.8 # 1.8          # 1.6 higher weight that multiplays the mean intensity value in the image to define the simulated spot intensity.
+        self.MIN_INTENSITY_SPOT_WEIGHT = 2#1.5 # 1.1       # 1.05 lower weight that multiplays the mean intensity value in the image to define the simulated spot intensity.
+        self.MAX_INTENSITY_SPOT_WEIGHT = 4#2 # 1.8          # 1.6 higher weight that multiplays the mean intensity value in the image to define the simulated spot intensity.
         self.MAX_STD_INT_IMAGE = 3 # maximum number of standard deviations above the mean that are allowed to draw an spot.
         # This function is intended to detect the mask and then reduce the mask by a given percentage. This reduction ensures that the simulated spots are inclosed inside the cell.
         def mask_reduction(polygon_array, percentage_reduction:float = 0.2):
