@@ -6,6 +6,7 @@ Output/
 __pycache__/
 rsnaped.egg-info
 DataSets/
+DataBases/
 .vscode
 LargeDataSets/
 
