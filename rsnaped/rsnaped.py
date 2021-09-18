@@ -1934,8 +1934,8 @@ class Trackpy():
         self.show_plot = show_plot
         self.use_default_filter =  use_default_filter
         # parameters for the filters
-        self.low_pass_filter = 0.5
-        self.highpass_filter = 10
+        self.low_pass_filter = 0.1
+        self.highpass_filter = 5
         #self.gaussian_filter_sigma = 0.5
         #self.median_filter_size = 5
         #self.max_highpass = 20 #10
@@ -1943,7 +1943,7 @@ class Trackpy():
         self.perecentile_intensity_selection = 70 #Not modify
         self.default_threshold_int_std = 0.5  # very important parameter. 1 works well
         #self.MAX_NUM_STD_OPTIMIZATION = 2
-        self.MAX_INT_OPTIMIZATION = 3000
+        self.MAX_INT_OPTIMIZATION = 1500
         # This section detects if a FISH image is passed and it adjust accordingly.
         self.FISH_image = FISH_image
         if self.FISH_image == 1:
@@ -2118,7 +2118,7 @@ class Intensity():
         # temp_crop_around_spot = selected_image[test_points[0]-int(pixel_size_around_spot/2): test_points[0]+int(pixel_size_around_spot/2)+1 , test_points[1]-int(pixel_size_around_spot/2): test_points[1]+int(pixel_size_around_spot/2)+1 ]
         # pixelated_image[center_position[0]-int(size_spot/2): center_position[0]+int(size_spot/2)+1 , center_position[1]-int(size_spot/2): center_position[1]+int(size_spot/2)+1 ] = kernel_value_intensity
         self.disk_size = int(particle_size/2) # size of the half of the crop
-        self.crop_size = self.disk_size*2
+        self.crop_size = int(particle_size/2)*2
         self.show_plot = show_plot
         self.method = method # options are : 'total_intensity' , 'disk_donut' and 'gaussian_fit'
         self.particle_size = particle_size
@@ -2211,8 +2211,8 @@ class Intensity():
             # mean intensity in disk
             image_in_disk = test_im[center_coordinates-disk_size:center_coordinates+disk_size+1, center_coordinates-disk_size:center_coordinates+disk_size+1]
             #mean_intensity_disk = image_in_disk.mean() # mean calculation ignoring zeros
-            mean_intensity_disk = np.amax(image_in_disk.flatten())
-            #mean_intensity_disk = np.mean(image_in_disk)
+            #mean_intensity_disk = np.amax(image_in_disk.flatten())
+            mean_intensity_disk = np.mean(image_in_disk)
             spot_intensity_disk_donut_std = np.std(image_in_disk)
             # mean intensity in donut.  The center is set to zeros and then the mean is calculated ignoring the zeros.
             #recentered_image_donut[center_coordinates-disk_size:center_coordinates+disk_size+1, center_coordinates-disk_size:center_coordinates+disk_size+1] = 0
@@ -2241,7 +2241,6 @@ class Intensity():
                 for i in range(0, number_channels):
                     x_pos = self.spot_positions_movement[j,particle_index, 1]
                     y_pos = self.spot_positions_movement[j,particle_index, 0]
-                    
                     if self.method == 'disk_donut':
                         crop_image = return_crop(self.video[j, :, :, i], x_pos, y_pos, self.crop_size) # NOT RECENTERING IMAGE
                         intensities_mean[j, i], intensities_std[j, i] = disk_donut(crop_image,self.disk_size)
@@ -2314,7 +2313,6 @@ class Intensity():
             array_intensities_snr = np.asarray([list_intensities_mean_std_snr[i][2]  for i in range(0,len(list_intensities_mean_std_snr))]   )
             array_intensities_background_mean = np.asarray([list_intensities_mean_std_snr[i][3]  for i in range(0,len(list_intensities_mean_std_snr))]   )
             array_intensities_background_std = np.asarray([list_intensities_mean_std_snr[i][4]  for i in range(0,len(list_intensities_mean_std_snr))]   )
-
 
         # Calculate mean intensities.
         mean_intensities = np.nanmean(array_intensities_mean, axis = 0, dtype = np.float32)
@@ -2539,7 +2537,7 @@ class SimulatedCell():
     intensity_scale_ch2 : float , optional
         Scaling factor for channel 2 that converts the intensity in the stochastic simulations to the intensity in the image.
     '''
-    def __init__(self, base_video:np.ndarray, video_for_mask:Union[np.ndarray, None] = None, number_spots:int = 10, number_frames:int = 20, step_size:float = 1, diffusion_coefficient:float = 0.01, simulated_trajectories_ch0:Union[np.ndarray, None]  = None, size_spot_ch0:int = 5, spot_sigma_ch0:int = 2, simulated_trajectories_ch1:Union[np.ndarray, None] = None, size_spot_ch1:int = 5, spot_sigma_ch1:int = 2, simulated_trajectories_ch2:Union[np.ndarray, None] = None, size_spot_ch2:int = 5, spot_sigma_ch2:int = 2, ignore_ch0: bool = 0, ignore_ch1: bool = 0, ignore_ch2: bool = 0, save_as_tif_uint8: bool = 0, save_as_tif: bool = 0, save_as_gif: bool = 0, save_dataframe: bool = 0, saved_file_name :str = 'temp', create_temp_folder: bool = True, intensity_calculation_method :str = 'disk_donut', using_for_multiplexing = 0, min_int_multiplexing: bool = None, max_int_multiplexing :Union[float, None] = None, perform_video_augmentation: bool = 0, frame_selection_empty_video:str = 'shuffle',ignore_trajectories_ch0:bool =0, ignore_trajectories_ch1:bool =0, ignore_trajectories_ch2:bool =0,intensity_scale_ch0:float = 10,intensity_scale_ch1:float = 10,intensity_scale_ch2:float = 10 ):
+    def __init__(self, base_video:np.ndarray, video_for_mask:Union[np.ndarray, None] = None, number_spots:int = 10, number_frames:int = 20, step_size:float = 1, diffusion_coefficient:float = 0.01, simulated_trajectories_ch0:Union[np.ndarray, None]  = None, size_spot_ch0:int = 5, spot_sigma_ch0:int = 1, simulated_trajectories_ch1:Union[np.ndarray, None] = None, size_spot_ch1:int = 5, spot_sigma_ch1:int = 1, simulated_trajectories_ch2:Union[np.ndarray, None] = None, size_spot_ch2:int = 5, spot_sigma_ch2:int = 1, ignore_ch0: bool = 0, ignore_ch1: bool = 0, ignore_ch2: bool = 0, save_as_tif_uint8: bool = 0, save_as_tif: bool = 0, save_as_gif: bool = 0, save_dataframe: bool = 0, saved_file_name :str = 'temp', create_temp_folder: bool = True, intensity_calculation_method :str = 'disk_donut', using_for_multiplexing = 0, min_int_multiplexing: bool = None, max_int_multiplexing :Union[float, None] = None, perform_video_augmentation: bool = 0, frame_selection_empty_video:str = 'shuffle',ignore_trajectories_ch0:bool =0, ignore_trajectories_ch1:bool =0, ignore_trajectories_ch2:bool =0,intensity_scale_ch0:float = 10,intensity_scale_ch1:float = 10,intensity_scale_ch2:float = 10 ):
         if (perform_video_augmentation == 1) and (video_for_mask is None):
             base_video = AugmentationVideo(base_video).random_rotation()
         self.intensity_calculation_method = intensity_calculation_method
@@ -2654,7 +2652,9 @@ class SimulatedCell():
         def make_replacement_pixelated_spots(matrix_background:np.ndarray, center_positions_vector:np.ndarray, size_spot:int, spot_sigma:int, using_ssa:bool, simulated_trajectories_time_point:np.ndarray, min_SSA_value:float, max_SSA_value:float,intensity_scale:float):
             #This function is intended to replace a kernel gaussian matrix for each spot position. The kernel gaussian matrix is scaled with the values obtained from the SSA o with the values given in a range.
             if size_spot%2 == 0:
-                size_spot = size_spot+1
+                print('The size of the spot must be an odd number')
+                raise
+            #    size_spot = size_spot+1
             # Copy the matrix_background
             pixelated_image = matrix_background.copy()
             for point_index in range(0, len(center_positions_vector)):
