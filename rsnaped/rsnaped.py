@@ -2169,7 +2169,6 @@ class Intensity():
         array_intensities_background_mean = np.zeros((self.n_particles, time_points, number_channels))
         array_intensities_background_std = np.zeros((self.n_particles, time_points, number_channels))
 
-
         def gaussian_fit(test_im):
             size_spot = test_im.shape[0]
             image_flat = test_im.ravel()
