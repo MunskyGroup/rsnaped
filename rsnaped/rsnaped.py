@@ -180,21 +180,22 @@ class MergeChannels():
         list_file_names =[]
         list_merged_images =[]  # list that stores all files belonging to the same image in a sublist
         ending_string = re.compile(self.substring_to_detect_in_file_name)  # detecting files ending in _C0.tif
+        save_to_path = self.directory.joinpath('merged')
         for _, _, files in os.walk(self.directory):
             for file in files:
                 if ending_string.match(file):
                     prefix = file.rpartition('_')[0]  # stores a string with the first part of the file name before the last underscore character in the file name string.
-                    list_files_per_image = glob.glob( str(self.directory.joinpath(prefix)) + '*.tif')
+                    list_files_per_image = sorted ( glob.glob( str(self.directory.joinpath(prefix)) + '*.tif'))
                     list_file_names.append(prefix)
                     merged_img = np.concatenate([ imread(list_files_per_image[i])[..., np.newaxis] for i,_ in enumerate(list_files_per_image)],axis=-1).astype('uint16')
                     list_merged_images.append(merged_img) 
                     if self.save_figure ==1:
-                        save_to_path = self.directory.joinpath('merged')
                         if not os.path.exists(str(save_to_path)):
                             os.makedirs(str(save_to_path))
                         tifffile.imsave(str(save_to_path.joinpath(prefix+'_merged'+'.tif')), merged_img, metadata={'axes': 'ZYXC'})
+                    #del merged_img, list_files_per_image
         number_files = len(list_file_names)
-        return list_file_names, list_merged_images, number_files
+        return list_file_names, list_merged_images, number_files,save_to_path
 
 
 class ConvertToStandardFormat():
