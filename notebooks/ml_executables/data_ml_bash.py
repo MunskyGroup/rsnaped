@@ -44,7 +44,7 @@ parser = argparse.ArgumentParser(description='Pass parameters for simulation')
 parser.add_argument('integers', metavar='N', type=float, nargs='+')
 args = parser.parse_args().integers
 # Parameters for simulation
-number_total_of_spots = int(args[0])
+total_number_of_spots = int(args[0])
 simulation_time_in_sec = int(args[1])
 ke_gene_0 =args[2]
 ke_gene_1 = args[3]
@@ -53,7 +53,7 @@ ki_gene_1 =args[5]
 
 
 print ('==== Running simulation ====', '\n',
-    'number_total_of_spots = ', number_total_of_spots,  ' \n',
+    'total_number_of_spots = ', total_number_of_spots,  ' \n',
     'simulation time = ',simulation_time_in_sec, ' \n',
     'ke gene 0 = ',ke_gene_0, ' \n',
     'ke gene 1 = ',ke_gene_1, ' \n',
@@ -87,7 +87,7 @@ save_dataframe = 0 # option to save the simulation output as a dataframe in form
 create_temp_folder = 0 # saves the video and data frame in a temp folder
 spot_size = 5 # size of spots in pixels
 list_number_spots = [25, 25] # list of integers, where each element represents the number of spots
-number_cells = int(number_total_of_spots // sum (list_number_spots))  # Number of simulated Cell
+number_cells = int(total_number_of_spots // sum (list_number_spots))  # Number of simulated Cell
 
 if number_cells <1:
     number_cells =1
