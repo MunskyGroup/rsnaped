@@ -1930,6 +1930,9 @@ class Trackpy():
 
         if minimal_frames > self.time_points:     # this line is making sure that "minimal_frames" is always less or equal than the total number of frames
             minimal_frames = self.time_points
+        
+
+
         self.minimal_frames = minimal_frames
         self.optimization_iterations = optimization_iterations
         self.show_plot = show_plot
@@ -1944,13 +1947,26 @@ class Trackpy():
         self.perecentile_intensity_selection = 70 #Not modify
         self.default_threshold_int_std = 0.5  # very important parameter. 1 works well
         #self.MAX_NUM_STD_OPTIMIZATION = 2
-        self.MAX_INT_OPTIMIZATION = 1500
         # This section detects if a FISH image is passed and it adjust accordingly.
         self.FISH_image = FISH_image
         if self.FISH_image == 1:
             self.min_time_particle_vanishes = 0
             self.max_distance_particle_moves = 1
             self.minimal_frames = minimal_frames
+
+        def bandpass_filter (image: np.ndarray, lowfilter, highpass):
+            temp_vid = difference_of_gaussians(image, lowfilter, highpass, truncate = 3.0)
+            return img_as_uint(temp_vid)
+
+        if use_default_filter ==0:
+            tmp_video = video[0, :, :,selected_channel].copy()
+            temp_vid_dif_filter = Parallel(n_jobs = self.num_cores)(delayed(bandpass_filter)(tmp_video, self.low_pass_filter, self.highpass_filter) for i in range(0, self.time_points))
+            temp_video_bp_filtered = np.asarray(temp_vid_dif_filter)
+            video_removed_mask = np.einsum('ijk, jk -> ijk', temp_video_bp_filtered, self.mask)
+            f_init = tp.locate(video_removed_mask[0, :, :], self.particle_size, minmass = 0, max_iterations = 100, preprocess = False, percentile = 70)
+            self.MAX_INT_OPTIMIZATION = np.amax( (0, np.round( np.mean(f_init.mass.values) + self.default_threshold_int_std *np.std(f_init.mass.values))))
+        else:
+            self.MAX_INT_OPTIMIZATION = 0
     def perform_tracking(self):
         '''
         This method
