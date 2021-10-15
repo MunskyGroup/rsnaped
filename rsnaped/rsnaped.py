@@ -1930,9 +1930,6 @@ class Trackpy():
 
         if minimal_frames > self.time_points:     # this line is making sure that "minimal_frames" is always less or equal than the total number of frames
             minimal_frames = self.time_points
-        
-
-
         self.minimal_frames = minimal_frames
         self.optimization_iterations = optimization_iterations
         self.show_plot = show_plot
@@ -2205,14 +2202,21 @@ class Intensity():
             center_coordinates = int(test_im.shape[0]/2)
             # mean intensity in disk
             image_in_disk = test_im[center_coordinates-disk_size:center_coordinates+disk_size+1, center_coordinates-disk_size:center_coordinates+disk_size+1]
-            mean_intensity_disk = np.mean(image_in_disk.flatten())
+            mean_intensity_disk = np.mean(image_in_disk.flatten())            
+                        
+            
             # Calculate SD in the donut
             recentered_image_donut = test_im.copy().astype(np.float32)
             recentered_image_donut[center_coordinates-disk_size:center_coordinates+disk_size+1, center_coordinates-disk_size:center_coordinates+disk_size+1] = np.nan
             mean_intensity_donut = np.nanmean(recentered_image_donut.flatten()) # mean calculation ignoring zeros
             std_intensity_donut = np.nanstd(recentered_image_donut.flatten()) # mean calculation ignoring zeros
             # Calculate SNR
-            calculated_signal_to_noise_ratio = mean_intensity_disk / std_intensity_donut
+            calculated_signal_to_noise_ratio = (mean_intensity_disk-mean_intensity_donut) / std_intensity_donut
+
+            # Calculation using a gaussian filter
+            #amp_gaussian_fit,_ = gaussian_fit(test_im)
+            #calculated_signal_to_noise_ratio = (amp_gaussian_fit-mean_intensity_donut) / std_intensity_donut
+
             #num_nonnan = np.count_nonzero(~np.isnan( recentered_image_donut.flatten() ))
             #num_nonnan = test_im.shape[1]
             #calculated_signal_to_noise_ratio[np.isnan(calculated_signal_to_noise_ratio)] = 0 # replacing nans with zero
