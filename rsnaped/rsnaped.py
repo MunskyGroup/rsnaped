@@ -101,6 +101,89 @@ if import_libraries == 1:
     plt.style.use("dark_background")
 
 
+class SSA_rsnapsim():
+    '''
+    This class uses rsnapsim to simulate the single-molecule translation dynamics of any gene.
+    
+    Parameters
+    --  --  --  --  -- 
+
+    gene_file : str, 
+        Path to the location of a FASTA file.
+    ke : float, optional.
+        Elongation rate. The default is 10.0.
+    ki: float, optional.
+        Initiation rate. The default is 0.03.
+    frames: int, optional.
+        Total number of simulation frames in seconds. The default is 300.
+    n_traj: int, optional.
+        Number of trajectories to simulate. The default is 20.
+    frame_rate : int, optional.
+        Frame rate per second. The default is 1.
+    t_burnin : int , optional
+        time of burnin. The default is 1000
+    use_Harringtonin: bool, optional
+        Flag to specify if harringtonin is used in the experiment. The default is 0.
+    use_FRAP: bool
+        Flag to specify if FRAP is used in the experiment. The default is 0.
+    perturbation_time_start: int, optional.
+        Time to start the inhibition. The default is 0.
+    perturbation_time_stop : int, opt.
+        Time to start the inhibition. The default is None.
+
+    Outputs:
+
+    '''  
+    def __init__(self,gene_file,ke=10,ki=0.03,frames=300,frame_rate=1,n_traj=20,t_burnin=1000,use_Harringtonin=0,use_FRAP=0, perturbation_time_start=0,perturbation_time_stop=None):
+        self.gene_file=gene_file
+        self.ke=ke
+        self.ki=ki
+        self.frames=frames
+        self.frame_rate=frame_rate
+        self.n_traj=n_traj
+        self.t_burnin=t_burnin
+        self.use_Harringtonin=use_Harringtonin
+        self.use_FRAP=use_FRAP
+        self.perturbation_time_start=perturbation_time_start
+        self.perturbation_time_stop=perturbation_time_stop
+        self.NUMBER_OF_CORES = multiprocessing.cpu_count()
+
+    def simulate(self):
+
+        '''
+        Method runs rSNAPsim and simulates the single molecule translation dynamics.
+
+        Returns
+        --  --  -- -
+        ssa_int : NumPy array.
+            Contains the SSA trajectories with dimensions [Time_points, simulated_trajectories].
+        ssa_ump : NumPy array.
+            SSA trajectories in UMP(units of mature protein). SSA trajectories normalized by the number of probes in the sequence.  Array with dimensions [Time_points, simulated_trajectories].
+        time_vector: NumPy array with dimensions [1, Time_points].
+            Time vector used in the simulation.
+
+        '''
+        t = np.linspace(0,self.t_burnin+self.frames,(self.t_burnin+self.frames+1)*(self.frame_rate))
+        _, _, tagged_pois,_ = rss.seqmanip.open_seq_file(str(self.gene_file))
+        gene_obj = tagged_pois['1'][0]
+        gene_obj.ke_mu = self.ke
+        number_probes = np.amax(gene_obj.probe_vec)
+
+        if not ( self.perturbation_time_stop is None):
+            t_stop_perturbation = self.perturbation_time_stop
+        else:
+            t_stop_perturbation = self.t_burnin+self.frames
+        perturbation_list = [self.use_FRAP, self.use_Harringtonin,self.perturbation_time_start+self.t_burnin,t_stop_perturbation]
+
+        def ssa_parallel(gene_obj,t,t_burnin,ki ):
+            rss.solver.protein = gene_obj #pass the protein object
+            ssa_solution = rss.solver.solve_ssa(gene_obj.kelong,t,perturb=perturbation_list,ki=ki, low_memory=True, n_traj=1 )
+            return np.transpose( ssa_solution.intensity_vec[0,t_burnin*self.frame_rate:-1,:]) 
+        list_ssa = Parallel(n_jobs=self.NUMBER_OF_CORES)(delayed(ssa_parallel)(gene_obj,t,self.t_burnin,self.ki) for i in range(0,self.n_traj)) 
+        ssa = np.concatenate( list_ssa, axis=0 )
+        ssa_ump = ssa/number_probes
+        return ssa, ssa_ump, t
+
 
 class ReadImages():
     '''
@@ -137,7 +220,6 @@ class ReadImages():
         list_images = [imread(f) for f in path_files]
 
         return list_images, path_files, list_files_names, number_files
-
 
 
 class MergeChannels():
@@ -1904,7 +1986,7 @@ class Trackpy():
         Threshold intensity for tracking
     '''
     def __init__(self, video:np.ndarray, mask:np.ndarray, particle_size:int = 5, selected_channel:int = 0, minimal_frames:int = 5, optimization_iterations:int = 10, use_default_filter:int = 1, FISH_image: bool = 0, show_plot:bool = 1):
-        self.num_cores = multiprocessing.cpu_count()
+        self.NUMBER_OF_CORES = multiprocessing.cpu_count()
         self.time_points = video.shape[0]
         self.selected_channel = selected_channel
         # function that remove outliers from the video
@@ -1913,7 +1995,7 @@ class Trackpy():
         def img_uint(image):
             temp_vid = img_as_uint(image)
             return temp_vid
-        init_video = Parallel(n_jobs = self.num_cores)(delayed(img_uint)(video[i, :, :, self.selected_channel]) for i in range(0, self.time_points))
+        init_video = Parallel(n_jobs = self.NUMBER_OF_CORES)(delayed(img_uint)(video[i, :, :, self.selected_channel]) for i in range(0, self.time_points))
         self.video = np.asarray(init_video)
         self.video_complete = video.copy()
         self.mask = mask
@@ -1957,7 +2039,7 @@ class Trackpy():
 
         if use_default_filter ==0:
             tmp_video = video[0, :, :,selected_channel].copy()
-            temp_vid_dif_filter = Parallel(n_jobs = self.num_cores)(delayed(bandpass_filter)(tmp_video, self.low_pass_filter, self.highpass_filter) for i in range(0, self.time_points))
+            temp_vid_dif_filter = Parallel(n_jobs = self.NUMBER_OF_CORES)(delayed(bandpass_filter)(tmp_video, self.low_pass_filter, self.highpass_filter) for i in range(0, self.time_points))
             temp_video_bp_filtered = np.asarray(temp_vid_dif_filter)
             video_removed_mask = np.einsum('ijk, jk -> ijk', temp_video_bp_filtered, self.mask)
             f_init = tp.locate(video_removed_mask[0, :, :], self.particle_size, minmass = 0, max_iterations = 100, preprocess = False, percentile = 70)
@@ -2016,9 +2098,9 @@ class Trackpy():
             filtered_image = denoise_wavelet(temp_image, rescale_sigma=True,method='BayesShrink', mode='soft')
             return img_as_uint(filtered_image)
         if self.use_default_filter == 1: # This section uses a default value for the filter size.
-            #temp_vid_dif_filter = Parallel(n_jobs = self.num_cores)(delayed(gaussian_filter)(self.video[i, :, :], 3) for i in range(0, self.time_points))
+            #temp_vid_dif_filter = Parallel(n_jobs = self.NUMBER_OF_CORES)(delayed(gaussian_filter)(self.video[i, :, :], 3) for i in range(0, self.time_points))
             #temp_video_bp_filtered = np.asarray(temp_vid_dif_filter)
-            temp_vid_dif_filter = Parallel(n_jobs = self.num_cores)(delayed(bandpass_filter)(self.video[i, :, :], self.low_pass_filter, self.highpass_filter) for i in range(0, self.time_points))
+            temp_vid_dif_filter = Parallel(n_jobs = self.NUMBER_OF_CORES)(delayed(bandpass_filter)(self.video[i, :, :], self.low_pass_filter, self.highpass_filter) for i in range(0, self.time_points))
             temp_video_bp_filtered = np.asarray(temp_vid_dif_filter)
             video_removed_mask = np.einsum('ijk, jk -> ijk', temp_video_bp_filtered, self.mask)
             f_init = tp.locate(video_removed_mask[0, :, :], self.particle_size, minmass = 0, max_iterations = 100, preprocess = False, percentile = percentile)
@@ -2036,7 +2118,7 @@ class Trackpy():
                 number_particles = []
                 trackpy_dataframe = None
         else: # This section uses optimization to select the optimal value for the filter size.
-            temp_vid_dif_filter = Parallel(n_jobs = self.num_cores)(delayed(bandpass_filter)(self.video[i, :, :], self.low_pass_filter, self.highpass_filter) for i in range(0, self.time_points))
+            temp_vid_dif_filter = Parallel(n_jobs = self.NUMBER_OF_CORES)(delayed(bandpass_filter)(self.video[i, :, :], self.low_pass_filter, self.highpass_filter) for i in range(0, self.time_points))
             temp_video_bp_filtered = np.asarray(temp_vid_dif_filter)
             video_removed_mask = np.einsum('ijk, jk -> ijk', temp_video_bp_filtered, self.mask)
             for index_p, min_int_in_video in enumerate(min_int_vector):
