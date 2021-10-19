@@ -101,6 +101,9 @@ if import_libraries == 1:
     plt.style.use("dark_background")
 
 
+
+
+
 class SSA_rsnapsim():
     '''
     This class uses rsnapsim to simulate the single-molecule translation dynamics of any gene.
@@ -149,7 +152,6 @@ class SSA_rsnapsim():
         self.NUMBER_OF_CORES = multiprocessing.cpu_count()
 
     def simulate(self):
-
         '''
         Method runs rSNAPsim and simulates the single molecule translation dynamics.
 
@@ -170,7 +172,7 @@ class SSA_rsnapsim():
         number_probes = np.amax(gene_obj.probe_vec)
 
         if not ( self.perturbation_time_stop is None):
-            t_stop_perturbation = self.perturbation_time_stop
+            t_stop_perturbation = self.perturbation_time_stop+self.t_burnin
         else:
             t_stop_perturbation = self.t_burnin+self.frames
         perturbation_list = [self.use_FRAP, self.use_Harringtonin,self.perturbation_time_start+self.t_burnin,t_stop_perturbation]
