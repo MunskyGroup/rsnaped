@@ -24,6 +24,7 @@ if import_libraries == 1:
     from numpy import ndarray
     from numpy import unravel_index
     # To run stochastic simulations
+    
     import rsnapsim as rss
     # System libraries
     import io
@@ -220,7 +221,6 @@ class ReadImages():
         path_files = [ str(self.directory.joinpath(f).resolve()) for f in list_files_names ] # creating the complete path for each file
         number_files = len(path_files)
         list_images = [imread(f) for f in path_files]
-
         return list_images, path_files, list_files_names, number_files
 
 
