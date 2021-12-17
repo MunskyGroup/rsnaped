@@ -260,7 +260,6 @@ class MergeChannels():
         number_files : int. 
             Number of merged images in the folder.
         '''
-        # This function 
         list_file_names =[]
         list_merged_images =[]  # list that stores all files belonging to the same image in a sublist
         ending_string = re.compile(self.substring_to_detect_in_file_name)  # detecting files ending in _C0.tif
@@ -423,7 +422,7 @@ class RemoveExtrema():
             Normalized video. Array with dimensions [T, Y, X, C] or image with format [Y, X].
         '''
         normalized_video = np.copy(self.video)
-        normalized_video = np.array(normalized_video, 'float32');
+        normalized_video = np.array(normalized_video, 'float32')
         # Normalization code for image with format [Y, X]
         if len(self.video.shape) == 2:
             number_timepoints = 1
@@ -558,12 +557,9 @@ class GaussianLaplaceFilter():
         #    video_float[:,:,:,index_channels] = np.asarray(temp_video)
 
         # Applying the filter
-        
         for index_channels in range(0, number_channels):
             for index_time in range(0, number_timepoints):
                 video_filtered[index_time, :, :, index_channels] = gaussian_laplace(self.video[index_time, :, :, index_channels], self.sigma)
-
-
         # returning the image normalized as uint. Notice that difference_of_gaussians converts the image into float.
         #for index_channels in range(0, number_channels):
         #    init_video = Parallel(n_jobs = self.NUMBER_OF_CORES)(delayed(img_uint)(video_bp_filtered_float[i, :, :, index_channels]) for i in range(0, number_timepoints))
@@ -2037,6 +2033,10 @@ class Trackpy():
 
         def bandpass_filter (image: np.ndarray, lowfilter, highpass):
             temp_vid = difference_of_gaussians(image, lowfilter, highpass, truncate = 3.0)
+            return img_as_uint(temp_vid)
+        
+        def log_filter(image: np.ndarray, sigma):
+            temp_vid = gaussian_laplace(image, sigma=sigma)
             return img_as_uint(temp_vid)
 
         if use_default_filter ==0:
