@@ -2,16 +2,17 @@
 
 ## Top priority
 
-
 - [X] Create empty cell rotations to augment data.
-- [ ] Shuffle, constant, and loop images for simulated cell
+- [X] Shuffle, constant, and loop images for simulated cell
 - [ ] Add class for photo-bleaching
 - [X] Add spot classification using ML
-
 - [ ] Organize notebooks.
 - [ ] Start writing a publication.
-- [ ] Machine learning notebooks
-- [ ] Bash scripts to run on cluster.
+- [X] Machine learning notebooks
+- [X] Bash scripts to run on cluster.
+- [ ] Make masks available to avoid cellsegmentation when generating simulated data.
+- [ ] Publish a new functional version on PIP.
+- [ ] Work on 3D simulation.
 
 ## Second priority
 
