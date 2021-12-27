@@ -32,7 +32,7 @@ The code is intended to simulated single-molecule translation. A  video with the
 * To create a virtual environment using:
 
 ```bash
-    conda create -n rsnaped_env python=3.8 -y
+    conda create -n rsnaped_env python=3.8.5 -y
     source activate rsnaped_env
 ```
 
@@ -45,7 +45,7 @@ The code is intended to simulated single-molecule translation. A  video with the
 
 * To create a virtual environment navigate to the location of the requirements file, and use:
 ```bash
-    conda create -n rsnaped_env python=3.8 -y
+    conda create -n rsnaped_env python=3.8.5 -y
     source activate rsnaped_env
 ```
 * To install GPU for Cellpose (Optional step). Only for **Linux and Windows users** check the specific version for your computer on this [link]( https://pytorch.org/get-started/locally/) :
