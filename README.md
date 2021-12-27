@@ -46,9 +46,5 @@ pip install rsnaped
 
 ## Licenses for dependencies
 - License for [rSNAPsim](https://github.com/MunskyGroup/rSNAPsim): MIT. Copyright © 2018 Dr. Luis Aguilera, William Raymond
-- License for [Trackpy](http://soft-matter.github.io/trackpy/dev/index.html): BSD-3-Clause.
-Copyright © 2013-2014 trackpy contributors
-   https://github.com/soft-matter/trackpy
-   All rights reserved.
-- License for [Cellpose](https://github.com/MouseLand/cellpose): BSD 3-Clause.
-Copyright © 2020 Howard Hughes Medical Institute
+- License for [Trackpy](http://soft-matter.github.io/trackpy/dev/index.html): BSD-3-Clause. Copyright © 2013-2014 trackpy contributors https://github.com/soft-matter/trackpy. All rights reserved.
+- License for [Cellpose](https://github.com/MouseLand/cellpose): BSD 3-Clause. Copyright © 2020 Howard Hughes Medical Institute
