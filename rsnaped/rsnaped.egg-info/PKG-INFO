@@ -1,102 +1,103 @@
 Metadata-Version: 2.1
 Name: rsnaped
-Version: 0.0.3
+Version: 0.0.4
 Summary: Python module for single-molecule image processing.
 Home-page: https://github.com/MunskyGroup/rsnaped
-Author: Luis Aguilera, William Raymond, Brian Munsky
+Author: Luis Aguilera, William Raymond, Brooke Silagy, Brian Munsky
 Author-email: luisubald@gmail.com
 License: MIT
 Description: # rSNAPed
+        
+        <img src="./docs/images/logo/rSNAPed_Logo.png" width="200" />
+        
+        rSNAPed : RNA Sequence to NAscent Protein Experiment Designer.
+        
+        Authors: Luis U. Aguilera, William Raymond, Brooke Silagy, Brian Munsky.
+        
         [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
         
-        rSNAPed a Python library for single-molecule image processing.
-        
-        Author Luis U. Aguilera, William Raymond, Brooke Silagy, Brian Munsky
+        > :warning: **This software is in a very early and experimental stage**: at this point, it is intended to be used for testing and debugging purposes!
         
         ## Description
         
-        
-        The code is intended to automatically track single-molecules from single-cell videos. The code calculates spot position and extract intensity values.
-        
-        Compendium of libraries including `cellpose`, `rsnapsim`, `trackpy`.
-        
-        ![Screenshot](https://github.com/MunskyGroup/image_processing_toolbox/blob/master/rSNAPsim_IP/General_Documents/Images_for_github/rSNAPsimIP_Pipeline.png)
-        
+        This library is intended to quantify single-molecule gene expression experiments. Specifically, the code uses [Cellpose](https://github.com/MouseLand/cellpose) to segment the cell in the image. Then, it uses [Trackpy](http://soft-matter.github.io/trackpy/dev/index.html) to detect spots inside the mask. Finally, it uses the spot position to quantify the spot intensity. The code also generates simulated data using [rSNAPsim](https://github.com/MunskyGroup/rSNAPsim). If you use `rSNAPed`, please make sure you properly cite `cellpose`, `trackpy` and `rSNAPsim`.
         
         ## Usage
         
-        * **Single-molecule translation**
-        * **Single-molecule transcription**
-        * **FISH**
-        
-        Example using real data.
-        
-        ![Screenshot](https://github.com/MunskyGroup/image_processing_toolbox/blob/master/rSNAPsim_IP/General_Documents/Images_for_github/screenshot_3.png)
+        * Tracking for single-molecule translation (RNA + nascent protein) spots.
+        * Tracking for single-molecule RNA spots.
+        * RNA detection spots for FISH images.
+        * Simulating the single-molecule translation for any gene.
+        * Design of single-molecule gene expression experiments.
         
         ## Simulating translation
         
-        The code is intended to simulated single-
-        molecule translation. A  video with the simulated cell and a data frame containing spot and intensity positions are generated. This simulation can be used to train new algorithms or for training new students.
-        
-        ![Screenshot](https://github.com/MunskyGroup/image_processing_toolbox/blob/master/rSNAPsim_IP/Simulated_Cell/Development/Gifs/output.gif)
-        
-        ## Installation
-        
-        First make sure that you have installed the following packages. For this, you can use the package manager [pip](https://pip.pypa.io/en/stable/).
-        ```bash
-        pip install rsnaped
-        ```
-        ## The codes were tested with the following packages.
-        
-        matplotlib (3.2.2) <br />
-        numpy (1.20.1) <br />
-        pandas (1.0.5) <br />
-        scikit-image (0.18.0) <br />
-        joblib (0.16.0) <br />
-        bqplot (0.12.17) <br />
-        scipy (1.5.0) <br />
-        cellpose (0.5.1) <br />
-        pyfiglet (0.8.post1) <br />
-        tifffile (2020.10.1) <br />
-        opencv-python (4.4.0.42) <br />
-        trackpy (0.4.2) <br />
-        ipywidgets (7.5.1) <br />
-        
-        ## To install all packages please open installation.ipynb and run the notebook.
-        ![Screenshot](https://github.com/MunskyGroup/image_processing_toolbox/blob/master/rSNAPsim_IP/General_Documents/Images_for_github/screenshot_4.png)
+        The code is intended to simulated single-molecule translation. A  video with the simulated cell and a data frame containing spot and intensity positions are generated. This simulation can be used to train new algorithms or for teaching new students.
         
         
-        ## If you want to manually install the dependencies run the following lines on the terminal
+        ## Local installation using PIP
+        
+        * To create a virtual environment using:
         
         ```bash
-        pip3 install scikit-image
-        pip3 install ipywidgets
-        pip3 install bqplot
-        pip3 install scipy
-        pip3 install pyfiglet
-        pip3 install opencv-python
-        pip3 install cellpose
-        pip3 install trackpy
-        pip3 install ipywidgets
+            conda create -n rsnaped_env python=3.8 -y
+            source activate rsnaped_env
         ```
         
-        ## If cellpose installation doesn't work, try the following:
+        * Open the terminal and use [pip](https://pip.pypa.io/en/stable/) for the installation:
         ```bash
-        pip3 install --no-deps cellpose --upgrade
-        pip3 install mxnet
-        pip3 install natsort
+            pip install rsnaped
         ```
         
-        ## Use the following commands to update specific packages:
+        ## Local installation from the Github repository
+        
+        * To create a virtual environment navigate to the location of the requirements file, and use:
         ```bash
-        !pip3 install '[package_name]==[version]'
-        !pip3 install [package_name] -U
-        !pip3 show [package_name]
+            conda create -n rsnaped_env python=3.8 -y
+            source activate rsnaped_env
+        ```
+        * To install GPU for Cellpose (Optional step). Only for **Linux and Windows users** check the specific version for your computer on this [link]( https://pytorch.org/get-started/locally/) :
+        ```
+            conda install pytorch cudatoolkit=10.2 -c pytorch -y
+        ```
+        * To install CPU for Cellpose (Optional step). Only for **Mac users** check the specific version for your computer on this [link]( https://pytorch.org/get-started/locally/) :
+        ```
+            conda install pytorch -c pytorch
+        ```
+        * To include the rest of requirements use:
+        ```
+            pip install -r requirements.txt
+        ```
+        Additional steps to deactivate or remove the environment from the computer:
+        * To deactivate the environment use
+        ```
+            conda deactivate
+        ```
+        * To remove the environment use:
+        ```
+            conda env remove -n rsnaped_env
         ```
         
         
-        ## License
-        [MIT](https://choosealicense.com/licenses/mit/)
+        
+        ## References for main dependencies
+        
+        - [rSNAPsim](https://github.com/MunskyGroup/rSNAPsim):
+         Aguilera, Luis U., et al. "Computational design and interpretation of single-RNA translation experiments." PLoS computational biology 15.10 (2019): e1007425.
+        
+        - [Trackpy](http://soft-matter.github.io/trackpy/dev/index.html):
+         Dan Allan, et al. (2019, October 16). soft-matter/trackpy: Trackpy v0.4.2 (Version v0.4.2). Zenodo. http://doi.org/10.5281/zenodo.3492186
+        
+        - [Cellpose](https://github.com/MouseLand/cellpose):
+         Stringer, Carsen, et al. "Cellpose: a generalist algorithm for cellular segmentation." Nature Methods 18.1 (2021): 100-106.
+        
+        ## Licenses for dependencies
+        
+        **For a complete list containing the complete licenses for the dependencies, check file:  [Licenses_Dependencies.txt](https://github.com/MunskyGroup/rsnaped/blob/master/Licenses_Dependencies.txt).**
+        
+        - License for [rSNAPsim](https://github.com/MunskyGroup/rSNAPsim): MIT. Copyright © 2018 Dr. Luis Aguilera, William Raymond
+        - License for [Trackpy](http://soft-matter.github.io/trackpy/dev/index.html): BSD-3-Clause. Copyright © 2013-2014 trackpy contributors https://github.com/soft-matter/trackpy. All rights reserved.
+        - License for [Cellpose](https://github.com/MouseLand/cellpose): BSD 3-Clause. Copyright © 2020 Howard Hughes Medical Institute
         
 Keywords: single-molecule image processing
 Platform: UNKNOWN
@@ -105,5 +106,5 @@ Classifier: Topic :: Scientific/Engineering :: Bio-Informatics
 Classifier: Topic :: Scientific/Engineering :: Image Processing
 Classifier: License :: OSI Approved :: MIT License
 Classifier: Programming Language :: Python :: 3.8
-Requires-Python: >=3.7
+Requires-Python: >=3.8
 Description-Content-Type: text/markdown

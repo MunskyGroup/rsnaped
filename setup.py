@@ -26,8 +26,8 @@ setup(
     license = "MIT",
     keywords = "single-molecule image processing",
     url = "https://github.com/MunskyGroup/rsnaped",
-    package_dir = {'':'rsnaped'},
-    packages=find_packages(exclude=['docs','database','notebooks','__pycache__','.gitignore']),
+    package_dir = {'rsnaped':'rsnaped'},
+    packages=find_packages(exclude=['docs','database','notebooks','__pycache__','.gitignore','.vscode','TODO.md']),
     include_package_data=True,
     install_requires=requirements,
     classifiers=[
