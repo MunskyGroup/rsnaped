@@ -1,9 +1,0 @@
-LICENSE
-MANIFEST.in
-README.md
-setup.py
-rsnaped/rsnaped.egg-info/PKG-INFO
-rsnaped/rsnaped.egg-info/SOURCES.txt
-rsnaped/rsnaped.egg-info/dependency_links.txt
-rsnaped/rsnaped.egg-info/requires.txt
-rsnaped/rsnaped.egg-info/top_level.txt

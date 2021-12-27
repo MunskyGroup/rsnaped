@@ -1,7 +1,8 @@
-include README
+include README.md
 include LICENSE
-recursive-include rsnaped
-recursive-ignore tests
-recursive-ignore docs
-recursive-ignore notebooks
-recursive-ignore DataBases
+include requirements.txt
+prune tests
+prune docs
+prune notebooks
+prune DataBases
+exclude .gitignore
