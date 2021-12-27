@@ -24,7 +24,6 @@ if import_libraries == 1:
     from numpy import ndarray
     from numpy import unravel_index
     # To run stochastic simulations
-    
     import rsnapsim as rss
     # System libraries
     import io
@@ -103,14 +102,11 @@ if import_libraries == 1:
 
 
 
-
-
 class SSA_rsnapsim():
     '''
     This class uses rsnapsim to simulate the single-molecule translation dynamics of any gene.
     
     Parameters
-    --  --  --  --  -- 
 
     gene_file : str, 
         Path to the location of a FASTA file.
@@ -157,7 +153,7 @@ class SSA_rsnapsim():
         Method runs rSNAPsim and simulates the single molecule translation dynamics.
 
         Returns
-        --  --  -- -
+
         ssa_int : NumPy array.
             Contains the SSA trajectories with dimensions [Time_points, simulated_trajectories].
         ssa_ump : NumPy array.
@@ -193,11 +189,11 @@ class ReadImages():
     This class reads all .tif images in a given folder and returns the names of these files, path, and number of files.
     
     Parameters
-    --  --  --  --  -- 
 
     directory: str or PosixPath
         Directory containing the images to merge.
-    '''    
+    '''
+
     def __init__(self, directory:str ):
         if type(directory)== pathlib.PosixPath:
             self.directory = directory
@@ -208,7 +204,7 @@ class ReadImages():
         Method takes all the videos in the folder and merge those with similar names.
 
         Returns
-        --  --  -- -
+
         list_images : List of NumPy arrays. 
             List of NumPy arrays with format np.uint16 and dimensions [Z, Y, X, C] or [T, Y, X, C] . 
         list_file_names : List of strings 
@@ -216,6 +212,7 @@ class ReadImages():
         number_files : int. 
             Number of images in the folder.
         '''
+
         list_files_names = sorted([f for f in listdir(self.directory) if isfile(join(self.directory, f)) and ('.tif') in f], key=str.lower)  # reading all tif files in the folder
         list_files_names.sort(key=lambda f: int(re.sub('\D', '', f)))  # sorting the index in numerical order
         path_files = [ str(self.directory.joinpath(f).resolve()) for f in list_files_names ] # creating the complete path for each file
@@ -230,7 +227,6 @@ class MergeChannels():
     It recursively merges the channels in a new dimenssion in the array. Minimal number of Channels 2 maximum is 4
     
     Parameters
-    --  --  --  --  -- 
 
     directory: str or PosixPath
         Directory containing the images to merge.
@@ -239,6 +235,7 @@ class MergeChannels():
     save_figure: bool, optional
         Flag to save the merged images as .tif. The default is False. 
     '''
+
     def __init__(self, directory:str ,substring_to_detect_in_file_name:str = '.*_C0.tif', save_figure:bool = False ):
         if type(directory)== pathlib.PosixPath:
             self.directory = directory
@@ -252,7 +249,7 @@ class MergeChannels():
         Method takes all the videos in the folder and merge those with similar names.
 
         Returns
-        --  --  -- -
+
         list_file_names : List of strings 
             List with strings of names.
         list_merged_images : List of NumPy arrays. 
@@ -260,6 +257,7 @@ class MergeChannels():
         number_files : int. 
             Number of merged images in the folder.
         '''
+
         list_file_names =[]
         list_merged_images =[]  # list that stores all files belonging to the same image in a sublist
         ending_string = re.compile(self.substring_to_detect_in_file_name)  # detecting files ending in _C0.tif
@@ -289,7 +287,7 @@ class ConvertToStandardFormat():
     2. Convert an image into an array video with a single time point (this last is necessary for compatibility).
 
     Parameters
-    --  --  --  --  -- 
+
     video : NumPy array
         Array of images. This class accepts arrays with formats: [Y, X], [T, Y, X], [T, Y, X, C], or any other  permutation of channels, the user must specify the position of each dimension in the original video by defining the parameters: time_position, height_position, width_position, channel_position.
     time_position : int, optional
@@ -301,6 +299,7 @@ class ConvertToStandardFormat():
     channel_position : int, optional
         Position for the channel's dimension in the original video array. The default is 3.
     '''
+
     def __init__(self, video:np.ndarray, time_position:int = 0, height_position:int = 1,  width_position:int = 2, channel_position:int = 3):
         self.video = video
         self.time_dimension = time_position
@@ -312,10 +311,11 @@ class ConvertToStandardFormat():
         Method that transposes an unsorted video to the standard [T, Y, X, C]
 
         Returns
-        --  --  -- -
+
         video_correct_order : np.uint16
             Array with dimensions [T, Y, X, C].
         '''
+
         # making a copy of the video
         video_transposed = np.copy(self.video)
         # reshaping the video
@@ -339,10 +339,11 @@ class ConvertToStandardFormat():
         Method that converts an image into a video with one frame. This process is done for compatibility with the rest of the classes.
 
         Returns
-        --  --  -- -
+
         video_correct_order : np.uint16
             Array with dimensions [T, Y, X, C].
         '''
+
         # This section corrects the video to the dimensions. [T, Y, X, C] in case it is an image with 2D x, y.
         if len(self.video.shape) == 2:
             video_temp = self.video.copy()
@@ -361,11 +362,13 @@ class ConvertToStandardFormat():
 class AugmentationVideo():
     '''
     This class is intended to be used for data augmentation. It takes a video and perform random rotations in the X and Y axis.
+    
     Parameters
-    --  --  --  --  -- 
+
     video : NumPy array
         Array of images with dimensions [T, Y, X, C].
     '''
+
     def __init__(self, video:np.ndarray):
      self.video = video
 
@@ -374,10 +377,11 @@ class AugmentationVideo():
         Method that performs random rotations of a video in the Y and X axis.
 
         Returns
-        --  --  -- -
+
         video_random_rotation : np.uint16
             Array with dimensions [T, Y, X, C].
         '''
+
         angles = [0, 90, 180, 270, 360]
         selected_angle = random.choice(angles)
         if selected_angle != 0:
@@ -392,7 +396,7 @@ class RemoveExtrema():
     This class is intended to remove extreme values from a video. The format of the video must be [Y, X] , [Y, X, C] , [Z, Y, X, C] or [T, Y, X, C].
 
     Parameters
-    --  --  --  --  -- 
+
     video : NumPy array
         Array of images with dimensions [Y, X] , [Y, X, C] , [Z, Y, X, C] or [T, Y, X, C].
     min_percentile : float, optional
@@ -402,6 +406,7 @@ class RemoveExtrema():
     selected_channels : List or None, optional
         Use this option to select a list channels to remove extrema. The default is None and applies the removal of extrema to all the channels.
     '''
+
     def __init__(self, video:np.ndarray, min_percentile:float = 1, max_percentile:float = 99, selected_channels:Union[list, None] = None):
         self.video = video
         self.min_percentile = min_percentile
@@ -417,10 +422,11 @@ class RemoveExtrema():
         This method normalizes the values of a video by removing extreme values.
 
         Returns
-        --  --  -- -
+
         normalized_video : np.uint16
             Normalized video. Array with dimensions [T, Y, X, C] or image with format [Y, X].
         '''
+
         normalized_video = np.copy(self.video)
         normalized_video = np.array(normalized_video, 'float32')
         # Normalization code for image with format [Y, X]
@@ -470,7 +476,7 @@ class ScaleIntensity():
     This class is intended to scale the intensity values in a video. The format of the video must be [T, Y, X, C].
 
     Parameters
-    --  --  --  --  -- 
+
     video : NumPy array
         Array of images with dimensions [T, Y, X, C].
     scale_maximum_value : int, optional
@@ -487,7 +493,7 @@ class ScaleIntensity():
         This method is intended to scale the intensity values of a video.
 
         Returns
-        --  --  -- -
+
         scaled_video : np.uint16
             Scaled video. Array with dimensions [T, Y, X, C].
         '''
@@ -511,7 +517,7 @@ class GaussianLaplaceFilter():
     This class is intended to apply high and low bandpass filters to the video. The format of the video must be [T, Y, X, C]. This class uses **difference_of_gaussians** from skimage.filters.
 
     Parameters
-    --  --  --  --  -- 
+
     video : NumPy array
         Array of images with dimensions [T, Y, X, C].
     low_pass : float, optional
@@ -530,7 +536,7 @@ class GaussianLaplaceFilter():
         This method applies high and low bandpass filters to the video.
 
         Returns
-        --  --  -- -
+
         video_filtered : np.uint16
             Filtered video resulting from the bandpass process. Array with format [T, Y, X, C].
         '''
@@ -571,7 +577,7 @@ class GaussianFilter():
     This class is intended to apply high and low bandpass filters to the video. The format of the video must be [T, Y, X, C]. This class uses **difference_of_gaussians** from skimage.filters.
 
     Parameters
-    --  --  --  --  -- 
+
     video : NumPy array
         Array of images with dimensions [T, Y, X, C].
     low_pass : float, optional
@@ -590,7 +596,7 @@ class GaussianFilter():
         This method applies high and low bandpass filters to the video.
 
         Returns
-        --  --  -- -
+        
         video_filtered : np.uint16
             Filtered video resulting from the bandpass process. Array with format [T, Y, X, C].
         '''
@@ -616,7 +622,7 @@ class BandpassFilter():
     This class is intended to apply high and low bandpass filters to the video. The format of the video must be [T, Y, X, C]. This class uses **difference_of_gaussians** from skimage.filters.
 
     Parameters
-    --  --  --  --  -- 
+
     video : NumPy array
         Array of images with dimensions [T, Y, X, C].
     low_pass : float, optional
@@ -640,7 +646,7 @@ class BandpassFilter():
         This method applies high and low bandpass filters to the video.
 
         Returns
-        --  --  -- -
+
         video_filtered : np.uint16
             Filtered video resulting from the bandpass process. Array with format [T, Y, X, C].
         '''
@@ -696,7 +702,7 @@ class MaskingImage():
     This class is intended to apply a mask to the video. The video format must be [T, Y, X, C], and the format of the mask must be [Y, X].
 
     Parameters
-    --  --  --  --  -- 
+
     video : NumPy array
         Array of images with dimensions [T, Y, X, C].
     mask : NumPy array, with Boolean values, where 1 represents the masked area, and 0 represents the area outside the mask.
@@ -710,7 +716,7 @@ class MaskingImage():
         This method applies high and low bandpass filters to the video. The method uses **difference_of_gaussians** from skimage.filters.
 
         Returns
-        --  --  -- -
+
         video_removed_mask : np.uint16
             Video with zero values outside the area delimited by the mask. Array with format [T, Y, X, C].
         '''
@@ -723,7 +729,7 @@ class BeadsAlignment():
     This class is intended to detected and align spots detected in the various channels of an image with dimensions [C, Y, X]. The class returns a homography matrix that can be used to align the images captured from two different cameras during the experiment. Notice that this class should only be used for images taken from a microscope setup that uses two cameras to image various channels.
 
     Parameters
-    --  --  --  --  -- 
+
     image_beads : NumPy array
         Array with a simple image with dimensions [C, Y, X].
     spot_size : int, optional
@@ -740,7 +746,7 @@ class BeadsAlignment():
         This method aligns a list of spots detected in an image with dimensions [C, Y, X] and returns a homography matrix.
 
         Returns
-        --  --  -- -
+
         homography_matrix : object
             The homography matrix is a 3x3 matrix. This transformation matrix maps the points between two planes (images).
         '''
@@ -805,7 +811,7 @@ class CamerasAlignment():
     This class is intended to align the images from multiple channels by applying a matrix transformation using the homography
 
     Parameters
-    --  --  --  --  -- 
+
     video : NumPy array
         Array of images with dimensions [T, Y, X, C].
     homography_matrix : object
@@ -822,7 +828,7 @@ class CamerasAlignment():
         This method transforms the video by multiplying the target channels by the homography matrix.
 
         Returns
-        --  --  -- -
+
         transformed_video : np.uint16
             Transformed video. Array with dimensions [T, Y, X, C].
         '''
@@ -843,7 +849,7 @@ class VisualizerImage():
     This class is intended to visualize videos as 2D images. This class has the option to mark the particles that previously were selected by trackPy.
 
     Parameters
-    --  --  --  --  -- 
+
     list_videos : List of NumPy arrays or a single NumPy array
         Images or videos to visualize. The format is a list of Numpy arrays where each array follows the convention [T, Y, X, C] or an image array with format [Y, X].
     list_videos_filtered : List of NumPy arrays or a single NumPy array or None
@@ -936,7 +942,7 @@ class VisualizerImage():
         This method plots a list of images as a grid.
 
         Returns
-        --  --  -- -
+
         None.
         '''
         # Plotting only the cells
@@ -1118,7 +1124,7 @@ class VisualizerVideo():
     This class is intended to visualize videos as interactive widgets. This class has the option to mark the particles that previously were selected by trackPy.
 
     Parameters
-    --  --  --  --  -- 
+
     list_videos : List of NumPy arrays or a single NumPy array
         Images or videos to visualize. The format is a list of Numpy arrays where each array follows the convention [T, Y, X, C] or an image array with format [Y, X].
     dataframe_particles : pandas data frame, optional
@@ -1175,7 +1181,7 @@ class VisualizerVideo():
         This method returns two objects (controls and output) that can be used to display a widget.
 
         Returns
-        --  --  -- -
+
         controls : object
             Controls from interactive to use with ipywidgets **display**.
         output : object
@@ -1261,7 +1267,7 @@ class VisualizerVideo3D():
     This class is intended to visualize 3d videos as interactive widgets.
 
     Parameters
-    --  --  --  --  -- 
+
     list_videos : List of NumPy arrays or a single NumPy array
         Images or videos to visualize. The format is a list of Numpy arrays where each array follows the convention [T, Y, X, C] or an image array with format [Y, X].
     '''
@@ -1284,7 +1290,7 @@ class VisualizerVideo3D():
         This method returns two objects (controls and output) that can be used to display a widget.
 
         Returns
-        --  --  -- -
+
         controls : object
             Controls from interactive to use with ipywidgets **display**.
         output : object
@@ -1339,7 +1345,7 @@ class VisualizerCrops():
     This class is intended to visualize the spots detected b trackPy as crops in an interactive widget.
 
     Parameters
-    --  --  --  --  -- 
+
     list_videos : List of NumPy arrays or a single NumPy array.
         Images or videos to visualize. The format is a list of Numpy arrays where each array follows the convention [T, Y, X, C].
     list_selected_particles_dataframe : pandas data frame.
@@ -1372,7 +1378,7 @@ class VisualizerCrops():
         This method returns two objects (controls and output) to display a widget.
 
         Returns
-        --  --  -- -
+
         controls : object
             Controls from interactive to use with ipywidgets **display**.
         output : object
@@ -1436,7 +1442,7 @@ class Cellpose():
     This class is intended to detect cells by image masking using **Cellpose** . The class uses optimization to maximize the number of cells or maximize the size of the detected cells.
 
     Parameters
-    --  --  --  --  -- 
+
     video : NumPy array
         Array of images with dimensions [T, Y, X, C].
     num_iterations : int, optional
@@ -1468,7 +1474,7 @@ class Cellpose():
         This method performs the process of image masking using **Cellpose**.
 
         Returns
-        --  --  -- -
+
         selected_masks : List of NumPy arrays
             List of NumPy arrays with values between 0 and the number of detected cells in the image, where a number larger than zero represents the masked area for each cell, and 0 represents the area where no cells are detected.
         '''
@@ -1599,7 +1605,7 @@ class CellposeFISH():
     This class is intended to detect cells in FISH images using **Cellpose**. The class uses optimization to generate the meta-parameters used by cellpose. This class segments the nucleus and cytosol for every cell detected in the image.
 
     Parameters
-    --  --  --  --  -- 
+
     video : NumPy array
         Array of images with dimensions [Z, Y, X, C] or maximum projection with dimensions [Y,X,C].
     channel_with_cytosol : List of int or None, optional
@@ -1630,7 +1636,7 @@ class CellposeFISH():
         This method performs the process of cell detection for FISH images using **Cellpose**.
 
         Returns
-        --  --  -- -
+
         list_masks_complete_cells : List of NumPy arrays or a single NumPy array
             Masks for every cell detected in the image. The list contains the mask arrays consisting of one or multiple Numpy arrays with format [Y, X].
         list_masks_nuclei : List of NumPy arrays or a single NumPy array
@@ -1882,7 +1888,7 @@ class CellposeSelection():
     This class is intended to select the cell with the maximum area (max_area) or with the maximum number of spots (max_spots) from a masked image previously detect cells by **Cellpose**
 
     Parameters
-    --  --  --  --  -- 
+
     mask : NumPy array
         Arrays with values between 0 and the number of detected cells in the image, where a number larger than zero represents the masked area for each cell, and 0 represents the area where no cells are detected. An array of images with dimensions [Y, X].
     video : NumPy array
@@ -1908,7 +1914,7 @@ class CellposeSelection():
         This method selects the cell with the maximum area (max_area) or with the maximum number of spots (max_spots) from a masked image.
 
         Returns
-        --  --  -- -
+
         selected_mask : NumPy array, with Boolean values, where 1 represents the masked area, and 0 represents the area outside the mask.
             An array of images with dimensions [Y, X].
         '''
@@ -1961,7 +1967,7 @@ class Trackpy():
     This class is intended to detect spots in the video by using **Trackpy**.
 
     Parameters
-    --  --  --  --  -- 
+
     video : NumPy array
         Array of images with dimensions [T, Y, X, C]. In case a FISH image is used, the format must be [Z, Y, X, C], and the user must specify the parameter FISH_image = 1.
     mask : NumPy array, with Boolean values, where 1 represents the masked area, and 0 represents the area outside the mask.
@@ -2050,10 +2056,10 @@ class Trackpy():
             self.MAX_INT_OPTIMIZATION = 0
     def perform_tracking(self):
         '''
-        This method
+        This method performs the tracking of the particles using trackpy.
 
         Returns
-        --  --  -- -
+
         trackpy_dataframe : pandas data frame.
             Pandas data frame from trackpy with fields [x, y, mass, size, ecc, signal, raw_mass, ep, frame, particle].
         number_particles : int.
@@ -2189,7 +2195,7 @@ class Intensity():
     This class is intended to calculate the intensity in the detected spots.
 
     Parameters
-    --  --  --  --  -- 
+
     video : NumPy array
         Array of images with dimensions [T, Y, X, C].
     particle_size : int, optional
@@ -2243,7 +2249,7 @@ class Intensity():
         This method calculates the spot intensity.
 
         Returns
-        --  --  -- -
+
         dataframe_particles : pandas dataframe
             Dataframe with fields [cell_number, particle, frame, red_int_mean, green_int_mean, blue_int_mean, red_int_std, green_int_std, blue_int_std, x, y, SNR_red,SNR_green,SNR_blue].
         array_intensities_mean : Numpy array
@@ -2567,7 +2573,7 @@ class SimulatedCell():
     This class takes a base video, and it draws simulated spots on top of the image. The intensity for each simulated spot is proportional to the stochastic simulation given by the user.
 
     Parameters
-    --  --  --  --  -- 
+
     base_video : NumPy array
         Array of images with dimensions [T, Y, X, C].
     video_for_mask : NumPy array, optional
@@ -2740,7 +2746,7 @@ class SimulatedCell():
         This method generates the simulated cell.
 
         Returns
-        --  --  -- -
+
         tensor_video : NumPy array uint16
             Array with dimensions [T, Y, X, C]
         spot_positions_movement : NumPy array
@@ -2966,7 +2972,7 @@ class SimulatedCellMultiplexing ():
     This class takes a base video and simulates a multiplexing experiment, and it draws simulated spots on top of the image. The intensity for each simulated spot is proportional to the stochastic simulation given by the user.
 
     Parameters
-    --  --  --  --  -- 
+
     initial_video :  NumPy array
         Array of images with dimensions [T, Y, X, C].
     list_gene_sequences : List of strings
@@ -3051,7 +3057,7 @@ class SimulatedCellMultiplexing ():
         Method that runs the simulations for the multiplexing experiment.
 
         Returns
-        --  --  -- -
+
         tensor_video : NumPy array uint16
             Array with dimensions [T, Y, X, C]
         dataframe_particles : pandas dataframe
@@ -3164,7 +3170,7 @@ class PipelineTracking():
     A pipeline that allows cell segmentation, spot detection, and tracking of spots.
 
     Parameters
-    --  --  --  --  -- 
+
     video : NumPy array
         Array of images with dimensions [T, Y, X, C].
     particle_size : int, optional
@@ -3214,7 +3220,7 @@ class PipelineTracking():
         Runs the pipeline.
 
         Returns
-        --  --  -- -
+
         dataframe_particles : pandas dataframe
             Dataframe with fields [cell_number, particle, frame, red_int_mean, green_int_mean, blue_int_mean, red_int_std, green_int_std, blue_int_std, x, y].
         array_intensities : Numpy array
@@ -3293,7 +3299,7 @@ class PhotobleachingCalculation():
     This class is intended to calculate the intensity in the detected spots.
 
     Parameters
-    --  --  --  --  -- 
+
     video : NumPy array
         Array of images with dimensions [T, Y, X, C].
     particle_size : int, optional

@@ -7,7 +7,7 @@ rSNAPed: Module Guide
 .. automodule:: rsnaped.rsnaped
     :members:
     
-.. toctree::
+.. toctree:
    :maxdepth: 2
    :caption: Contents:
 

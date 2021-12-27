@@ -7,7 +7,7 @@
   
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   
-  <title>rSNAPed: Module Guide &mdash; rsnaped 0.0.1 documentation</title>
+  <title>rSNAPed: Module Guide &mdash; rsnaped 0.0.4 documentation</title>
   
 
   
@@ -162,23 +162,21 @@ Authors: Luis U. Aguilera, William Raymond, Brooke Silagy, Brian Munsky.</p>
 <dl class="py class">
 <dt id="rsnaped.rsnaped.AugmentationVideo">
 <em class="property"><span class="pre">class</span> </em><code class="sig-prename descclassname"><span class="pre">rsnaped.rsnaped.</span></code><code class="sig-name descname"><span class="pre">AugmentationVideo</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">video</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><span class="pre">numpy.ndarray</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#rsnaped.rsnaped.AugmentationVideo" title="Permalink to this definition">¶</a></dt>
-<dd><p>This class is intended to be used for data augmentation. It takes a video and perform random rotations in the X and Y axis.
-Parameters
-–  –  –  –  –
-video : NumPy array</p>
-<blockquote>
-<div><p>Array of images with dimensions [T, Y, X, C].</p>
-</div></blockquote>
+<dd><p>This class is intended to be used for data augmentation. It takes a video and perform random rotations in the X and Y axis.</p>
+<p>Parameters</p>
+<dl class="simple">
+<dt>video<span class="classifier">NumPy array</span></dt><dd><p>Array of images with dimensions [T, Y, X, C].</p>
+</dd>
+</dl>
 <dl class="py method">
 <dt id="rsnaped.rsnaped.AugmentationVideo.random_rotation">
 <code class="sig-name descname"><span class="pre">random_rotation</span></code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#rsnaped.rsnaped.AugmentationVideo.random_rotation" title="Permalink to this definition">¶</a></dt>
 <dd><p>Method that performs random rotations of a video in the Y and X axis.</p>
-<p>Returns
-–  –  – -
-video_random_rotation : np.uint16</p>
-<blockquote>
-<div><p>Array with dimensions [T, Y, X, C].</p>
-</div></blockquote>
+<p>Returns</p>
+<dl class="simple">
+<dt>video_random_rotation<span class="classifier">np.uint16</span></dt><dd><p>Array with dimensions [T, Y, X, C].</p>
+</dd>
+</dl>
 </dd></dl>
 
 </dd></dl>
@@ -187,13 +185,10 @@ video_random_rotation : np.uint16</p>
 <dt id="rsnaped.rsnaped.BandpassFilter">
 <em class="property"><span class="pre">class</span> </em><code class="sig-prename descclassname"><span class="pre">rsnaped.rsnaped.</span></code><code class="sig-name descname"><span class="pre">BandpassFilter</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">video</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><span class="pre">numpy.ndarray</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">low_pass</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><span class="pre">float</span></span> <span class="o"><span class="pre">=</span></span> <span class="default_value"><span class="pre">0.5</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">high_pass</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><span class="pre">float</span></span> <span class="o"><span class="pre">=</span></span> <span class="default_value"><span class="pre">10</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#rsnaped.rsnaped.BandpassFilter" title="Permalink to this definition">¶</a></dt>
 <dd><p>This class is intended to apply high and low bandpass filters to the video. The format of the video must be [T, Y, X, C]. This class uses <strong>difference_of_gaussians</strong> from skimage.filters.</p>
-<p>Parameters
-–  –  –  –  –
-video : NumPy array</p>
-<blockquote>
-<div><p>Array of images with dimensions [T, Y, X, C].</p>
-</div></blockquote>
+<p>Parameters</p>
 <dl class="simple">
+<dt>video<span class="classifier">NumPy array</span></dt><dd><p>Array of images with dimensions [T, Y, X, C].</p>
+</dd>
 <dt>low_pass<span class="classifier">float, optional</span></dt><dd><p>Lower pass filter intensity. The default is 0.5.</p>
 </dd>
 <dt>high_pass<span class="classifier">float, optional</span></dt><dd><p>Higher pass filter intensity. The default is 10.</p>
@@ -203,12 +198,11 @@ video : NumPy array</p>
 <dt id="rsnaped.rsnaped.BandpassFilter.apply_filter">
 <code class="sig-name descname"><span class="pre">apply_filter</span></code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#rsnaped.rsnaped.BandpassFilter.apply_filter" title="Permalink to this definition">¶</a></dt>
 <dd><p>This method applies high and low bandpass filters to the video.</p>
-<p>Returns
-–  –  – -
-video_filtered : np.uint16</p>
-<blockquote>
-<div><p>Filtered video resulting from the bandpass process. Array with format [T, Y, X, C].</p>
-</div></blockquote>
+<p>Returns</p>
+<dl class="simple">
+<dt>video_filtered<span class="classifier">np.uint16</span></dt><dd><p>Filtered video resulting from the bandpass process. Array with format [T, Y, X, C].</p>
+</dd>
+</dl>
 </dd></dl>
 
 </dd></dl>
@@ -217,13 +211,10 @@ video_filtered : np.uint16</p>
 <dt id="rsnaped.rsnaped.BeadsAlignment">
 <em class="property"><span class="pre">class</span> </em><code class="sig-prename descclassname"><span class="pre">rsnaped.rsnaped.</span></code><code class="sig-name descname"><span class="pre">BeadsAlignment</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">image_beads</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><span class="pre">numpy.ndarray</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">spot_size</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><span class="pre">int</span></span> <span class="o"><span class="pre">=</span></span> <span class="default_value"><span class="pre">5</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">min_intensity</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><span class="pre">float</span></span> <span class="o"><span class="pre">=</span></span> <span class="default_value"><span class="pre">400</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#rsnaped.rsnaped.BeadsAlignment" title="Permalink to this definition">¶</a></dt>
 <dd><p>This class is intended to detected and align spots detected in the various channels of an image with dimensions [C, Y, X]. The class returns a homography matrix that can be used to align the images captured from two different cameras during the experiment. Notice that this class should only be used for images taken from a microscope setup that uses two cameras to image various channels.</p>
-<p>Parameters
-–  –  –  –  –
-image_beads : NumPy array</p>
-<blockquote>
-<div><p>Array with a simple image with dimensions [C, Y, X].</p>
-</div></blockquote>
+<p>Parameters</p>
 <dl class="simple">
+<dt>image_beads<span class="classifier">NumPy array</span></dt><dd><p>Array with a simple image with dimensions [C, Y, X].</p>
+</dd>
 <dt>spot_size<span class="classifier">int, optional</span></dt><dd><p>Average size of the beads,  The default is 5.</p>
 </dd>
 <dt>min_intensity<span class="classifier">float, optional</span></dt><dd><p>Minimal expected intensity for the beads. The default is 400.</p>
@@ -233,12 +224,11 @@ image_beads : NumPy array</p>
 <dt id="rsnaped.rsnaped.BeadsAlignment.make_beads_alignment">
 <code class="sig-name descname"><span class="pre">make_beads_alignment</span></code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#rsnaped.rsnaped.BeadsAlignment.make_beads_alignment" title="Permalink to this definition">¶</a></dt>
 <dd><p>This method aligns a list of spots detected in an image with dimensions [C, Y, X] and returns a homography matrix.</p>
-<p>Returns
-–  –  – -
-homography_matrix : object</p>
-<blockquote>
-<div><p>The homography matrix is a 3x3 matrix. This transformation matrix maps the points between two planes (images).</p>
-</div></blockquote>
+<p>Returns</p>
+<dl class="simple">
+<dt>homography_matrix<span class="classifier">object</span></dt><dd><p>The homography matrix is a 3x3 matrix. This transformation matrix maps the points between two planes (images).</p>
+</dd>
+</dl>
 </dd></dl>
 
 </dd></dl>
@@ -247,13 +237,10 @@ homography_matrix : object</p>
 <dt id="rsnaped.rsnaped.CamerasAlignment">
 <em class="property"><span class="pre">class</span> </em><code class="sig-prename descclassname"><span class="pre">rsnaped.rsnaped.</span></code><code class="sig-name descname"><span class="pre">CamerasAlignment</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">video</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><span class="pre">numpy.ndarray</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">homography_matrix</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">target_channels</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><span class="pre">list</span></span> <span class="o"><span class="pre">=</span></span> <span class="default_value"><span class="pre">[1]</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#rsnaped.rsnaped.CamerasAlignment" title="Permalink to this definition">¶</a></dt>
 <dd><p>This class is intended to align the images from multiple channels by applying a matrix transformation using the homography</p>
-<p>Parameters
-–  –  –  –  –
-video : NumPy array</p>
-<blockquote>
-<div><p>Array of images with dimensions [T, Y, X, C].</p>
-</div></blockquote>
+<p>Parameters</p>
 <dl class="simple">
+<dt>video<span class="classifier">NumPy array</span></dt><dd><p>Array of images with dimensions [T, Y, X, C].</p>
+</dd>
 <dt>homography_matrix<span class="classifier">object</span></dt><dd><p>The homography matrix object generated with the class BeadsAlignment.</p>
 </dd>
 <dt>target_channels<span class="classifier">List of int, optional</span></dt><dd><p>Lower bound to normalize intensity. The default is [1].</p>
@@ -263,12 +250,11 @@ video : NumPy array</p>
 <dt id="rsnaped.rsnaped.CamerasAlignment.make_video_alignment">
 <code class="sig-name descname"><span class="pre">make_video_alignment</span></code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#rsnaped.rsnaped.CamerasAlignment.make_video_alignment" title="Permalink to this definition">¶</a></dt>
 <dd><p>This method transforms the video by multiplying the target channels by the homography matrix.</p>
-<p>Returns
-–  –  – -
-transformed_video : np.uint16</p>
-<blockquote>
-<div><p>Transformed video. Array with dimensions [T, Y, X, C].</p>
-</div></blockquote>
+<p>Returns</p>
+<dl class="simple">
+<dt>transformed_video<span class="classifier">np.uint16</span></dt><dd><p>Transformed video. Array with dimensions [T, Y, X, C].</p>
+</dd>
+</dl>
 </dd></dl>
 
 </dd></dl>
@@ -277,13 +263,10 @@ transformed_video : np.uint16</p>
 <dt id="rsnaped.rsnaped.Cellpose">
 <em class="property"><span class="pre">class</span> </em><code class="sig-prename descclassname"><span class="pre">rsnaped.rsnaped.</span></code><code class="sig-name descname"><span class="pre">Cellpose</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">video</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><span class="pre">numpy.ndarray</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">num_iterations</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><span class="pre">int</span></span> <span class="o"><span class="pre">=</span></span> <span class="default_value"><span class="pre">5</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">channels</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><span class="pre">list</span></span> <span class="o"><span class="pre">=</span></span> <span class="default_value"><span class="pre">[0,</span> <span class="pre">0]</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">diameter</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><span class="pre">float</span></span> <span class="o"><span class="pre">=</span></span> <span class="default_value"><span class="pre">120</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">model_type</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><span class="pre">str</span></span> <span class="o"><span class="pre">=</span></span> <span class="default_value"><span class="pre">'cyto'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">selection_method</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><span class="pre">str</span></span> <span class="o"><span class="pre">=</span></span> <span class="default_value"><span class="pre">'max_cells_and_area'</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#rsnaped.rsnaped.Cellpose" title="Permalink to this definition">¶</a></dt>
 <dd><p>This class is intended to detect cells by image masking using <strong>Cellpose</strong> . The class uses optimization to maximize the number of cells or maximize the size of the detected cells.</p>
-<p>Parameters
-–  –  –  –  –
-video : NumPy array</p>
-<blockquote>
-<div><p>Array of images with dimensions [T, Y, X, C].</p>
-</div></blockquote>
+<p>Parameters</p>
 <dl class="simple">
+<dt>video<span class="classifier">NumPy array</span></dt><dd><p>Array of images with dimensions [T, Y, X, C].</p>
+</dd>
 <dt>num_iterations<span class="classifier">int, optional</span></dt><dd><p>Number of iterations for the optimization process. The default is 5.</p>
 </dd>
 <dt>channels<span class="classifier">List, optional</span></dt><dd><p>List with the channels in the image. For gray images use [0, 0], for RGB images with intensity for cytosol and nuclei use [0, 1] . The default is [0, 0].</p>
@@ -299,12 +282,11 @@ video : NumPy array</p>
 <dt id="rsnaped.rsnaped.Cellpose.calculate_masks">
 <code class="sig-name descname"><span class="pre">calculate_masks</span></code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#rsnaped.rsnaped.Cellpose.calculate_masks" title="Permalink to this definition">¶</a></dt>
 <dd><p>This method performs the process of image masking using <strong>Cellpose</strong>.</p>
-<p>Returns
-–  –  – -
-selected_masks : List of NumPy arrays</p>
-<blockquote>
-<div><p>List of NumPy arrays with values between 0 and the number of detected cells in the image, where a number larger than zero represents the masked area for each cell, and 0 represents the area where no cells are detected.</p>
-</div></blockquote>
+<p>Returns</p>
+<dl class="simple">
+<dt>selected_masks<span class="classifier">List of NumPy arrays</span></dt><dd><p>List of NumPy arrays with values between 0 and the number of detected cells in the image, where a number larger than zero represents the masked area for each cell, and 0 represents the area where no cells are detected.</p>
+</dd>
+</dl>
 </dd></dl>
 
 </dd></dl>
@@ -313,13 +295,10 @@ selected_masks : List of NumPy arrays</p>
 <dt id="rsnaped.rsnaped.CellposeFISH">
 <em class="property"><span class="pre">class</span> </em><code class="sig-prename descclassname"><span class="pre">rsnaped.rsnaped.</span></code><code class="sig-name descname"><span class="pre">CellposeFISH</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">video</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><span class="pre">numpy.ndarray</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">channel_with_cytosol</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><span class="pre">Optional</span><span class="p"><span class="pre">[</span></span><span class="pre">list</span><span class="p"><span class="pre">]</span></span></span> <span class="o"><span class="pre">=</span></span> <span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">channel_with_nucleus</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><span class="pre">Optional</span><span class="p"><span class="pre">[</span></span><span class="pre">list</span><span class="p"><span class="pre">]</span></span></span> <span class="o"><span class="pre">=</span></span> <span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">selected_z_slice</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><span class="pre">int</span></span> <span class="o"><span class="pre">=</span></span> <span class="default_value"><span class="pre">5</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">diameter_cytosol</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><span class="pre">float</span></span> <span class="o"><span class="pre">=</span></span> <span class="default_value"><span class="pre">150</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">diamter_nucleus</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><span class="pre">float</span></span> <span class="o"><span class="pre">=</span></span> <span class="default_value"><span class="pre">100</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">show_plot</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><span class="pre">bool</span></span> <span class="o"><span class="pre">=</span></span> <span class="default_value"><span class="pre">1</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#rsnaped.rsnaped.CellposeFISH" title="Permalink to this definition">¶</a></dt>
 <dd><p>This class is intended to detect cells in FISH images using <strong>Cellpose</strong>. The class uses optimization to generate the meta-parameters used by cellpose. This class segments the nucleus and cytosol for every cell detected in the image.</p>
-<p>Parameters
-–  –  –  –  –
-video : NumPy array</p>
-<blockquote>
-<div><p>Array of images with dimensions [Z, Y, X, C] or maximum projection with dimensions [Y,X,C].</p>
-</div></blockquote>
+<p>Parameters</p>
 <dl class="simple">
+<dt>video<span class="classifier">NumPy array</span></dt><dd><p>Array of images with dimensions [Z, Y, X, C] or maximum projection with dimensions [Y,X,C].</p>
+</dd>
 <dt>channel_with_cytosol<span class="classifier">List of int or None, optional</span></dt><dd><p>DESCRIPTION. The default is None.</p>
 </dd>
 <dt>channel_with_nucleus<span class="classifier">list of int or None, optional</span></dt><dd><p>DESCRIPTION. The default is None.</p>
@@ -337,13 +316,10 @@ video : NumPy array</p>
 <dt id="rsnaped.rsnaped.CellposeFISH.calculate_masks">
 <code class="sig-name descname"><span class="pre">calculate_masks</span></code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#rsnaped.rsnaped.CellposeFISH.calculate_masks" title="Permalink to this definition">¶</a></dt>
 <dd><p>This method performs the process of cell detection for FISH images using <strong>Cellpose</strong>.</p>
-<p>Returns
-–  –  – -
-list_masks_complete_cells : List of NumPy arrays or a single NumPy array</p>
-<blockquote>
-<div><p>Masks for every cell detected in the image. The list contains the mask arrays consisting of one or multiple Numpy arrays with format [Y, X].</p>
-</div></blockquote>
+<p>Returns</p>
 <dl class="simple">
+<dt>list_masks_complete_cells<span class="classifier">List of NumPy arrays or a single NumPy array</span></dt><dd><p>Masks for every cell detected in the image. The list contains the mask arrays consisting of one or multiple Numpy arrays with format [Y, X].</p>
+</dd>
 <dt>list_masks_nuclei<span class="classifier">List of NumPy arrays or a single NumPy array</span></dt><dd><p>Masks for the nuclei for every cell detected in the image. The list contains the mask arrays consisting of one or multiple Numpy arrays with format [Y, X].</p>
 </dd>
 <dt>list_masks_cytosol_no_nuclei<span class="classifier">List of NumPy arrays or a single NumPy array</span></dt><dd><p>Masks for every nucleus and cytosol for every cell detected in the image. The list contains the mask arrays consisting of one or multiple Numpy arrays with format [Y, X].</p>
@@ -359,13 +335,10 @@ list_masks_complete_cells : List of NumPy arrays or a single NumPy array</p>
 <dt id="rsnaped.rsnaped.CellposeSelection">
 <em class="property"><span class="pre">class</span> </em><code class="sig-prename descclassname"><span class="pre">rsnaped.rsnaped.</span></code><code class="sig-name descname"><span class="pre">CellposeSelection</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">mask</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><span class="pre">numpy.ndarray</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">video</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><span class="pre">numpy.ndarray</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">selection_method</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><span class="pre">str</span></span> <span class="o"><span class="pre">=</span></span> <span class="default_value"><span class="pre">'max_area'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">particle_size</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><span class="pre">int</span></span> <span class="o"><span class="pre">=</span></span> <span class="default_value"><span class="pre">5</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">selected_channel</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><span class="pre">int</span></span> <span class="o"><span class="pre">=</span></span> <span class="default_value"><span class="pre">0</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#rsnaped.rsnaped.CellposeSelection" title="Permalink to this definition">¶</a></dt>
 <dd><p>This class is intended to select the cell with the maximum area (max_area) or with the maximum number of spots (max_spots) from a masked image previously detect cells by <strong>Cellpose</strong></p>
-<p>Parameters
-–  –  –  –  –
-mask : NumPy array</p>
-<blockquote>
-<div><p>Arrays with values between 0 and the number of detected cells in the image, where a number larger than zero represents the masked area for each cell, and 0 represents the area where no cells are detected. An array of images with dimensions [Y, X].</p>
-</div></blockquote>
+<p>Parameters</p>
 <dl class="simple">
+<dt>mask<span class="classifier">NumPy array</span></dt><dd><p>Arrays with values between 0 and the number of detected cells in the image, where a number larger than zero represents the masked area for each cell, and 0 represents the area where no cells are detected. An array of images with dimensions [Y, X].</p>
+</dd>
 <dt>video<span class="classifier">NumPy array</span></dt><dd><p>An array of images with dimensions [T, Y, X, C].</p>
 </dd>
 <dt>selection_method<span class="classifier">str, optional</span></dt><dd><p>Options used by the optimization algorithm to select a cell based on the number of cells or the number of spots. The options are: ‘max_area’ or ‘max_spots’. The default is ‘maximum_area’.</p>
@@ -379,12 +352,11 @@ mask : NumPy array</p>
 <dt id="rsnaped.rsnaped.CellposeSelection.select_mask">
 <code class="sig-name descname"><span class="pre">select_mask</span></code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#rsnaped.rsnaped.CellposeSelection.select_mask" title="Permalink to this definition">¶</a></dt>
 <dd><p>This method selects the cell with the maximum area (max_area) or with the maximum number of spots (max_spots) from a masked image.</p>
-<p>Returns
-–  –  – -
-selected_mask : NumPy array, with Boolean values, where 1 represents the masked area, and 0 represents the area outside the mask.</p>
-<blockquote>
-<div><p>An array of images with dimensions [Y, X].</p>
-</div></blockquote>
+<p>Returns</p>
+<dl class="simple">
+<dt>selected_mask<span class="classifier">NumPy array, with Boolean values, where 1 represents the masked area, and 0 represents the area outside the mask.</span></dt><dd><p>An array of images with dimensions [Y, X].</p>
+</dd>
+</dl>
 </dd></dl>
 
 </dd></dl>
@@ -397,13 +369,10 @@ selected_mask : NumPy array, with Boolean values, where 1 represents the masked 
 <li><p>Transform any numpy array of images into the format [T, Y, X, C].</p></li>
 <li><p>Convert an image into an array video with a single time point (this last is necessary for compatibility).</p></li>
 </ol>
-<p>Parameters
-–  –  –  –  –
-video : NumPy array</p>
-<blockquote>
-<div><p>Array of images. This class accepts arrays with formats: [Y, X], [T, Y, X], [T, Y, X, C], or any other  permutation of channels, the user must specify the position of each dimension in the original video by defining the parameters: time_position, height_position, width_position, channel_position.</p>
-</div></blockquote>
+<p>Parameters</p>
 <dl class="simple">
+<dt>video<span class="classifier">NumPy array</span></dt><dd><p>Array of images. This class accepts arrays with formats: [Y, X], [T, Y, X], [T, Y, X, C], or any other  permutation of channels, the user must specify the position of each dimension in the original video by defining the parameters: time_position, height_position, width_position, channel_position.</p>
+</dd>
 <dt>time_position<span class="classifier">int, optional</span></dt><dd><p>Position for the dimension for the time in the original video array. The default is 0.</p>
 </dd>
 <dt>height_position<span class="classifier">int, optional</span></dt><dd><p>Position for the dimension for the y-axis (height) in the original video array. The default is 1.</p>
@@ -417,24 +386,22 @@ video : NumPy array</p>
 <dt id="rsnaped.rsnaped.ConvertToStandardFormat.image_to_video">
 <code class="sig-name descname"><span class="pre">image_to_video</span></code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#rsnaped.rsnaped.ConvertToStandardFormat.image_to_video" title="Permalink to this definition">¶</a></dt>
 <dd><p>Method that converts an image into a video with one frame. This process is done for compatibility with the rest of the classes.</p>
-<p>Returns
-–  –  – -
-video_correct_order : np.uint16</p>
-<blockquote>
-<div><p>Array with dimensions [T, Y, X, C].</p>
-</div></blockquote>
+<p>Returns</p>
+<dl class="simple">
+<dt>video_correct_order<span class="classifier">np.uint16</span></dt><dd><p>Array with dimensions [T, Y, X, C].</p>
+</dd>
+</dl>
 </dd></dl>
 
 <dl class="py method">
 <dt id="rsnaped.rsnaped.ConvertToStandardFormat.transpose_video">
 <code class="sig-name descname"><span class="pre">transpose_video</span></code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#rsnaped.rsnaped.ConvertToStandardFormat.transpose_video" title="Permalink to this definition">¶</a></dt>
 <dd><p>Method that transposes an unsorted video to the standard [T, Y, X, C]</p>
-<p>Returns
-–  –  – -
-video_correct_order : np.uint16</p>
-<blockquote>
-<div><p>Array with dimensions [T, Y, X, C].</p>
-</div></blockquote>
+<p>Returns</p>
+<dl class="simple">
+<dt>video_correct_order<span class="classifier">np.uint16</span></dt><dd><p>Array with dimensions [T, Y, X, C].</p>
+</dd>
+</dl>
 </dd></dl>
 
 </dd></dl>
@@ -443,13 +410,10 @@ video_correct_order : np.uint16</p>
 <dt id="rsnaped.rsnaped.GaussianFilter">
 <em class="property"><span class="pre">class</span> </em><code class="sig-prename descclassname"><span class="pre">rsnaped.rsnaped.</span></code><code class="sig-name descname"><span class="pre">GaussianFilter</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">video</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><span class="pre">numpy.ndarray</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">sigma</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><span class="pre">float</span></span> <span class="o"><span class="pre">=</span></span> <span class="default_value"><span class="pre">1</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#rsnaped.rsnaped.GaussianFilter" title="Permalink to this definition">¶</a></dt>
 <dd><p>This class is intended to apply high and low bandpass filters to the video. The format of the video must be [T, Y, X, C]. This class uses <strong>difference_of_gaussians</strong> from skimage.filters.</p>
-<p>Parameters
-–  –  –  –  –
-video : NumPy array</p>
-<blockquote>
-<div><p>Array of images with dimensions [T, Y, X, C].</p>
-</div></blockquote>
+<p>Parameters</p>
 <dl class="simple">
+<dt>video<span class="classifier">NumPy array</span></dt><dd><p>Array of images with dimensions [T, Y, X, C].</p>
+</dd>
 <dt>low_pass<span class="classifier">float, optional</span></dt><dd><p>Lower pass filter intensity. The default is 0.5.</p>
 </dd>
 <dt>high_pass<span class="classifier">float, optional</span></dt><dd><p>Higher pass filter intensity. The default is 10.</p>
@@ -459,12 +423,11 @@ video : NumPy array</p>
 <dt id="rsnaped.rsnaped.GaussianFilter.apply_filter">
 <code class="sig-name descname"><span class="pre">apply_filter</span></code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#rsnaped.rsnaped.GaussianFilter.apply_filter" title="Permalink to this definition">¶</a></dt>
 <dd><p>This method applies high and low bandpass filters to the video.</p>
-<p>Returns
-–  –  – -
-video_filtered : np.uint16</p>
-<blockquote>
-<div><p>Filtered video resulting from the bandpass process. Array with format [T, Y, X, C].</p>
-</div></blockquote>
+<p>Returns</p>
+<dl class="simple">
+<dt>video_filtered<span class="classifier">np.uint16</span></dt><dd><p>Filtered video resulting from the bandpass process. Array with format [T, Y, X, C].</p>
+</dd>
+</dl>
 </dd></dl>
 
 </dd></dl>
@@ -473,13 +436,10 @@ video_filtered : np.uint16</p>
 <dt id="rsnaped.rsnaped.GaussianLaplaceFilter">
 <em class="property"><span class="pre">class</span> </em><code class="sig-prename descclassname"><span class="pre">rsnaped.rsnaped.</span></code><code class="sig-name descname"><span class="pre">GaussianLaplaceFilter</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">video</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><span class="pre">numpy.ndarray</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">sigma</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><span class="pre">float</span></span> <span class="o"><span class="pre">=</span></span> <span class="default_value"><span class="pre">1</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#rsnaped.rsnaped.GaussianLaplaceFilter" title="Permalink to this definition">¶</a></dt>
 <dd><p>This class is intended to apply high and low bandpass filters to the video. The format of the video must be [T, Y, X, C]. This class uses <strong>difference_of_gaussians</strong> from skimage.filters.</p>
-<p>Parameters
-–  –  –  –  –
-video : NumPy array</p>
-<blockquote>
-<div><p>Array of images with dimensions [T, Y, X, C].</p>
-</div></blockquote>
+<p>Parameters</p>
 <dl class="simple">
+<dt>video<span class="classifier">NumPy array</span></dt><dd><p>Array of images with dimensions [T, Y, X, C].</p>
+</dd>
 <dt>low_pass<span class="classifier">float, optional</span></dt><dd><p>Lower pass filter intensity. The default is 0.5.</p>
 </dd>
 <dt>high_pass<span class="classifier">float, optional</span></dt><dd><p>Higher pass filter intensity. The default is 10.</p>
@@ -489,12 +449,11 @@ video : NumPy array</p>
 <dt id="rsnaped.rsnaped.GaussianLaplaceFilter.apply_filter">
 <code class="sig-name descname"><span class="pre">apply_filter</span></code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#rsnaped.rsnaped.GaussianLaplaceFilter.apply_filter" title="Permalink to this definition">¶</a></dt>
 <dd><p>This method applies high and low bandpass filters to the video.</p>
-<p>Returns
-–  –  – -
-video_filtered : np.uint16</p>
-<blockquote>
-<div><p>Filtered video resulting from the bandpass process. Array with format [T, Y, X, C].</p>
-</div></blockquote>
+<p>Returns</p>
+<dl class="simple">
+<dt>video_filtered<span class="classifier">np.uint16</span></dt><dd><p>Filtered video resulting from the bandpass process. Array with format [T, Y, X, C].</p>
+</dd>
+</dl>
 </dd></dl>
 
 </dd></dl>
@@ -503,13 +462,10 @@ video_filtered : np.uint16</p>
 <dt id="rsnaped.rsnaped.Intensity">
 <em class="property"><span class="pre">class</span> </em><code class="sig-prename descclassname"><span class="pre">rsnaped.rsnaped.</span></code><code class="sig-name descname"><span class="pre">Intensity</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">video</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><span class="pre">numpy.ndarray</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">particle_size</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><span class="pre">int</span></span> <span class="o"><span class="pre">=</span></span> <span class="default_value"><span class="pre">5</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">trackpy_dataframe</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><span class="pre">Optional</span><span class="p"><span class="pre">[</span></span><span class="pre">object</span><span class="p"><span class="pre">]</span></span></span> <span class="o"><span class="pre">=</span></span> <span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">spot_positions_movement</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><span class="pre">Optional</span><span class="p"><span class="pre">[</span></span><span class="pre">numpy.ndarray</span><span class="p"><span class="pre">]</span></span></span> <span class="o"><span class="pre">=</span></span> <span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">method</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><span class="pre">str</span></span> <span class="o"><span class="pre">=</span></span> <span class="default_value"><span class="pre">'disk_donut'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">step_size</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><span class="pre">float</span></span> <span class="o"><span class="pre">=</span></span> <span class="default_value"><span class="pre">1</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">show_plot</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><span class="pre">bool</span></span> <span class="o"><span class="pre">=</span></span> <span class="default_value"><span class="pre">1</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#rsnaped.rsnaped.Intensity" title="Permalink to this definition">¶</a></dt>
 <dd><p>This class is intended to calculate the intensity in the detected spots.</p>
-<p>Parameters
-–  –  –  –  –
-video : NumPy array</p>
-<blockquote>
-<div><p>Array of images with dimensions [T, Y, X, C].</p>
-</div></blockquote>
+<p>Parameters</p>
 <dl class="simple">
+<dt>video<span class="classifier">NumPy array</span></dt><dd><p>Array of images with dimensions [T, Y, X, C].</p>
+</dd>
 <dt>particle_size<span class="classifier">int, optional</span></dt><dd><p>Average particle size. The default is 5.</p>
 </dd>
 <dt>trackpy_dataframe<span class="classifier">pandas data frame or None (if not given).</span></dt><dd><p>Pandas data frame from trackpy with fields [x, y, mass, size, ecc, signal, raw_mass, ep, frame, particle]. The default is None</p>
@@ -527,13 +483,10 @@ video : NumPy array</p>
 <dt id="rsnaped.rsnaped.Intensity.calculate_intensity">
 <code class="sig-name descname"><span class="pre">calculate_intensity</span></code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#rsnaped.rsnaped.Intensity.calculate_intensity" title="Permalink to this definition">¶</a></dt>
 <dd><p>This method calculates the spot intensity.</p>
-<p>Returns
-–  –  – -
-dataframe_particles : pandas dataframe</p>
-<blockquote>
-<div><p>Dataframe with fields [cell_number, particle, frame, red_int_mean, green_int_mean, blue_int_mean, red_int_std, green_int_std, blue_int_std, x, y, SNR_red,SNR_green,SNR_blue].</p>
-</div></blockquote>
+<p>Returns</p>
 <dl class="simple">
+<dt>dataframe_particles<span class="classifier">pandas dataframe</span></dt><dd><p>Dataframe with fields [cell_number, particle, frame, red_int_mean, green_int_mean, blue_int_mean, red_int_std, green_int_std, blue_int_std, x, y, SNR_red,SNR_green,SNR_blue].</p>
+</dd>
 <dt>array_intensities_mean<span class="classifier">Numpy array</span></dt><dd><p>Array with dimensions [S, T, C].</p>
 </dd>
 <dt>time_vector<span class="classifier">Numpy array</span></dt><dd><p>1D array.</p>
@@ -555,13 +508,10 @@ dataframe_particles : pandas dataframe</p>
 <dt id="rsnaped.rsnaped.MaskingImage">
 <em class="property"><span class="pre">class</span> </em><code class="sig-prename descclassname"><span class="pre">rsnaped.rsnaped.</span></code><code class="sig-name descname"><span class="pre">MaskingImage</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">video</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><span class="pre">numpy.ndarray</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">mask</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><span class="pre">numpy.ndarray</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#rsnaped.rsnaped.MaskingImage" title="Permalink to this definition">¶</a></dt>
 <dd><p>This class is intended to apply a mask to the video. The video format must be [T, Y, X, C], and the format of the mask must be [Y, X].</p>
-<p>Parameters
-–  –  –  –  –
-video : NumPy array</p>
-<blockquote>
-<div><p>Array of images with dimensions [T, Y, X, C].</p>
-</div></blockquote>
+<p>Parameters</p>
 <dl class="simple">
+<dt>video<span class="classifier">NumPy array</span></dt><dd><p>Array of images with dimensions [T, Y, X, C].</p>
+</dd>
 <dt>mask<span class="classifier">NumPy array, with Boolean values, where 1 represents the masked area, and 0 represents the area outside the mask.</span></dt><dd><p>An array of images with dimensions [Y, X].</p>
 </dd>
 </dl>
@@ -569,12 +519,11 @@ video : NumPy array</p>
 <dt id="rsnaped.rsnaped.MaskingImage.apply_mask">
 <code class="sig-name descname"><span class="pre">apply_mask</span></code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#rsnaped.rsnaped.MaskingImage.apply_mask" title="Permalink to this definition">¶</a></dt>
 <dd><p>This method applies high and low bandpass filters to the video. The method uses <strong>difference_of_gaussians</strong> from skimage.filters.</p>
-<p>Returns
-–  –  – -
-video_removed_mask : np.uint16</p>
-<blockquote>
-<div><p>Video with zero values outside the area delimited by the mask. Array with format [T, Y, X, C].</p>
-</div></blockquote>
+<p>Returns</p>
+<dl class="simple">
+<dt>video_removed_mask<span class="classifier">np.uint16</span></dt><dd><p>Video with zero values outside the area delimited by the mask. Array with format [T, Y, X, C].</p>
+</dd>
+</dl>
 </dd></dl>
 
 </dd></dl>
@@ -584,8 +533,7 @@ video_removed_mask : np.uint16</p>
 <em class="property"><span class="pre">class</span> </em><code class="sig-prename descclassname"><span class="pre">rsnaped.rsnaped.</span></code><code class="sig-name descname"><span class="pre">MergeChannels</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">directory</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><span class="pre">str</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">substring_to_detect_in_file_name</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><span class="pre">str</span></span> <span class="o"><span class="pre">=</span></span> <span class="default_value"><span class="pre">'.*_C0.tif'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">save_figure</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><span class="pre">bool</span></span> <span class="o"><span class="pre">=</span></span> <span class="default_value"><span class="pre">False</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#rsnaped.rsnaped.MergeChannels" title="Permalink to this definition">¶</a></dt>
 <dd><p>This class takes images as arrays with format [Z,Y,X] and merge then in a numpy array with format [Z, Y, X, C].
 It recursively merges the channels in a new dimenssion in the array. Minimal number of Channels 2 maximum is 4</p>
-<p>Parameters
-–  –  –  –  –</p>
+<p>Parameters</p>
 <dl class="simple">
 <dt>directory: str or PosixPath</dt><dd><p>Directory containing the images to merge.</p>
 </dd>
@@ -598,13 +546,10 @@ It recursively merges the channels in a new dimenssion in the array. Minimal num
 <dt id="rsnaped.rsnaped.MergeChannels.merge">
 <code class="sig-name descname"><span class="pre">merge</span></code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#rsnaped.rsnaped.MergeChannels.merge" title="Permalink to this definition">¶</a></dt>
 <dd><p>Method takes all the videos in the folder and merge those with similar names.</p>
-<p>Returns
-–  –  – -
-list_file_names : List of strings</p>
-<blockquote>
-<div><p>List with strings of names.</p>
-</div></blockquote>
+<p>Returns</p>
 <dl class="simple">
+<dt>list_file_names<span class="classifier">List of strings</span></dt><dd><p>List with strings of names.</p>
+</dd>
 <dt>list_merged_images<span class="classifier">List of NumPy arrays.</span></dt><dd><p>List of NumPy arrays with format np.uint16 and dimensions [Z, Y, X, C].</p>
 </dd>
 <dt>number_files<span class="classifier">int.</span></dt><dd><p>Number of merged images in the folder.</p>
@@ -618,13 +563,10 @@ list_file_names : List of strings</p>
 <dt id="rsnaped.rsnaped.PhotobleachingCalculation">
 <em class="property"><span class="pre">class</span> </em><code class="sig-prename descclassname"><span class="pre">rsnaped.rsnaped.</span></code><code class="sig-name descname"><span class="pre">PhotobleachingCalculation</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">video</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><span class="pre">numpy.ndarray</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">mask</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><span class="pre">numpy.ndarray</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">step_size</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><span class="pre">int</span></span> <span class="o"><span class="pre">=</span></span> <span class="default_value"><span class="pre">1</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">selected_channel</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><span class="pre">int</span></span> <span class="o"><span class="pre">=</span></span> <span class="default_value"><span class="pre">1</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">show_plot</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><span class="pre">bool</span></span> <span class="o"><span class="pre">=</span></span> <span class="default_value"><span class="pre">1</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#rsnaped.rsnaped.PhotobleachingCalculation" title="Permalink to this definition">¶</a></dt>
 <dd><p>This class is intended to calculate the intensity in the detected spots.</p>
-<p>Parameters
-–  –  –  –  –
-video : NumPy array</p>
-<blockquote>
-<div><p>Array of images with dimensions [T, Y, X, C].</p>
-</div></blockquote>
+<p>Parameters</p>
 <dl class="simple">
+<dt>video<span class="classifier">NumPy array</span></dt><dd><p>Array of images with dimensions [T, Y, X, C].</p>
+</dd>
 <dt>particle_size<span class="classifier">int, optional</span></dt><dd><p>Average particle size. The default is 5.</p>
 </dd>
 <dt>trackpy_dataframe<span class="classifier">pandas data frame or None (if not given).</span></dt><dd><p>Pandas data frame from trackpy with fields [x, y, mass, size, ecc, signal, raw_mass, ep, frame, particle]. The default is None</p>
@@ -644,13 +586,10 @@ video : NumPy array</p>
 <dt id="rsnaped.rsnaped.PipelineTracking">
 <em class="property"><span class="pre">class</span> </em><code class="sig-prename descclassname"><span class="pre">rsnaped.rsnaped.</span></code><code class="sig-name descname"><span class="pre">PipelineTracking</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">video</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><span class="pre">numpy.ndarray</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">particle_size</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><span class="pre">int</span></span> <span class="o"><span class="pre">=</span></span> <span class="default_value"><span class="pre">5</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">file_name</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><span class="pre">str</span></span> <span class="o"><span class="pre">=</span></span> <span class="default_value"><span class="pre">'Cell.tif'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">selected_channel</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><span class="pre">int</span></span> <span class="o"><span class="pre">=</span></span> <span class="default_value"><span class="pre">0</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">intensity_calculation_method</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><span class="pre">str</span></span> <span class="o"><span class="pre">=</span></span> <span class="default_value"><span class="pre">'disk_donut'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">mask_selection_method</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><span class="pre">str</span></span> <span class="o"><span class="pre">=</span></span> <span class="default_value"><span class="pre">'max_spots'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">show_plot</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><span class="pre">bool</span></span> <span class="o"><span class="pre">=</span></span> <span class="default_value"><span class="pre">1</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">use_optimization_for_tracking</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><span class="pre">bool</span></span> <span class="o"><span class="pre">=</span></span> <span class="default_value"><span class="pre">1</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">real_positions_dataframe</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">average_cell_diameter</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><span class="pre">float</span></span> <span class="o"><span class="pre">=</span></span> <span class="default_value"><span class="pre">120</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">print_process_times</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><span class="pre">bool</span></span> <span class="o"><span class="pre">=</span></span> <span class="default_value"><span class="pre">0</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#rsnaped.rsnaped.PipelineTracking" title="Permalink to this definition">¶</a></dt>
 <dd><p>A pipeline that allows cell segmentation, spot detection, and tracking of spots.</p>
-<p>Parameters
-–  –  –  –  –
-video : NumPy array</p>
-<blockquote>
-<div><p>Array of images with dimensions [T, Y, X, C].</p>
-</div></blockquote>
+<p>Parameters</p>
 <dl class="simple">
+<dt>video<span class="classifier">NumPy array</span></dt><dd><p>Array of images with dimensions [T, Y, X, C].</p>
+</dd>
 <dt>particle_size<span class="classifier">int, optional</span></dt><dd><p>Average particle size. The default is 5.</p>
 </dd>
 <dt>file_name<span class="classifier">str, optional</span></dt><dd><p>The file name for the simulated cell. The default is ‘Cell.tif’.</p>
@@ -678,13 +617,10 @@ video : NumPy array</p>
 <dt id="rsnaped.rsnaped.PipelineTracking.run">
 <code class="sig-name descname"><span class="pre">run</span></code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#rsnaped.rsnaped.PipelineTracking.run" title="Permalink to this definition">¶</a></dt>
 <dd><p>Runs the pipeline.</p>
-<p>Returns
-–  –  – -
-dataframe_particles : pandas dataframe</p>
-<blockquote>
-<div><p>Dataframe with fields [cell_number, particle, frame, red_int_mean, green_int_mean, blue_int_mean, red_int_std, green_int_std, blue_int_std, x, y].</p>
-</div></blockquote>
+<p>Returns</p>
 <dl class="simple">
+<dt>dataframe_particles<span class="classifier">pandas dataframe</span></dt><dd><p>Dataframe with fields [cell_number, particle, frame, red_int_mean, green_int_mean, blue_int_mean, red_int_std, green_int_std, blue_int_std, x, y].</p>
+</dd>
 <dt>array_intensities<span class="classifier">Numpy array</span></dt><dd><p>Array with dimensions [S, T, C].</p>
 </dd>
 <dt>time_vector<span class="classifier">Numpy array</span></dt><dd><p>1D array.</p>
@@ -706,8 +642,7 @@ dataframe_particles : pandas dataframe</p>
 <dt id="rsnaped.rsnaped.ReadImages">
 <em class="property"><span class="pre">class</span> </em><code class="sig-prename descclassname"><span class="pre">rsnaped.rsnaped.</span></code><code class="sig-name descname"><span class="pre">ReadImages</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">directory</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><span class="pre">str</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#rsnaped.rsnaped.ReadImages" title="Permalink to this definition">¶</a></dt>
 <dd><p>This class reads all .tif images in a given folder and returns the names of these files, path, and number of files.</p>
-<p>Parameters
-–  –  –  –  –</p>
+<p>Parameters</p>
 <dl class="simple">
 <dt>directory: str or PosixPath</dt><dd><p>Directory containing the images to merge.</p>
 </dd>
@@ -716,13 +651,10 @@ dataframe_particles : pandas dataframe</p>
 <dt id="rsnaped.rsnaped.ReadImages.read">
 <code class="sig-name descname"><span class="pre">read</span></code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#rsnaped.rsnaped.ReadImages.read" title="Permalink to this definition">¶</a></dt>
 <dd><p>Method takes all the videos in the folder and merge those with similar names.</p>
-<p>Returns
-–  –  – -
-list_images : List of NumPy arrays.</p>
-<blockquote>
-<div><p>List of NumPy arrays with format np.uint16 and dimensions [Z, Y, X, C] or [T, Y, X, C] .</p>
-</div></blockquote>
+<p>Returns</p>
 <dl class="simple">
+<dt>list_images<span class="classifier">List of NumPy arrays.</span></dt><dd><p>List of NumPy arrays with format np.uint16 and dimensions [Z, Y, X, C] or [T, Y, X, C] .</p>
+</dd>
 <dt>list_file_names<span class="classifier">List of strings</span></dt><dd><p>List with strings of names.</p>
 </dd>
 <dt>number_files<span class="classifier">int.</span></dt><dd><p>Number of images in the folder.</p>
@@ -736,13 +668,10 @@ list_images : List of NumPy arrays.</p>
 <dt id="rsnaped.rsnaped.RemoveExtrema">
 <em class="property"><span class="pre">class</span> </em><code class="sig-prename descclassname"><span class="pre">rsnaped.rsnaped.</span></code><code class="sig-name descname"><span class="pre">RemoveExtrema</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">video</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><span class="pre">numpy.ndarray</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">min_percentile</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><span class="pre">float</span></span> <span class="o"><span class="pre">=</span></span> <span class="default_value"><span class="pre">1</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">max_percentile</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><span class="pre">float</span></span> <span class="o"><span class="pre">=</span></span> <span class="default_value"><span class="pre">99</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">selected_channels</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><span class="pre">Optional</span><span class="p"><span class="pre">[</span></span><span class="pre">list</span><span class="p"><span class="pre">]</span></span></span> <span class="o"><span class="pre">=</span></span> <span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#rsnaped.rsnaped.RemoveExtrema" title="Permalink to this definition">¶</a></dt>
 <dd><p>This class is intended to remove extreme values from a video. The format of the video must be [Y, X] , [Y, X, C] , [Z, Y, X, C] or [T, Y, X, C].</p>
-<p>Parameters
-–  –  –  –  –
-video : NumPy array</p>
-<blockquote>
-<div><p>Array of images with dimensions [Y, X] , [Y, X, C] , [Z, Y, X, C] or [T, Y, X, C].</p>
-</div></blockquote>
+<p>Parameters</p>
 <dl class="simple">
+<dt>video<span class="classifier">NumPy array</span></dt><dd><p>Array of images with dimensions [Y, X] , [Y, X, C] , [Z, Y, X, C] or [T, Y, X, C].</p>
+</dd>
 <dt>min_percentile<span class="classifier">float, optional</span></dt><dd><p>Lower bound to normalize intensity. The default is 1.</p>
 </dd>
 <dt>max_percentile<span class="classifier">float, optional</span></dt><dd><p>Higher bound to normalize intensity. The default is 99.</p>
@@ -754,12 +683,11 @@ video : NumPy array</p>
 <dt id="rsnaped.rsnaped.RemoveExtrema.remove_outliers">
 <code class="sig-name descname"><span class="pre">remove_outliers</span></code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#rsnaped.rsnaped.RemoveExtrema.remove_outliers" title="Permalink to this definition">¶</a></dt>
 <dd><p>This method normalizes the values of a video by removing extreme values.</p>
-<p>Returns
-–  –  – -
-normalized_video : np.uint16</p>
-<blockquote>
-<div><p>Normalized video. Array with dimensions [T, Y, X, C] or image with format [Y, X].</p>
-</div></blockquote>
+<p>Returns</p>
+<dl class="simple">
+<dt>normalized_video<span class="classifier">np.uint16</span></dt><dd><p>Normalized video. Array with dimensions [T, Y, X, C] or image with format [Y, X].</p>
+</dd>
+</dl>
 </dd></dl>
 
 </dd></dl>
@@ -768,8 +696,7 @@ normalized_video : np.uint16</p>
 <dt id="rsnaped.rsnaped.SSA_rsnapsim">
 <em class="property"><span class="pre">class</span> </em><code class="sig-prename descclassname"><span class="pre">rsnaped.rsnaped.</span></code><code class="sig-name descname"><span class="pre">SSA_rsnapsim</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">gene_file</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">ke</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">10</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">ki</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0.03</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">frames</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">300</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">frame_rate</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">1</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">n_traj</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">20</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">t_burnin</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">1000</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">use_Harringtonin</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">use_FRAP</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">perturbation_time_start</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">perturbation_time_stop</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#rsnaped.rsnaped.SSA_rsnapsim" title="Permalink to this definition">¶</a></dt>
 <dd><p>This class uses rsnapsim to simulate the single-molecule translation dynamics of any gene.</p>
-<p>Parameters
-–  –  –  –  –</p>
+<p>Parameters</p>
 <dl class="simple">
 <dt>gene_file<span class="classifier">str,</span></dt><dd><p>Path to the location of a FASTA file.</p>
 </dd>
@@ -799,13 +726,10 @@ normalized_video : np.uint16</p>
 <dt id="rsnaped.rsnaped.SSA_rsnapsim.simulate">
 <code class="sig-name descname"><span class="pre">simulate</span></code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#rsnaped.rsnaped.SSA_rsnapsim.simulate" title="Permalink to this definition">¶</a></dt>
 <dd><p>Method runs rSNAPsim and simulates the single molecule translation dynamics.</p>
-<p>Returns
-–  –  – -
-ssa_int : NumPy array.</p>
-<blockquote>
-<div><p>Contains the SSA trajectories with dimensions [Time_points, simulated_trajectories].</p>
-</div></blockquote>
+<p>Returns</p>
 <dl class="simple">
+<dt>ssa_int<span class="classifier">NumPy array.</span></dt><dd><p>Contains the SSA trajectories with dimensions [Time_points, simulated_trajectories].</p>
+</dd>
 <dt>ssa_ump<span class="classifier">NumPy array.</span></dt><dd><p>SSA trajectories in UMP(units of mature protein). SSA trajectories normalized by the number of probes in the sequence.  Array with dimensions [Time_points, simulated_trajectories].</p>
 </dd>
 <dt>time_vector: NumPy array with dimensions [1, Time_points].</dt><dd><p>Time vector used in the simulation.</p>
@@ -819,13 +743,10 @@ ssa_int : NumPy array.</p>
 <dt id="rsnaped.rsnaped.ScaleIntensity">
 <em class="property"><span class="pre">class</span> </em><code class="sig-prename descclassname"><span class="pre">rsnaped.rsnaped.</span></code><code class="sig-name descname"><span class="pre">ScaleIntensity</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">video</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><span class="pre">numpy.ndarray</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">scale_maximum_value</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><span class="pre">int</span></span> <span class="o"><span class="pre">=</span></span> <span class="default_value"><span class="pre">1000</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">ignore_channel</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><span class="pre">Optional</span><span class="p"><span class="pre">[</span></span><span class="pre">bool</span><span class="p"><span class="pre">]</span></span></span> <span class="o"><span class="pre">=</span></span> <span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#rsnaped.rsnaped.ScaleIntensity" title="Permalink to this definition">¶</a></dt>
 <dd><p>This class is intended to scale the intensity values in a video. The format of the video must be [T, Y, X, C].</p>
-<p>Parameters
-–  –  –  –  –
-video : NumPy array</p>
-<blockquote>
-<div><p>Array of images with dimensions [T, Y, X, C].</p>
-</div></blockquote>
+<p>Parameters</p>
 <dl class="simple">
+<dt>video<span class="classifier">NumPy array</span></dt><dd><p>Array of images with dimensions [T, Y, X, C].</p>
+</dd>
 <dt>scale_maximum_value<span class="classifier">int, optional</span></dt><dd><p>Maximum intensity value to scaled the video. The default is 1000.</p>
 </dd>
 <dt>ignore_channel<span class="classifier">int or None, optional</span></dt><dd><p>Use this option to ignore the normalization of a given channel. The default is None.</p>
@@ -835,12 +756,11 @@ video : NumPy array</p>
 <dt id="rsnaped.rsnaped.ScaleIntensity.apply_scale">
 <code class="sig-name descname"><span class="pre">apply_scale</span></code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#rsnaped.rsnaped.ScaleIntensity.apply_scale" title="Permalink to this definition">¶</a></dt>
 <dd><p>This method is intended to scale the intensity values of a video.</p>
-<p>Returns
-–  –  – -
-scaled_video : np.uint16</p>
-<blockquote>
-<div><p>Scaled video. Array with dimensions [T, Y, X, C].</p>
-</div></blockquote>
+<p>Returns</p>
+<dl class="simple">
+<dt>scaled_video<span class="classifier">np.uint16</span></dt><dd><p>Scaled video. Array with dimensions [T, Y, X, C].</p>
+</dd>
+</dl>
 </dd></dl>
 
 </dd></dl>
@@ -849,13 +769,10 @@ scaled_video : np.uint16</p>
 <dt id="rsnaped.rsnaped.SimulatedCell">
 <em class="property"><span class="pre">class</span> </em><code class="sig-prename descclassname"><span class="pre">rsnaped.rsnaped.</span></code><code class="sig-name descname"><span class="pre">SimulatedCell</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">base_video</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><span class="pre">numpy.ndarray</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">video_for_mask</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><span class="pre">Optional</span><span class="p"><span class="pre">[</span></span><span class="pre">numpy.ndarray</span><span class="p"><span class="pre">]</span></span></span> <span class="o"><span class="pre">=</span></span> <span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">number_spots</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><span class="pre">int</span></span> <span class="o"><span class="pre">=</span></span> <span class="default_value"><span class="pre">10</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">number_frames</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><span class="pre">int</span></span> <span class="o"><span class="pre">=</span></span> <span class="default_value"><span class="pre">20</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">step_size</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><span class="pre">float</span></span> <span class="o"><span class="pre">=</span></span> <span class="default_value"><span class="pre">1</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">diffusion_coefficient</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><span class="pre">float</span></span> <span class="o"><span class="pre">=</span></span> <span class="default_value"><span class="pre">0.01</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">simulated_trajectories_ch0</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><span class="pre">Optional</span><span class="p"><span class="pre">[</span></span><span class="pre">numpy.ndarray</span><span class="p"><span class="pre">]</span></span></span> <span class="o"><span class="pre">=</span></span> <span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">size_spot_ch0</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><span class="pre">int</span></span> <span class="o"><span class="pre">=</span></span> <span class="default_value"><span class="pre">5</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">spot_sigma_ch0</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><span class="pre">int</span></span> <span class="o"><span class="pre">=</span></span> <span class="default_value"><span class="pre">1</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">simulated_trajectories_ch1</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><span class="pre">Optional</span><span class="p"><span class="pre">[</span></span><span class="pre">numpy.ndarray</span><span class="p"><span class="pre">]</span></span></span> <span class="o"><span class="pre">=</span></span> <span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">size_spot_ch1</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><span class="pre">int</span></span> <span class="o"><span class="pre">=</span></span> <span class="default_value"><span class="pre">5</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">spot_sigma_ch1</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><span class="pre">int</span></span> <span class="o"><span class="pre">=</span></span> <span class="default_value"><span class="pre">1</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">simulated_trajectories_ch2</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><span class="pre">Optional</span><span class="p"><span class="pre">[</span></span><span class="pre">numpy.ndarray</span><span class="p"><span class="pre">]</span></span></span> <span class="o"><span class="pre">=</span></span> <span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">size_spot_ch2</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><span class="pre">int</span></span> <span class="o"><span class="pre">=</span></span> <span class="default_value"><span class="pre">5</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">spot_sigma_ch2</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><span class="pre">int</span></span> <span class="o"><span class="pre">=</span></span> <span class="default_value"><span class="pre">1</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">ignore_ch0</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><span class="pre">bool</span></span> <span class="o"><span class="pre">=</span></span> <span class="default_value"><span class="pre">0</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">ignore_ch1</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><span class="pre">bool</span></span> <span class="o"><span class="pre">=</span></span> <span class="default_value"><span class="pre">0</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">ignore_ch2</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><span class="pre">bool</span></span> <span class="o"><span class="pre">=</span></span> <span class="default_value"><span class="pre">0</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">save_as_tif_uint8</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><span class="pre">bool</span></span> <span class="o"><span class="pre">=</span></span> <span class="default_value"><span class="pre">0</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">save_as_tif</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><span class="pre">bool</span></span> <span class="o"><span class="pre">=</span></span> <span class="default_value"><span class="pre">0</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">save_as_gif</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><span class="pre">bool</span></span> <span class="o"><span class="pre">=</span></span> <span class="default_value"><span class="pre">0</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">save_dataframe</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><span class="pre">bool</span></span> <span class="o"><span class="pre">=</span></span> <span class="default_value"><span class="pre">0</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">saved_file_name</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><span class="pre">str</span></span> <span class="o"><span class="pre">=</span></span> <span class="default_value"><span class="pre">'temp'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">create_temp_folder</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><span class="pre">bool</span></span> <span class="o"><span class="pre">=</span></span> <span class="default_value"><span class="pre">True</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">intensity_calculation_method</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><span class="pre">str</span></span> <span class="o"><span class="pre">=</span></span> <span class="default_value"><span class="pre">'disk_donut'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">using_for_multiplexing</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">min_int_multiplexing</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><span class="pre">Optional</span><span class="p"><span class="pre">[</span></span><span class="pre">bool</span><span class="p"><span class="pre">]</span></span></span> <span class="o"><span class="pre">=</span></span> <span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">max_int_multiplexing</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><span class="pre">Optional</span><span class="p"><span class="pre">[</span></span><span class="pre">float</span><span class="p"><span class="pre">]</span></span></span> <span class="o"><span class="pre">=</span></span> <span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">perform_video_augmentation</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><span class="pre">bool</span></span> <span class="o"><span class="pre">=</span></span> <span class="default_value"><span class="pre">0</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">frame_selection_empty_video</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><span class="pre">str</span></span> <span class="o"><span class="pre">=</span></span> <span class="default_value"><span class="pre">'shuffle'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">ignore_trajectories_ch0</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><span class="pre">bool</span></span> <span class="o"><span class="pre">=</span></span> <span class="default_value"><span class="pre">0</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">ignore_trajectories_ch1</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><span class="pre">bool</span></span> <span class="o"><span class="pre">=</span></span> <span class="default_value"><span class="pre">0</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">ignore_trajectories_ch2</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><span class="pre">bool</span></span> <span class="o"><span class="pre">=</span></span> <span class="default_value"><span class="pre">0</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">intensity_scale_ch0</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><span class="pre">float</span></span> <span class="o"><span class="pre">=</span></span> <span class="default_value"><span class="pre">10</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">intensity_scale_ch1</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><span class="pre">float</span></span> <span class="o"><span class="pre">=</span></span> <span class="default_value"><span class="pre">10</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">intensity_scale_ch2</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><span class="pre">float</span></span> <span class="o"><span class="pre">=</span></span> <span class="default_value"><span class="pre">10</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#rsnaped.rsnaped.SimulatedCell" title="Permalink to this definition">¶</a></dt>
 <dd><p>This class takes a base video, and it draws simulated spots on top of the image. The intensity for each simulated spot is proportional to the stochastic simulation given by the user.</p>
-<p>Parameters
-–  –  –  –  –
-base_video : NumPy array</p>
-<blockquote>
-<div><p>Array of images with dimensions [T, Y, X, C].</p>
-</div></blockquote>
+<p>Parameters</p>
 <dl class="simple">
+<dt>base_video<span class="classifier">NumPy array</span></dt><dd><p>Array of images with dimensions [T, Y, X, C].</p>
+</dd>
 <dt>video_for_mask<span class="classifier">NumPy array, optional</span></dt><dd><p>Array of images with dimensions [T, Y, X, C]. Use only if the base video has been edited, and an empty video is needed to calculate the mask. The default is None.</p>
 </dd>
 <dt>number_spots<span class="classifier">int</span></dt><dd><p>Number of simulated spots in the cell. The default is 10.</p>
@@ -931,13 +848,10 @@ base_video : NumPy array</p>
 <dt id="rsnaped.rsnaped.SimulatedCell.make_simulation">
 <code class="sig-name descname"><span class="pre">make_simulation</span></code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#rsnaped.rsnaped.SimulatedCell.make_simulation" title="Permalink to this definition">¶</a></dt>
 <dd><p>This method generates the simulated cell.</p>
-<p>Returns
-–  –  – -
-tensor_video : NumPy array uint16</p>
-<blockquote>
-<div><p>Array with dimensions [T, Y, X, C]</p>
-</div></blockquote>
+<p>Returns</p>
 <dl class="simple">
+<dt>tensor_video<span class="classifier">NumPy array uint16</span></dt><dd><p>Array with dimensions [T, Y, X, C]</p>
+</dd>
 <dt>spot_positions_movement<span class="classifier">NumPy array</span></dt><dd><p>Array with dimensions [T, Spots, position(y, x)]</p>
 </dd>
 <dt>tensor_mean_intensity_in_figure<span class="classifier">NumPy array, np.float</span></dt><dd><p>Array with dimensions [T, Spots]</p>
@@ -955,13 +869,10 @@ tensor_video : NumPy array uint16</p>
 <dt id="rsnaped.rsnaped.SimulatedCellMultiplexing">
 <em class="property"><span class="pre">class</span> </em><code class="sig-prename descclassname"><span class="pre">rsnaped.rsnaped.</span></code><code class="sig-name descname"><span class="pre">SimulatedCellMultiplexing</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">initial_video</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><span class="pre">numpy.ndarray</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">list_gene_sequences</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><span class="pre">list</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">list_number_spots</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><span class="pre">list</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">list_target_channels_proteins</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><span class="pre">list</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">list_target_channels_mRNA</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><span class="pre">list</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">list_diffusion_coefficients</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><span class="pre">list</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">list_label_names</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><span class="pre">list</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">list_elongation_rates</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><span class="pre">list</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">list_initiation_rates</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><span class="pre">list</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">simulation_time_in_sec</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><span class="pre">float</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">step_size_in_sec</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><span class="pre">float</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">save_as_tif</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><span class="pre">bool</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">save_dataframe</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><span class="pre">bool</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">saved_file_name</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><span class="pre">str</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">create_temp_folder</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><span class="pre">bool</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">cell_number</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><span class="pre">int</span></span> <span class="o"><span class="pre">=</span></span> <span class="default_value"><span class="pre">0</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">save_as_gif</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><span class="pre">bool</span></span> <span class="o"><span class="pre">=</span></span> <span class="default_value"><span class="pre">0</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">perform_video_augmentation</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><span class="pre">bool</span></span> <span class="o"><span class="pre">=</span></span> <span class="default_value"><span class="pre">1</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">frame_selection_empty_video</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><span class="pre">str</span></span> <span class="o"><span class="pre">=</span></span> <span class="default_value"><span class="pre">'shuffle'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">spot_size</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><span class="pre">int</span></span> <span class="o"><span class="pre">=</span></span> <span class="default_value"><span class="pre">5</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">intensity_scale_ch0</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">10</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">intensity_scale_ch1</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">10</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">intensity_scale_ch2</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">10</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#rsnaped.rsnaped.SimulatedCellMultiplexing" title="Permalink to this definition">¶</a></dt>
 <dd><p>This class takes a base video and simulates a multiplexing experiment, and it draws simulated spots on top of the image. The intensity for each simulated spot is proportional to the stochastic simulation given by the user.</p>
-<p>Parameters
-–  –  –  –  –
-initial_video :  NumPy array</p>
-<blockquote>
-<div><p>Array of images with dimensions [T, Y, X, C].</p>
-</div></blockquote>
+<p>Parameters</p>
 <dl class="simple">
+<dt>initial_video<span class="classifier">NumPy array</span></dt><dd><p>Array of images with dimensions [T, Y, X, C].</p>
+</dd>
 <dt>list_gene_sequences<span class="classifier">List of strings</span></dt><dd><p>List where every element is a gene sequence file.</p>
 </dd>
 <dt>list_number_spots<span class="classifier">List of int</span></dt><dd><p>List where every element represents the number of spots to simulate for each gene.</p>
@@ -1011,13 +922,10 @@ initial_video :  NumPy array</p>
 <dt id="rsnaped.rsnaped.SimulatedCellMultiplexing.make_simulation">
 <code class="sig-name descname"><span class="pre">make_simulation</span></code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#rsnaped.rsnaped.SimulatedCellMultiplexing.make_simulation" title="Permalink to this definition">¶</a></dt>
 <dd><p>Method that runs the simulations for the multiplexing experiment.</p>
-<p>Returns
-–  –  – -
-tensor_video : NumPy array uint16</p>
-<blockquote>
-<div><p>Array with dimensions [T, Y, X, C]</p>
-</div></blockquote>
+<p>Returns</p>
 <dl class="simple">
+<dt>tensor_video<span class="classifier">NumPy array uint16</span></dt><dd><p>Array with dimensions [T, Y, X, C]</p>
+</dd>
 <dt>dataframe_particles<span class="classifier">pandas dataframe</span></dt><dd><p>Dataframe with fields [cell_number, particle, frame, red_int_mean, green_int_mean, blue_int_mean, red_int_std, green_int_std, blue_int_std, x, y, SNR_red,SNR_green,SNR_blue].</p>
 </dd>
 <dt>list_ssa<span class="classifier">List of NumPy arrays</span></dt><dd><p>List of numpy arrays with the stochastic simulations for each gene. The format is [S, T], where the dimensions are S = spots and T = time.</p>
@@ -1031,13 +939,10 @@ tensor_video : NumPy array uint16</p>
 <dt id="rsnaped.rsnaped.Trackpy">
 <em class="property"><span class="pre">class</span> </em><code class="sig-prename descclassname"><span class="pre">rsnaped.rsnaped.</span></code><code class="sig-name descname"><span class="pre">Trackpy</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">video</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><span class="pre">numpy.ndarray</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">mask</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><span class="pre">numpy.ndarray</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">particle_size</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><span class="pre">int</span></span> <span class="o"><span class="pre">=</span></span> <span class="default_value"><span class="pre">5</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">selected_channel</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><span class="pre">int</span></span> <span class="o"><span class="pre">=</span></span> <span class="default_value"><span class="pre">0</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">minimal_frames</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><span class="pre">int</span></span> <span class="o"><span class="pre">=</span></span> <span class="default_value"><span class="pre">5</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">optimization_iterations</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><span class="pre">int</span></span> <span class="o"><span class="pre">=</span></span> <span class="default_value"><span class="pre">10</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">use_default_filter</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><span class="pre">int</span></span> <span class="o"><span class="pre">=</span></span> <span class="default_value"><span class="pre">1</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">FISH_image</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><span class="pre">bool</span></span> <span class="o"><span class="pre">=</span></span> <span class="default_value"><span class="pre">0</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">show_plot</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><span class="pre">bool</span></span> <span class="o"><span class="pre">=</span></span> <span class="default_value"><span class="pre">1</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#rsnaped.rsnaped.Trackpy" title="Permalink to this definition">¶</a></dt>
 <dd><p>This class is intended to detect spots in the video by using <strong>Trackpy</strong>.</p>
-<p>Parameters
-–  –  –  –  –
-video : NumPy array</p>
-<blockquote>
-<div><p>Array of images with dimensions [T, Y, X, C]. In case a FISH image is used, the format must be [Z, Y, X, C], and the user must specify the parameter FISH_image = 1.</p>
-</div></blockquote>
+<p>Parameters</p>
 <dl class="simple">
+<dt>video<span class="classifier">NumPy array</span></dt><dd><p>Array of images with dimensions [T, Y, X, C]. In case a FISH image is used, the format must be [Z, Y, X, C], and the user must specify the parameter FISH_image = 1.</p>
+</dd>
 <dt>mask<span class="classifier">NumPy array, with Boolean values, where 1 represents the masked area, and 0 represents the area outside the mask.</span></dt><dd><p>An array of images with dimensions [Y, X].</p>
 </dd>
 <dt>particle_size<span class="classifier">int, optional</span></dt><dd><p>Average particle size. The default is 5.</p>
@@ -1060,14 +965,11 @@ video : NumPy array</p>
 <dl class="py method">
 <dt id="rsnaped.rsnaped.Trackpy.perform_tracking">
 <code class="sig-name descname"><span class="pre">perform_tracking</span></code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#rsnaped.rsnaped.Trackpy.perform_tracking" title="Permalink to this definition">¶</a></dt>
-<dd><p>This method</p>
-<p>Returns
-–  –  – -
-trackpy_dataframe : pandas data frame.</p>
-<blockquote>
-<div><p>Pandas data frame from trackpy with fields [x, y, mass, size, ecc, signal, raw_mass, ep, frame, particle].</p>
-</div></blockquote>
+<dd><p>This method performs the tracking of the particles using trackpy.</p>
+<p>Returns</p>
 <dl class="simple">
+<dt>trackpy_dataframe<span class="classifier">pandas data frame.</span></dt><dd><p>Pandas data frame from trackpy with fields [x, y, mass, size, ecc, signal, raw_mass, ep, frame, particle].</p>
+</dd>
 <dt>number_particles<span class="classifier">int.</span></dt><dd><p>The total number of detected particles in the data frame.</p>
 </dd>
 <dt>video_filtered<span class="classifier">np.uint16.</span></dt><dd><p>Filtered video resulting from the bandpass process. Array with format [T, Y, X, C].</p>
@@ -1081,13 +983,10 @@ trackpy_dataframe : pandas data frame.</p>
 <dt id="rsnaped.rsnaped.VisualizerCrops">
 <em class="property"><span class="pre">class</span> </em><code class="sig-prename descclassname"><span class="pre">rsnaped.rsnaped.</span></code><code class="sig-name descname"><span class="pre">VisualizerCrops</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">list_videos</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><span class="pre">list</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">list_selected_particles_dataframe</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><span class="pre">list</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">particle_size</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><span class="pre">int</span></span> <span class="o"><span class="pre">=</span></span> <span class="default_value"><span class="pre">5</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#rsnaped.rsnaped.VisualizerCrops" title="Permalink to this definition">¶</a></dt>
 <dd><p>This class is intended to visualize the spots detected b trackPy as crops in an interactive widget.</p>
-<p>Parameters
-–  –  –  –  –
-list_videos : List of NumPy arrays or a single NumPy array.</p>
-<blockquote>
-<div><p>Images or videos to visualize. The format is a list of Numpy arrays where each array follows the convention [T, Y, X, C].</p>
-</div></blockquote>
+<p>Parameters</p>
 <dl class="simple">
+<dt>list_videos<span class="classifier">List of NumPy arrays or a single NumPy array.</span></dt><dd><p>Images or videos to visualize. The format is a list of Numpy arrays where each array follows the convention [T, Y, X, C].</p>
+</dd>
 <dt>list_selected_particles_dataframe<span class="classifier">pandas data frame.</span></dt><dd><p>A pandas data frame containing the position of each spot in the image.</p>
 </dd>
 <dt>particle_size<span class="classifier">int, optional</span></dt><dd><p>Average particle size. The default is 5.</p>
@@ -1097,13 +996,10 @@ list_videos : List of NumPy arrays or a single NumPy array.</p>
 <dt id="rsnaped.rsnaped.VisualizerCrops.make_video_app">
 <code class="sig-name descname"><span class="pre">make_video_app</span></code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#rsnaped.rsnaped.VisualizerCrops.make_video_app" title="Permalink to this definition">¶</a></dt>
 <dd><p>This method returns two objects (controls and output) to display a widget.</p>
-<p>Returns
-–  –  – -
-controls : object</p>
-<blockquote>
-<div><p>Controls from interactive to use with ipywidgets <strong>display</strong>.</p>
-</div></blockquote>
+<p>Returns</p>
 <dl class="simple">
+<dt>controls<span class="classifier">object</span></dt><dd><p>Controls from interactive to use with ipywidgets <strong>display</strong>.</p>
+</dd>
 <dt>output<span class="classifier">object</span></dt><dd><p>Output values from from interactive to use with ipywidgets <strong>display</strong>.</p>
 </dd>
 </dl>
@@ -1115,13 +1011,10 @@ controls : object</p>
 <dt id="rsnaped.rsnaped.VisualizerImage">
 <em class="property"><span class="pre">class</span> </em><code class="sig-prename descclassname"><span class="pre">rsnaped.rsnaped.</span></code><code class="sig-name descname"><span class="pre">VisualizerImage</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">list_videos</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><span class="pre">list</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">list_videos_filtered</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><span class="pre">Optional</span><span class="p"><span class="pre">[</span></span><span class="pre">list</span><span class="p"><span class="pre">]</span></span></span> <span class="o"><span class="pre">=</span></span> <span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">list_selected_particles_dataframe</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><span class="pre">Optional</span><span class="p"><span class="pre">[</span></span><span class="pre">list</span><span class="p"><span class="pre">]</span></span></span> <span class="o"><span class="pre">=</span></span> <span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">list_files_names</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><span class="pre">Optional</span><span class="p"><span class="pre">[</span></span><span class="pre">list</span><span class="p"><span class="pre">]</span></span></span> <span class="o"><span class="pre">=</span></span> <span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">list_mask_array</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><span class="pre">Optional</span><span class="p"><span class="pre">[</span></span><span class="pre">list</span><span class="p"><span class="pre">]</span></span></span> <span class="o"><span class="pre">=</span></span> <span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">list_real_particle_positions</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><span class="pre">Optional</span><span class="p"><span class="pre">[</span></span><span class="pre">list</span><span class="p"><span class="pre">]</span></span></span> <span class="o"><span class="pre">=</span></span> <span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">selected_channel</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><span class="pre">int</span></span> <span class="o"><span class="pre">=</span></span> <span class="default_value"><span class="pre">0</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">selected_timepoint</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><span class="pre">int</span></span> <span class="o"><span class="pre">=</span></span> <span class="default_value"><span class="pre">0</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">normalize</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><span class="pre">bool</span></span> <span class="o"><span class="pre">=</span></span> <span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">individual_figure_size</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><span class="pre">float</span></span> <span class="o"><span class="pre">=</span></span> <span class="default_value"><span class="pre">5</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#rsnaped.rsnaped.VisualizerImage" title="Permalink to this definition">¶</a></dt>
 <dd><p>This class is intended to visualize videos as 2D images. This class has the option to mark the particles that previously were selected by trackPy.</p>
-<p>Parameters
-–  –  –  –  –
-list_videos : List of NumPy arrays or a single NumPy array</p>
-<blockquote>
-<div><p>Images or videos to visualize. The format is a list of Numpy arrays where each array follows the convention [T, Y, X, C] or an image array with format [Y, X].</p>
-</div></blockquote>
+<p>Parameters</p>
 <dl class="simple">
+<dt>list_videos<span class="classifier">List of NumPy arrays or a single NumPy array</span></dt><dd><p>Images or videos to visualize. The format is a list of Numpy arrays where each array follows the convention [T, Y, X, C] or an image array with format [Y, X].</p>
+</dd>
 <dt>list_videos_filtered<span class="classifier">List of NumPy arrays or a single NumPy array or None</span></dt><dd><p>Images or videos to visualize. The format is a list of Numpy arrays where each array follows the convention [T, Y, X, C]. The default is None.</p>
 </dd>
 <dt>list_selected_particles_dataframe<span class="classifier">pandas data frame, optional</span></dt><dd><p>A pandas data frame containing the position of each spot in the image. The default is None.</p>
@@ -1145,9 +1038,8 @@ list_videos : List of NumPy arrays or a single NumPy array</p>
 <dt id="rsnaped.rsnaped.VisualizerImage.plot">
 <code class="sig-name descname"><span class="pre">plot</span></code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#rsnaped.rsnaped.VisualizerImage.plot" title="Permalink to this definition">¶</a></dt>
 <dd><p>This method plots a list of images as a grid.</p>
-<p>Returns
-–  –  – -
-None.</p>
+<p>Returns</p>
+<p>None.</p>
 </dd></dl>
 
 </dd></dl>
@@ -1156,13 +1048,10 @@ None.</p>
 <dt id="rsnaped.rsnaped.VisualizerVideo">
 <em class="property"><span class="pre">class</span> </em><code class="sig-prename descclassname"><span class="pre">rsnaped.rsnaped.</span></code><code class="sig-name descname"><span class="pre">VisualizerVideo</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">list_videos</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><span class="pre">list</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">dataframe_particles</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">list_mask_array</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><span class="pre">Optional</span><span class="p"><span class="pre">[</span></span><span class="pre">list</span><span class="p"><span class="pre">]</span></span></span> <span class="o"><span class="pre">=</span></span> <span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">show_time_projection_spots</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><span class="pre">bool</span></span> <span class="o"><span class="pre">=</span></span> <span class="default_value"><span class="pre">0</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">normalize</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><span class="pre">bool</span></span> <span class="o"><span class="pre">=</span></span> <span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">step_size_in_sec</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><span class="pre">float</span></span> <span class="o"><span class="pre">=</span></span> <span class="default_value"><span class="pre">1</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#rsnaped.rsnaped.VisualizerVideo" title="Permalink to this definition">¶</a></dt>
 <dd><p>This class is intended to visualize videos as interactive widgets. This class has the option to mark the particles that previously were selected by trackPy.</p>
-<p>Parameters
-–  –  –  –  –
-list_videos : List of NumPy arrays or a single NumPy array</p>
-<blockquote>
-<div><p>Images or videos to visualize. The format is a list of Numpy arrays where each array follows the convention [T, Y, X, C] or an image array with format [Y, X].</p>
-</div></blockquote>
+<p>Parameters</p>
 <dl class="simple">
+<dt>list_videos<span class="classifier">List of NumPy arrays or a single NumPy array</span></dt><dd><p>Images or videos to visualize. The format is a list of Numpy arrays where each array follows the convention [T, Y, X, C] or an image array with format [Y, X].</p>
+</dd>
 <dt>dataframe_particles<span class="classifier">pandas data frame, optional</span></dt><dd><p>A pandas data frame containing the position of each spot in the image. The default is None.</p>
 </dd>
 <dt>list_mask_array<span class="classifier">List of NumPy arrays or a single NumPy array, with Boolean values, where 1 represents the masked area, and 0 represents the area outside the mask.</span></dt><dd><p>An array of images with dimensions [Y, X].</p>
@@ -1178,13 +1067,10 @@ list_videos : List of NumPy arrays or a single NumPy array</p>
 <dt id="rsnaped.rsnaped.VisualizerVideo.make_video_app">
 <code class="sig-name descname"><span class="pre">make_video_app</span></code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#rsnaped.rsnaped.VisualizerVideo.make_video_app" title="Permalink to this definition">¶</a></dt>
 <dd><p>This method returns two objects (controls and output) that can be used to display a widget.</p>
-<p>Returns
-–  –  – -
-controls : object</p>
-<blockquote>
-<div><p>Controls from interactive to use with ipywidgets <strong>display</strong>.</p>
-</div></blockquote>
+<p>Returns</p>
 <dl class="simple">
+<dt>controls<span class="classifier">object</span></dt><dd><p>Controls from interactive to use with ipywidgets <strong>display</strong>.</p>
+</dd>
 <dt>output<span class="classifier">object</span></dt><dd><p>Output values from from interactive to use with ipywidgets <strong>display</strong>.</p>
 </dd>
 </dl>
@@ -1196,23 +1082,19 @@ controls : object</p>
 <dt id="rsnaped.rsnaped.VisualizerVideo3D">
 <em class="property"><span class="pre">class</span> </em><code class="sig-prename descclassname"><span class="pre">rsnaped.rsnaped.</span></code><code class="sig-name descname"><span class="pre">VisualizerVideo3D</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">list_videos</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><span class="pre">list</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#rsnaped.rsnaped.VisualizerVideo3D" title="Permalink to this definition">¶</a></dt>
 <dd><p>This class is intended to visualize 3d videos as interactive widgets.</p>
-<p>Parameters
-–  –  –  –  –
-list_videos : List of NumPy arrays or a single NumPy array</p>
-<blockquote>
-<div><p>Images or videos to visualize. The format is a list of Numpy arrays where each array follows the convention [T, Y, X, C] or an image array with format [Y, X].</p>
-</div></blockquote>
+<p>Parameters</p>
+<dl class="simple">
+<dt>list_videos<span class="classifier">List of NumPy arrays or a single NumPy array</span></dt><dd><p>Images or videos to visualize. The format is a list of Numpy arrays where each array follows the convention [T, Y, X, C] or an image array with format [Y, X].</p>
+</dd>
+</dl>
 <dl class="py method">
 <dt id="rsnaped.rsnaped.VisualizerVideo3D.make_video_app">
 <code class="sig-name descname"><span class="pre">make_video_app</span></code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#rsnaped.rsnaped.VisualizerVideo3D.make_video_app" title="Permalink to this definition">¶</a></dt>
 <dd><p>This method returns two objects (controls and output) that can be used to display a widget.</p>
-<p>Returns
-–  –  – -
-controls : object</p>
-<blockquote>
-<div><p>Controls from interactive to use with ipywidgets <strong>display</strong>.</p>
-</div></blockquote>
+<p>Returns</p>
 <dl class="simple">
+<dt>controls<span class="classifier">object</span></dt><dd><p>Controls from interactive to use with ipywidgets <strong>display</strong>.</p>
+</dd>
 <dt>output<span class="classifier">object</span></dt><dd><p>Output values from from interactive to use with ipywidgets <strong>display</strong>.</p>
 </dd>
 </dl>
@@ -1220,8 +1102,6 @@ controls : object</p>
 
 </dd></dl>
 
-<div class="toctree-wrapper compound">
-</div>
 </div>
 <div class="section" id="indices-and-tables">
 <h1>Indices and tables<a class="headerlink" href="#indices-and-tables" title="Permalink to this headline">¶</a></h1>
