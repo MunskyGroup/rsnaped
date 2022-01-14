@@ -1211,8 +1211,8 @@ class VisualizerVideo():
                 image = video[index_time, :, :, :].copy()
                 min_image, max_image = np.min(image), np.max(image)
                 image -= min_image
-                image_float = np.array(image, 'float32');
-                image_float *= 255./(max_image-min_image);
+                image_float = np.array(image, 'float32')
+                image_float *= 255./(max_image-min_image)
                 image = np.asarray(np.round(image_float), 'uint8')
                 plt.imshow(image, vmax = np.amax(image)*0.95)
             # Plots the detected spots.
@@ -1315,9 +1315,9 @@ class VisualizerVideo3D():
                 # Converting a np.uint16 array into float.
                 image = video[index_time, index_z_axis:, :, 0:int(np.amin((3, self.min_num_channels)))].copy()
                 min_image, max_image = np.min(image), np.max(image)
-                image -= min_image;
-                image_float = np.array(image, 'float32');
-                image_float *= 255./(max_image-min_image);
+                image -= min_image
+                image_float = np.array(image, 'float32')
+                image_float *= 255./(max_image-min_image)
                 image = np.asarray(np.round(image_float), 'uint8')
                 plt.imshow(image)
             plt.axis('off')
