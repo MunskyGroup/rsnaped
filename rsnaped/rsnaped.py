@@ -24,7 +24,10 @@ if import_libraries == 1:
     from numpy import ndarray
     from numpy import unravel_index
     # To run stochastic simulations
-    import rsnapsim as rss
+    try:
+        import rsnapsim as rss
+    except:
+        print('Please install rsnapsim')
     # System libraries
     import io
     import sys
@@ -60,6 +63,7 @@ if import_libraries == 1:
     from skimage.restoration import denoise_nl_means, estimate_sigma, denoise_wavelet
     from skimage.morphology import square, dilation
     from skimage.io import imread
+    from scipy.ndimage import gaussian_filter1d
     # Parallel computing
     from joblib import Parallel, delayed
     import multiprocessing
@@ -86,7 +90,10 @@ if import_libraries == 1:
     from timeit import default_timer as timer
     import time
     # Cellpose
-    from cellpose import models
+    try:
+        from cellpose import models
+    except:
+        print('Please install cellpose')
     # Plotting
     import matplotlib.pyplot as plt
     import matplotlib.path as mpltPath
@@ -97,8 +104,61 @@ if import_libraries == 1:
     import glob # to iterate in files
     import pathlib
     from pathlib import Path
+    os.environ["CUDA_VISIBLE_DEVICES"] = "0,1"
 
     plt.style.use("dark_background")
+
+
+class Banner():
+    def __init__(self,show=True):
+        self.show = show
+    def print_banner(self):
+        if self.show == True:
+            print(" \n"
+                "rSNAPed by : Luis Aguilera, W. Raymond, B. Silagy, T. Stasevich, and B. Munsky. \n \n" 
+                "            ,,,,,,,,,,,,,,,,,,,,,,,,                                         \n" 
+                "            ##########################                                       \n" 
+                "        ############################                                         \n" 
+                "        ,#######````````````````\######Q                                     \n" 
+                "        ]######M                  !######N                                   \n" 
+                "    #######`           {=,       @######                                     \n" 
+                "    #######            # {         @######                                   \n" 
+                "    ,#######           {  ^M          !######Q                               \n" 
+                "]######M           #   # %          ^######N,,,,,,,,,,,,,,,,,,,,             \n" 
+                "#######            jm,,^ ^p.p          @##########################           \n" 
+                "!######M           ^=M    @ #         ,############################p         \n" 
+                "######m       m,       ,`,         /##############################m          \n" 
+                "    @######        ,,5m,#`.#         ########                  .#######      \n" 
+                "    @######     #           @      ########                 ,mw @######      \n" 
+                "    !######w                    ,#######,              ,s^  #^  @######p     \n" 
+                "         ######N                  ]#######              ,^  #^  b   q######m \n" 
+                "        @######eeeeeeeeeeeeeeee########              # ;^  @   @ ,p^#######  \n" 
+                "        @############################       ,s=^^^^W^, 5, eM ,a^    @######  \n" 
+                "        ############################b   ,s^ ,m% sQ M-mw,,wm.`       #######  \n" 
+                "        #######ssssssssssssssss@####### @,mQ^  w w ` M             ,#######  \n" 
+                "        ,#######                   #######    W   m^ #            ,####### \n" 
+                "    ]######M                     #######p  ,M^,s^               {######^     \n" 
+                "    #######                         @######m =-                 #######      \n" 
+                "   #######    @b----------------@   @#######                   #######       \n" 
+                ",#######      @b                @    %#######,,,,,,,,,,,,,,,,,#######        \n" 
+                "]#######      @b                @      ############################          \n" 
+                "@######       @b                @      ###########################           \n" 
+                " ######w      @b                @    ,###########################            \n" 
+                "   ######m    @mmmmmmmmmmmmmmmmm#   ]######M                                 \n" 
+                "    @######      ,,,,,,#,,,,,,     #######`                                  \n" 
+                "    @######                      #######                                     \n" 
+                "         ######w                  ,#######                                   \n" 
+                "         ######N,,,,,,,,,,,,,,,,]######M                                     \n" 
+                "        @###########################^                                        \n" 
+                "            @#########################                                       \n" 
+                "                =================                                            \n" 
+                "                                                                             \n" 
+                "        ██████╗░░██████╗███╗░░██╗░█████╗░██████╗░███████╗██████╗░            \n" 
+                "        ██╔══██╗██╔════╝████╗░██║██╔══██╗██╔══██╗██╔════╝██╔══██╗            \n" 
+                "        ██████╔╝╚█████╗░██╔██╗██║███████║██████╔╝█████╗░░██║░░██║            \n" 
+                "        ██╔══██╗░╚═══██╗██║╚████║██╔══██║██╔═══╝░██╔══╝░░██║░░██║            \n" 
+                "        ██║░░██║██████╔╝██║░╚███║██║░░██║██║░░░░░███████╗██████╔╝            \n" )
+
 
 
 
@@ -494,7 +554,7 @@ class ScaleIntensity():
             Scaled video. Array with dimensions [T, Y, X, C].
         '''
         scaled_video = np.copy(self.video)
-        scaled_video = np.array(scaled_video, 'float32');
+        scaled_video = np.array(scaled_video, 'float32')
         number_timepoints, number_channels   = self.video.shape[0], self.video.shape[3]
         for index_channels in range (number_channels):
             if not self.ignore_channel == index_channels:
@@ -1384,15 +1444,15 @@ class VisualizerCrops():
                 if index_channels == 0:
                     ax[index_channels].imshow(red_image[index_time, :, :], origin = 'bottom', cmap = 'gray')
                     ax[index_channels].set_axis_off()
-                    ax[index_channels].set(title = 'Channel_0 (Red)');
+                    ax[index_channels].set(title = 'Channel_0 (Red)')
                 elif index_channels == 1:
                     ax[index_channels].imshow(green_image[index_time, :, :], origin = 'bottom', cmap = 'gray')
                     ax[index_channels].set_axis_off()
-                    ax[index_channels].set(title = 'Channel_1 (Green)');
+                    ax[index_channels].set(title = 'Channel_1 (Green)')
                 else:
                     ax[index_channels].imshow(blue_image[index_time, :, :], origin = 'bottom', cmap = 'gray')
                     ax[index_channels].set_axis_off()
-                    ax[index_channels].set(title = 'Channel_2 (Blue)');
+                    ax[index_channels].set(title = 'Channel_2 (Blue)')
             print('For track '+ str(track) + ' a spot is detected between time points : '+ str(int(frames_vector[track, 0])) + ' and ' + str(int(frames_vector[track, 1])) )
         options_cells = list(range(0, self.number_videos))
         interactive_plot = interactive(figure_viewer, drop_cell = widgets.Dropdown(options = options_cells, description = 'Cell'), 
@@ -1431,7 +1491,7 @@ class Cellpose():
         self.diameter = diameter
         self.model_type = model_type # options are 'cyto' or 'nuclei'
         self.selection_method = selection_method # options are 'max_area' or 'max_cells'
-        self.tested_probabilities = np.round(np.linspace(self.minimumm_probability, self.maximum_probability, self.num_iterations), 2)
+        self.optimization_parameter = np.round(np.linspace(self.minimumm_probability, self.maximum_probability, self.num_iterations), 2)
 
     def calculate_masks(self):
         '''
@@ -1447,9 +1507,9 @@ class Cellpose():
         sys.stdout = open(os.devnull, "w")
         model = models.Cellpose(gpu = 1, model_type = self.model_type) # model_type = 'cyto' or model_type = 'nuclei'
         # Loop that test multiple probabilities in cell pose and returns the masks with the longest area.
-        def cellpose_max_area( cell_prob):
+        def cellpose_max_area( optimization_threshold):
             try:
-                masks, _, _, _ = model.eval(self.video, normalize = True, cellprob_threshold = cell_prob, diameter = self.diameter, min_size = -1, channels = self.channels, progress = None)
+                masks, _, _, _ = model.eval(self.video, normalize = True, mask_threshold = optimization_threshold, diameter = self.diameter, min_size = -1, channels = self.channels, progress = None)
             except:
                 masks =0
             n_masks = np.amax(masks)
@@ -1464,16 +1524,16 @@ class Cellpose():
             else: # do nothing if only a single mask is detected per image.
                 return np.sum(masks)
         
-        def cellpose_max_cells(cell_prob):
+        def cellpose_max_cells(optimization_threshold):
             try:
-                masks, _, _, _ = model.eval(self.video, normalize = True, cellprob_threshold = cell_prob, diameter =self.diameter, min_size = -1, channels = self.channels, progress = None)
+                masks, _, _, _ = model.eval(self.video, normalize = True, mask_threshold = optimization_threshold, diameter =self.diameter, min_size = -1, channels = self.channels, progress = None)
             except:
                 masks =0
             return np.amax(masks)
 
-        def cellpose_max_cells_and_area( cell_prob):
+        def cellpose_max_cells_and_area( optimization_threshold):
             try:
-                masks, _, _, _ = model.eval(self.video, normalize = True, cellprob_threshold = cell_prob, diameter = self.diameter, min_size = -1, channels = self.channels, progress = None)
+                masks, _, _, _ = model.eval(self.video, normalize = True, mask_threshold = optimization_threshold, diameter = self.diameter, min_size = -1, channels = self.channels, progress = None)
             except:
                 masks =0
             n_masks = np.amax(masks)
@@ -1490,20 +1550,20 @@ class Cellpose():
                 return 0     
 
         if self.selection_method == 'max_area':
-            list_metrics_masks = [cellpose_max_area(self.tested_probabilities[i],  ) for i,_ in enumerate(self.tested_probabilities)]
+            list_metrics_masks = [cellpose_max_area(self.optimization_parameter[i],  ) for i,_ in enumerate(self.optimization_parameter)]
             evaluated_metric_for_masks = np.asarray(list_metrics_masks)
 
         if self.selection_method == 'max_cells':
-            list_metrics_masks = [cellpose_max_cells(self.tested_probabilities[i] ) for i,_ in enumerate(self.tested_probabilities)]
+            list_metrics_masks = [cellpose_max_cells(self.optimization_parameter[i] ) for i,_ in enumerate(self.optimization_parameter)]
             evaluated_metric_for_masks = np.asarray(list_metrics_masks)
 
         if self.selection_method == 'max_cells_and_area':
-            list_metrics_masks = [cellpose_max_cells_and_area(self.tested_probabilities[i] ) for i,_ in enumerate(self.tested_probabilities)]
+            list_metrics_masks = [cellpose_max_cells_and_area(self.optimization_parameter[i] ) for i,_ in enumerate(self.optimization_parameter)]
             evaluated_metric_for_masks = np.asarray(list_metrics_masks)
         
         if np.amax(evaluated_metric_for_masks) >0:
-            selected_conditions = self.tested_probabilities[np.argmax(evaluated_metric_for_masks)]
-            selected_masks, _, _, _ = model.eval(self.video, normalize = True, cellprob_threshold = selected_conditions, diameter = self.diameter, min_size = -1, channels = self.channels, progress = None)
+            selected_conditions = self.optimization_parameter[np.argmax(evaluated_metric_for_masks)]
+            selected_masks, _, _, _ = model.eval(self.video, normalize = True, mask_threshold = selected_conditions, diameter = self.diameter, min_size = -1, channels = self.channels, progress = None)
             selected_masks[0:10, :] = 0;selected_masks[:, 0:10] = 0;selected_masks[selected_masks.shape[0]-10:selected_masks.shape[0]-1, :] = 0; selected_masks[:, selected_masks.shape[1]-10: selected_masks.shape[1]-1 ] = 0#This line of code ensures that the corners are zeros.
 
         else:
@@ -1726,9 +1786,9 @@ class CellposeFISH():
                 #number_channels= self.video.shape[-1]
                 _, axes = plt.subplots(nrows = 1, ncols = 4, figsize = (20, 10))
                 im = video_normalized[ :, :, 0:3].copy()
-                imin, imax = np.min(im), np.max(im); im -= imin;
-                imf = np.array(im, 'float32');
-                imf *= 255./(imax-imin);
+                imin, imax = np.min(im), np.max(im); im -= imin
+                imf = np.array(im, 'float32')
+                imf *= 255./(imax-imin)
                 im = np.asarray(np.round(imf), 'uint8')
                 axes[0].imshow(im)
                 axes[0].set(title = 'All channels')
@@ -1750,9 +1810,9 @@ class CellposeFISH():
                     #number_channels= self.video.shape[-1]
                     _, axes = plt.subplots(nrows = 1, ncols = 2, figsize = (20, 10))
                     im = video_normalized[ :, :, 0:3].copy()
-                    imin, imax = np.min(im), np.max(im); im -= imin;
-                    imf = np.array(im, 'float32');
-                    imf *= 255./(imax-imin);
+                    imin, imax = np.min(im), np.max(im); im -= imin
+                    imf = np.array(im, 'float32')
+                    imf *= 255./(imax-imin)
                     im = np.asarray(np.round(imf), 'uint8')
                     axes[0].imshow(im)
                     axes[0].set(title = 'All channels')
@@ -1765,9 +1825,9 @@ class CellposeFISH():
                     #number_channels= self.video.shape[-1]
                     _, axes = plt.subplots(nrows = 1, ncols = 2, figsize = (20, 10))
                     im = video_normalized[ :, :, 0:3].copy()
-                    imin, imax = np.min(im), np.max(im); im -= imin;
-                    imf = np.array(im, 'float32');
-                    imf *= 255./(imax-imin);
+                    imin, imax = np.min(im), np.max(im); im -= imin
+                    imf = np.array(im, 'float32')
+                    imf *= 255./(imax-imin)
                     im = np.asarray(np.round(imf), 'uint8')
                     axes[0].imshow(im)
                     axes[0].set(title = 'All channels')
@@ -1923,7 +1983,7 @@ class Trackpy():
         self.use_default_filter =  use_default_filter
         # parameters for the filters
         self.low_pass_filter = 0.1
-        self.highpass_filter = 5
+        self.highpass_filter = 10
         self.perecentile_intensity_selection = 70 #Not modify
         self.default_threshold_int_std = 1 #0.5  # very important parameter. 1 works well
         # This section detects if a FISH image is passed and it adjust accordingly.
@@ -1942,15 +2002,16 @@ class Trackpy():
             return img_as_uint(temp_vid)
 
         if use_default_filter ==0:
+            num_std =3
             tmp_video = video[0, :, :,selected_channel].copy()
             temp_vid_dif_filter = Parallel(n_jobs = self.NUMBER_OF_CORES)(delayed(bandpass_filter)(tmp_video, self.low_pass_filter, self.highpass_filter) for i in range(0, self.time_points))
             temp_video_bp_filtered = np.asarray(temp_vid_dif_filter)
             video_removed_mask = np.einsum('ijk, jk -> ijk', temp_video_bp_filtered, self.mask)
             f_init = tp.locate(video_removed_mask[0, :, :], self.particle_size, minmass = 0, max_iterations = 100, preprocess = False, percentile = 70)
-            self.MAX_INT_OPTIMIZATION = np.amax( (0, np.round( np.mean(f_init.mass.values) + self.default_threshold_int_std *np.std(f_init.mass.values))))
+            self.MAX_INT_OPTIMIZATION = np.amax( (0, np.round( np.mean(f_init.mass.values) + self.default_threshold_int_std * num_std*np.std(f_init.mass.values))))
             self.MIN_INT_OPTIMIZATION = np.amax( (0, np.round( np.mean(f_init.mass.values) - self.default_threshold_int_std *np.std(f_init.mass.values))))
         else:
-            self.MAX_INT_OPTIMIZATION = 10
+            self.MAX_INT_OPTIMIZATION = 400
             self.MIN_INT_OPTIMIZATION = 0 
     def perform_tracking(self):
         '''
@@ -1984,10 +2045,18 @@ class Trackpy():
         def bandpass_filter (image: np.ndarray, lowfilter, highpass):
             temp_vid = difference_of_gaussians(image, lowfilter, highpass, truncate = 3.0)
             return img_as_uint(temp_vid)
+        
         def gaussian_filter(image: np.ndarray, sigma:float = 0.1):
             temp_image = img_as_float64(image)
             filtered_image = gaussian(temp_image, sigma = sigma, output = None, mode = 'nearest', cval = 0, multichannel = None, preserve_range = True, truncate = 4.0)
             return img_as_uint(filtered_image)
+        
+        def log_filter(image: np.ndarray, sigma=1):
+            temp_image = img_as_float64(image)
+            temp_vid = gaussian_laplace(temp_image, sigma=sigma)
+            temp_vid = np.clip(-temp_vid, a_min=0, a_max=None)
+            return img_as_uint(temp_vid)
+        
         # non-linear filter
         def nl_filter(image: np.ndarray):
             temp_image = img_as_float64(image)
@@ -2023,6 +2092,11 @@ class Trackpy():
                 trackpy_dataframe = None
         else: # This section uses optimization to select the optimal value for the filter size.
             temp_vid_dif_filter = Parallel(n_jobs = self.NUMBER_OF_CORES)(delayed(bandpass_filter)(self.video[i, :, :], self.low_pass_filter, self.highpass_filter) for i in range(0, self.time_points))
+            
+            #temp_vid_dif_filter = Parallel(n_jobs = self.NUMBER_OF_CORES)(delayed(log_filter)(self.video[i, :, :], sigma=0.5) for i in range(0, self.time_points))
+            
+            #temp_vid_dif_filter = Parallel(n_jobs = self.NUMBER_OF_CORES)(delayed(temp_vid_dif_filter)(self.video[i, :, :], self.low_pass_filter, self.highpass_filter) for i in range(0, self.time_points))
+
             temp_video_bp_filtered = np.asarray(temp_vid_dif_filter)
             video_removed_mask = np.einsum('ijk, jk -> ijk', temp_video_bp_filtered, self.mask)
             for index_p, min_int_in_video in enumerate(min_int_vector):
@@ -2037,26 +2111,47 @@ class Trackpy():
                 window_size = 3
             else:
                 window_size = 5
-            convoluted_num_detected_particles = np.round( np.convolve(num_detected_particles, np.ones(window_size)/window_size, mode = 'same'))
-            convoluted_num_detected_particles[0:window_size] = convoluted_num_detected_particles[1] # replacing the first element with the 
-            rounded_num_particules = np.array([round_to_5(convoluted_num_detected_particles[x]) for x in range(len(convoluted_num_detected_particles))], dtype = np.float32)
-            plt.plot(rounded_num_particules)
-            plt.show()
+            window_size =10
+            #convoluted_num_detected_particles = np.round( np.convolve(num_detected_particles, np.ones(window_size)/window_size, mode = 'same'))
+            #convoluted_num_detected_particles[0:window_size] = convoluted_num_detected_particles[1] # replacing the first element with the 
+            #rounded_num_particules = np.array([round_to_5(convoluted_num_detected_particles[x]) for x in range(len(convoluted_num_detected_particles))], dtype = np.float32)
+            smooth_vector_detected_spots = gaussian_filter1d(num_detected_particles, window_size)
+            #plt.plot(smooth_vector_detected_spots)
+            #plt.show()
+            
             try:
-                threshold = 3 # threshold to reject if
-                num_detected_particles_with_nans = rounded_num_particules.copy()
-                num_detected_particles_with_nans[num_detected_particles_with_nans <= threshold] = np.nan
-                mode_detected_particles = sps.mode(num_detected_particles_with_nans, nan_policy = 'omit')[0][0] # calculating the mode of nonzero num_detected_particles.
-                center_modes = int (len(np.where(num_detected_particles_with_nans == mode_detected_particles)[0])/2)-1 #
-                if center_modes < 0:
-                    center_modes = 0
-                index_contains_central_mode = np.where(num_detected_particles_with_nans == mode_detected_particles)[0][center_modes]
-                selected_int_optimized = min_int_vector[index_contains_central_mode]
+                #threshold = 3 # threshold to reject if
+                #num_detected_particles_with_nans = rounded_num_particules.copy()
+                #num_detected_particles_with_nans[num_detected_particles_with_nans <= threshold] = np.nan
+                
+                second_derivative_vector_detected_spots = np.gradient(np.gradient(smooth_vector_detected_spots))      # Second deriivative
+                inflection_points = np.where(np.diff(np.sign(second_derivative_vector_detected_spots)))[0]  # Finding the inflection points                
+                selected_int_optimized = np.round(min_int_vector [inflection_points[1]],0)
+                
+                #mode_detected_particles = sps.mode(num_detected_particles_with_nans, nan_policy = 'omit')[0][0] # calculating the mode of nonzero num_detected_particles.
+                #center_modes = int (len(np.where(num_detected_particles_with_nans == mode_detected_particles)[0])/2)-1 #
+                #if center_modes < 0:
+                #    center_modes = 0
+                #index_contains_central_mode = np.where(num_detected_particles_with_nans == mode_detected_particles)[0][center_modes]
+                #selected_int_optimized = min_int_vector[index_contains_central_mode]
                 f = tp.batch(video_removed_mask[:, :, :], self.particle_size, minmass = selected_int_optimized, processes = 'auto', max_iterations = 1000, preprocess = False, percentile = percentile)
                 t = tp.link_df(f, (self.max_distance_particle_moves, self.max_distance_particle_moves), memory = self.min_time_particle_vanishes, adaptive_stop = 1, link_strategy = 'auto') # tp.link_df(data_frame, min_distance_particle_moves, min_time_particle_vanish).
                 t_sel = tp.filter_stubs(t, self.minimal_frames)  # selecting trajectories that appear in at least 10 frames.
                 number_particles = t_sel['particle'].nunique()
                 trackpy_dataframe = t_sel
+                
+                plt.figure(figsize =(5,5))
+                plt.plot(smooth_vector_detected_spots)
+                plt.plot(smooth_vector_detected_spots/np.max(smooth_vector_detected_spots) , label='norm detected_spots',linewidth=5,color='lime')
+                plt.plot(second_derivative_vector_detected_spots / np.max(second_derivative_vector_detected_spots), label=r"$f''(spots)$",color='orangered',linewidth=5)
+                for i, infl in enumerate(inflection_points, 1):
+                    plt.plot(infl,0, 'o',label='Inflection Point '+str(i), markersize=20, markerfacecolor='cyan')
+                plt.xlabel('Threshold index', size=16)
+                plt.ylabel('Norm. number of spots', size=16)
+                plt.ylim(-0.2,1.1)
+                plt.show()
+                print('The number of detected trajectories is: ', number_particles)
+                        
             except:
                  number_particles = 0
                  trackpy_dataframe = None
@@ -2065,7 +2160,8 @@ class Trackpy():
             if self.show_plot == 1:
                 plt.figure(figsize = (7, 7))
                 plt.plot(min_int_vector, num_detected_particles, 'w-', linewidth = 2, label = 'real')
-                plt.plot(min_int_vector[1:-1], convoluted_num_detected_particles[1:-1], 'g-', linewidth = 1, label = 'smoothed')
+                #plt.plot(min_int_vector[1:-1], convoluted_num_detected_particles[1:-1], 'g-', linewidth = 1, label = 'smoothed')
+                plt.plot(min_int_vector, smooth_vector_detected_spots, 'g-', linewidth = 1, label = 'smoothed')
                 plt.plot([selected_int_optimized, selected_int_optimized], [np.amin(num_detected_particles), np.amax(num_detected_particles)], 'r-', linewidth = 2, label = 'Automatic selection')
                 #plt.plot([vector_intensities[0], vector_intensities[-1]], [threshold, threshold], 'k -- ', linewidth = 1, label = 'min. selection threshold')
                 plt.legend(loc = 'best')
@@ -2328,7 +2424,7 @@ class Intensity():
             ax[0].set_xlim([0, time_points-1])
             ax[1].set_xlim([0, time_points-1])
             ax[2].set_xlim([0, time_points-1])
-            ax[0].set_xticks([]);ax[1].set_xticks([]);
+            ax[0].set_xticks([]);ax[1].set_xticks([])
             plt.show()
             _, ax = plt.subplots(3, 1, figsize = (16, 4))
             for id in range (0, self.n_particles):
@@ -2345,7 +2441,7 @@ class Intensity():
             ax[0].set_xlim([0, time_points-1])
             ax[1].set_xlim([0, time_points-1])
             ax[2].set_xlim([0, time_points-1])
-            ax[0].set_xticks([]);ax[1].set_xticks([]);
+            ax[0].set_xticks([]);ax[1].set_xticks([])
             plt.show()
             _, ax = plt.subplots(3, 1, figsize = (16, 4))
             for id in range (0, self.n_particles):
@@ -2362,7 +2458,7 @@ class Intensity():
             ax[0].set_xlim([0, time_points-1])
             ax[1].set_xlim([0, time_points-1])
             ax[2].set_xlim([0, time_points-1])
-            ax[0].set_xticks([]);ax[1].set_xticks([]);
+            ax[0].set_xticks([]);ax[1].set_xticks([])
             plt.show()
         # Initialize a dataframe
         init_dataFrame = {'cell_number': [], 
@@ -2802,10 +2898,10 @@ class SimulatedCell():
                 for i in range(0, num_images_for_gif):
                     # CONVERSION TO UINT
                     image = tensor_video_copy[i, :, :, ch].copy()
-                    min_image, max_image = np.min(image), np.max(image);
-                    image -= min_image;
-                    image_float = np.array(image, 'float32');
-                    image_float *= 255./(max_image-min_image);
+                    min_image, max_image = np.min(image), np.max(image)
+                    image -= min_image
+                    image_float = np.array(image, 'float32')
+                    image_float *= 255./(max_image-min_image)
                     image = np.asarray(np.round(image_float), 'uint8')
                     normalized_tensor[i, :, :, ch] = image
             if self.save_as_tif_uint8 == 1:
@@ -3086,7 +3182,7 @@ class PipelineTracking():
         # Iterations
         self.NUM_ITERATIONS_CELLPOSE = 8
         self.NUM_ITERATIONS_TRACKING = 400
-        self.MN_PERCENTAGE_FRAMES_FOR_TRACKING = 0.2
+        self.MN_PERCENTAGE_FRAMES_FOR_TRACKING = 0.3
     def run(self):
         '''
         Runs the pipeline.
