@@ -11,6 +11,8 @@ DataBases/
 .vscode
 LargeDataSets/
 *egg-info
+dist/
+build/
 
 # rSNAPsim_IP/temp
 temp/
