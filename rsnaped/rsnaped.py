@@ -387,10 +387,13 @@ class AugmentationVideo():
 
     video : NumPy array
         Array of images with dimensions [T, Y, X, C].
+    predefined_angle : int, with values 0, 90, 180, 270, 360, or None. Optinal, None is the default.
+        Indicates the specific angle of rotation.
     '''
 
-    def __init__(self, video:np.ndarray):
+    def __init__(self, video:np.ndarray,predefined_angle=None):
      self.video = video
+     self.predefined_angle=predefined_angle
 
     def random_rotation(self):
         '''
@@ -402,13 +405,21 @@ class AugmentationVideo():
             Array with dimensions [T, Y, X, C].
         '''
 
-        angles = [0, 90, 180, 270, 360]
-        selected_angle = random.choice(angles)
-        if selected_angle != 0:
-            video_random_rotation = nd.rotate(self.video, angle = selected_angle, axes = (1, 2))
-            return video_random_rotation
+        if (self.predefined_angle is None):
+            angles = [0, 90, 180, 270, 360]
+            selected_angle = random.choice(angles)
         else:
-            return self.video
+            selected_angle=self.predefined_angle
+            
+        if selected_angle != 0:
+            if len(self.video.shape) > 3:
+                video_random_rotation = nd.rotate(self.video, angle = selected_angle, axes = (1, 2))
+            else:
+                video_random_rotation = nd.rotate(self.video, angle = selected_angle, axes = (0, 1))
+            return video_random_rotation , selected_angle
+        else:
+            return self.video, selected_angle
+        
 
 
 class RemoveExtrema():
@@ -2153,6 +2164,10 @@ class Intensity():
         Pandas data frame from trackpy with fields [x, y, mass, size, ecc, signal, raw_mass, ep, frame, particle]. The default is None
     spot_positions_movement : NumPy array  or None (if not given).
         Array of images with dimensions [T, S, x_y_positions].  The default is None
+    dataframe_format : str, optional
+        Format for the dataframe the options are : 'short' , and 'long'. The default is 'long'.
+        "long" format generates this dataframe: [cell_number, particle, frame, red_int_mean, green_int_mean, blue_int_mean, red_int_std, green_int_std, blue_int_std, x, y, SNR_red,SNR_green,SNR_blue].
+        "short" format generates this dataframe: [cell_number, particle, frame, red_int_mean, green_int_mean, blue_int_mean, x, y].
     method : str, optional
         Method to calculate intensity the options are : 'total_intensity' , 'disk_donut' and 'gaussian_fit'. The default is 'disk_donut'.
     step_size : float, optional
@@ -2160,7 +2175,7 @@ class Intensity():
     show_plot : bool, optional
         Allows the user to show a plot for the optimization process. The default is 1.
     '''
-    def __init__(self, video:np.ndarray, particle_size:int = 5, trackpy_dataframe: Union[object , None ] = None, spot_positions_movement: Union[np.ndarray, None] = None, method:str = 'disk_donut', step_size:float = 1, show_plot:bool = 1):
+    def __init__(self, video:np.ndarray, particle_size:int = 5, trackpy_dataframe: Union[object , None ] = None, spot_positions_movement: Union[np.ndarray, None] = None,dataframe_format:str = 'short',   method:str = 'disk_donut', step_size:float = 1, show_plot:bool = 1):
         if particle_size < 3:
             particle_size = 3 # minimal size allowed for detection
         if (particle_size % 2) == 0:
@@ -2171,6 +2186,7 @@ class Intensity():
         self.disk_size = int(particle_size/2) # size of the half of the crop
         self.crop_size = int(particle_size/2)*2
         self.show_plot = show_plot
+        self.dataframe_format = dataframe_format # options are : 'short' and 'long'
         self.method = method # options are : 'total_intensity' , 'disk_donut' and 'gaussian_fit'
         self.particle_size = particle_size
         self.spot_positions_movement = spot_positions_movement
@@ -2499,6 +2515,16 @@ class Intensity():
             dataframe_particles = dataframe_particles.append(temp_DataFrame, ignore_index = True)
             dataframe_particles = dataframe_particles.astype({"cell_number": int, "particle": int, "frame": int}) # specify data type as integer for some columns
 
+
+        def reduce_dataframe(df):
+            # This function is intended to reduce the columns that are not used in the ML process.
+            return df.drop(['red_int_std', 'green_int_std','blue_int_std','SNR_red', 'SNR_green', 'SNR_blue','background_int_mean_red','background_int_mean_green','background_int_mean_blue','background_int_std_red','background_int_std_green','background_int_std_blue'], axis = 1)
+
+
+        if self.dataframe_format == 'short':
+            dataframe_particles = reduce_dataframe(dataframe_particles)
+            dataframe_particles = dataframe_particles.astype({"red_int_mean": int, "green_int_mean": int, "blue_int_mean": int, "x": int, "y": int}) 
+
         return dataframe_particles, array_intensities_mean, time_vector, mean_intensities, std_intensities, mean_intensities_normalized, std_intensities_normalized
 
 class SimulatedCell():
@@ -2506,11 +2532,13 @@ class SimulatedCell():
     This class takes a base video, and it draws simulated spots on top of the image. The intensity for each simulated spot is proportional to the stochastic simulation given by the user.
 
     Parameters
-
+    
     base_video : NumPy array
         Array of images with dimensions [T, Y, X, C].
     video_for_mask : NumPy array, optional
         Array of images with dimensions [T, Y, X, C]. Use only if the base video has been edited, and an empty video is needed to calculate the mask. The default is None.
+    mask_image : NumPy array, optional    
+        Numpy Array with dimensions [Y, X]. This image is used as a mask for the simulated video. The mask_image has to represent the same image as the base_video and video_for_mask  
     number_spots : int
         Number of simulated spots in the cell. The default is 10.
     number_frames : int
@@ -2580,15 +2608,24 @@ class SimulatedCell():
     intensity_scale_ch2 : float , optional
         Scaling factor for channel 2 that converts the intensity in the stochastic simulations to the intensity in the image.
     '''
-    def __init__(self, base_video:np.ndarray, video_for_mask:Union[np.ndarray, None] = None, number_spots:int = 10, number_frames:int = 20, step_size:float = 1, diffusion_coefficient:float = 0.01, simulated_trajectories_ch0:Union[np.ndarray, None]  = None, size_spot_ch0:int = 5, spot_sigma_ch0:int = 1, simulated_trajectories_ch1:Union[np.ndarray, None] = None, size_spot_ch1:int = 5, spot_sigma_ch1:int = 1, simulated_trajectories_ch2:Union[np.ndarray, None] = None, size_spot_ch2:int = 5, spot_sigma_ch2:int = 1, ignore_ch0: bool = 0, ignore_ch1: bool = 0, ignore_ch2: bool = 0, save_as_tif_uint8: bool = 0, save_as_tif: bool = 0, save_as_gif: bool = 0, save_dataframe: bool = 0, saved_file_name :str = 'temp', create_temp_folder: bool = True, intensity_calculation_method :str = 'disk_donut', using_for_multiplexing = 0, min_int_multiplexing: bool = None, max_int_multiplexing :Union[float, None] = None, perform_video_augmentation: bool = 0, frame_selection_empty_video:str = 'shuffle',ignore_trajectories_ch0:bool =0, ignore_trajectories_ch1:bool =0, ignore_trajectories_ch2:bool =0,intensity_scale_ch0:float = 10,intensity_scale_ch1:float = 10,intensity_scale_ch2:float = 10 ):
+    def __init__(self, base_video:np.ndarray, video_for_mask:Union[np.ndarray, None] = None,  mask_image:Union[np.ndarray, None] = None, number_spots:int = 10, number_frames:int = 20, step_size:float = 1, diffusion_coefficient:float = 0.01, simulated_trajectories_ch0:Union[np.ndarray, None]  = None, size_spot_ch0:int = 5, spot_sigma_ch0:int = 1, simulated_trajectories_ch1:Union[np.ndarray, None] = None, size_spot_ch1:int = 5, spot_sigma_ch1:int = 1, simulated_trajectories_ch2:Union[np.ndarray, None] = None, size_spot_ch2:int = 5, spot_sigma_ch2:int = 1, ignore_ch0: bool = 0, ignore_ch1: bool = 0, ignore_ch2: bool = 0, save_as_tif_uint8: bool = 0, save_as_tif: bool = 0, save_as_gif: bool = 0, save_dataframe: bool = 0, saved_file_name :str = 'temp', create_temp_folder: bool = True, intensity_calculation_method :str = 'disk_donut', using_for_multiplexing = 0, min_int_multiplexing: bool = None, max_int_multiplexing :Union[float, None] = None, perform_video_augmentation: bool = 0, frame_selection_empty_video:str = 'shuffle',ignore_trajectories_ch0:bool =0, ignore_trajectories_ch1:bool =0, ignore_trajectories_ch2:bool =0,intensity_scale_ch0:float = 10,intensity_scale_ch1:float = 10,intensity_scale_ch2:float = 10 ):
+        
         if (perform_video_augmentation == 1) and (video_for_mask is None):
-            base_video = AugmentationVideo(base_video).random_rotation()
+            self.base_video,selected_angle = AugmentationVideo(base_video).random_rotation()
+            if not(mask_image is None):
+                self.mask_image,selected_angle = AugmentationVideo(mask_image,selected_angle).random_rotation()
+        else:
+            self.base_video = base_video
+            self.mask_image = mask_image
+        
+
+            
         self.intensity_calculation_method = intensity_calculation_method
         MAXIMUM_INTENSITY_IN_BASE_VIDEO = 10000
         self.MAXIMUM_INTENSITY_IN_BASE_VIDEO = MAXIMUM_INTENSITY_IN_BASE_VIDEO
+        
         if using_for_multiplexing == 0:
             base_video = RemoveExtrema(base_video, min_percentile = 1, max_percentile = 99).remove_outliers()
-        self.base_video = base_video
         if not (video_for_mask is None):
             video_for_mask = RemoveExtrema(video_for_mask, min_percentile = 0, max_percentile = 99.8).remove_outliers()
             self.video_for_mask = video_for_mask
@@ -2596,6 +2633,9 @@ class SimulatedCell():
         else:
             self.video_for_mask = base_video
             video_for_mask = base_video
+        
+        
+        
         self.number_spots = number_spots
         self.number_frames = number_frames
         self.step_size = step_size
@@ -2651,13 +2691,18 @@ class SimulatedCell():
             mask_coordinates =  np.vstack((reduced_y, reduced_x)).T
             mask_coordinates.shape
             return mask_coordinates
-        # section that uses cellpose to calculate the mask
-        selected_image = np.max(self.video_for_mask[:, :, :, 1],axis=0) # selecting for the mask the first time point
-        selected_masks = Cellpose(selected_image, num_iterations = 10, channels = [0, 0], diameter = 200, model_type = 'cyto', selection_method = 'max_area').calculate_masks() # options are 'max_area' or 'max_cells'
-        if np.amax(selected_masks) == 0:
-            print('Error, no masks were found on the image')
-            raise
-        selected_mask  = CellposeSelection(selected_masks, selected_image, selection_method = 'max_area').select_mask()
+        
+        if (self.mask_image is None):
+            # section that uses cellpose to calculate the mask
+            selected_image = np.max(self.video_for_mask[:, :, :, 1],axis=0) # selecting for the mask the first time point
+            selected_masks = Cellpose(selected_image, num_iterations = 10, channels = [0, 0], diameter = 200, model_type = 'cyto', selection_method = 'max_area').calculate_masks() # options are 'max_area' or 'max_cells'
+            if np.amax(selected_masks) == 0:
+                print('Error, no masks were found on the image')
+                raise
+            selected_mask  = CellposeSelection(selected_masks, selected_image, selection_method = 'max_area').select_mask()
+        else:
+            selected_mask = self.mask_image
+        
         # section that converts the mask in contours and resduces the size of the mask to ensure the spots are generated inside the cell.
         try:
             contours = np.array(find_contours(selected_mask, 0.5), dtype = int)
@@ -2932,6 +2977,8 @@ class SimulatedCellMultiplexing ():
         The file name for the simulated cell output files (tif images, gif images, data frames). The default is 'temp'.
     create_temp_folder : bool, optional
         Creates a folder with the simulation output. The default is True.
+    mask_image : NumPy array, optional    
+        Numpy Array with dimensions [Y, X]. This image is used as a mask for the simulated video. The mask_image has to represent the same image as the base_video and video_for_mask.
     cell_number : int, optional
         Cell number used as an index for the data frame. The default is 0.
     save_as_gif : bool, optional
@@ -2949,11 +2996,14 @@ class SimulatedCellMultiplexing ():
     intensity_scale_ch2 : float , optional
         Scaling factor for channel 2 that converts the intensity in the stochastic simulations to the intensity in the image.
     '''
-    def __init__(self, initial_video:np.ndarray, list_gene_sequences:list, list_number_spots:list, list_target_channels_proteins:list, list_target_channels_mRNA:list, list_diffusion_coefficients:list, list_label_names:list, list_elongation_rates:list, list_initiation_rates:list, simulation_time_in_sec:float, step_size_in_sec:float, save_as_tif:bool, save_dataframe:bool, saved_file_name:str, create_temp_folder:bool, cell_number:int = 0, save_as_gif:bool = 0, perform_video_augmentation:bool = 1, frame_selection_empty_video:str = 'shuffle',spot_size:int = 5 ,intensity_scale_ch0 = 10,intensity_scale_ch1 = 10,intensity_scale_ch2 = 10):
+    def __init__(self, initial_video:np.ndarray, list_gene_sequences:list, list_number_spots:list, list_target_channels_proteins:list, list_target_channels_mRNA:list, list_diffusion_coefficients:list, list_label_names:list, list_elongation_rates:list, list_initiation_rates:list, simulation_time_in_sec:float, step_size_in_sec:float, save_as_tif:bool, save_dataframe:bool, saved_file_name:str, create_temp_folder:bool, mask_image:Union[np.ndarray, None] = None, cell_number:int = 0, save_as_gif:bool = 0, perform_video_augmentation:bool = 1, frame_selection_empty_video:str = 'shuffle',spot_size:int = 5 ,intensity_scale_ch0 = 10,intensity_scale_ch1 = 10,intensity_scale_ch2 = 10):
         if perform_video_augmentation == 1:
-            self.initial_video = AugmentationVideo(initial_video).random_rotation()
+            self.initial_video,selected_angle = AugmentationVideo(initial_video).random_rotation()
+            if not(mask_image is None):
+                self.mask_image,selected_angle = AugmentationVideo(mask_image,selected_angle).random_rotation()
         else:
             self.initial_video = initial_video
+            self.mask_image = mask_image
         self.list_gene_sequences = list_gene_sequences
         self.list_number_spots = list_number_spots
         self.list_target_channels_proteins = list_target_channels_proteins
