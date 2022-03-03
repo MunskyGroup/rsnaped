@@ -29,6 +29,7 @@ current_dir = pathlib.Path().absolute()
 sequences_dir = current_dir.parents[1].joinpath('DataBases','gene_files')
 video_dir = current_dir.parents[1].joinpath('DataBases','videos_for_sim_cell')
 rsnaped_dir = current_dir.parents[1].joinpath('rsnaped')
+masks_dir = current_dir.parents[1].joinpath('DataBases','masks_for_sim_cell')
 
 
 # Importing rSNAPsim_IP
@@ -113,9 +114,11 @@ def simulate_multiplexing(tested_list_elongation_rates,tested_list_initiation_ra
         sel_shape = randrange(num_cell_shapes)
         video_path = path_files[sel_shape]
         initial_video = io.imread(video_path) # video with empty cell
+        mask_image = imread(masks_dir.joinpath('mask_cell_shape_'+str(sel_shape)+'.tif'))
+
         # This step reduces the intensity of the empty video by a half. This is necessary to match the intensity in a video with spots. Check code "Analysis_simulated_cells.ipynb"
         initial_video = initial_video//2
-        _, single_dataframe_simulated_cell, list_ssa = rsp.SimulatedCellMultiplexing(initial_video,list_gene_sequences,list_number_spots,list_target_channels_proteins,list_target_channels_mRNA, tested_list_diffusion_coefficients,list_label_names,tested_list_elongation_rates,tested_list_initiation_rates,simulation_time_in_sec,step_size_in_sec,save_as_tif, save_dataframe, saved_file_name,create_temp_folder,cell_number =i,frame_selection_empty_video=frame_selection_empty_video,spot_size =spot_size ,intensity_scale_ch0 = intensity_scale_ch0,intensity_scale_ch1 = intensity_scale_ch1,intensity_scale_ch2 = intensity_scale_ch2).make_simulation()
+        _, single_dataframe_simulated_cell, list_ssa = rsp.SimulatedCellMultiplexing(initial_video,list_gene_sequences,list_number_spots,list_target_channels_proteins,list_target_channels_mRNA, tested_list_diffusion_coefficients,list_label_names,tested_list_elongation_rates,tested_list_initiation_rates,simulation_time_in_sec,step_size_in_sec,save_as_tif, save_dataframe, saved_file_name,create_temp_folder,mask_image=mask_image,cell_number =i,frame_selection_empty_video=frame_selection_empty_video,spot_size =spot_size ,intensity_scale_ch0 = intensity_scale_ch0,intensity_scale_ch1 = intensity_scale_ch1,intensity_scale_ch2 = intensity_scale_ch2).make_simulation()
         list_dataframe_simulated_cell.append(single_dataframe_simulated_cell)
         list_ssa_all_cells_and_genes.append(list_ssa)
     # Creating a folder
@@ -156,6 +159,6 @@ def save_data (multiplexing_path,folder_to_save_data, dataframe_simulated_cell, 
 frame_selection_empty_video = 'constant' # Options are: 'constant' , 'shuffle' and 'loop'
 # Simulation_0
 
-multiplexing_path,folder_to_save_data, dataframe_simulated_cell_complete, ssas_multiplexing = simulate_multiplexing(list_elongation_rates,list_initiation_rates,list_diffusion_coefficients,multiplexing_path_folder)
-dataframe_simulated_cell = reduce_dataframe(dataframe_simulated_cell_complete)
+multiplexing_path,folder_to_save_data, dataframe_simulated_cell, ssas_multiplexing = simulate_multiplexing(list_elongation_rates,list_initiation_rates,list_diffusion_coefficients,multiplexing_path_folder)
+#dataframe_simulated_cell = reduce_dataframe(dataframe_simulated_cell_complete)
 save_data (multiplexing_path,folder_to_save_data, dataframe_simulated_cell, ssas_multiplexing)

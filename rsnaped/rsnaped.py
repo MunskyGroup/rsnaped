@@ -120,7 +120,7 @@ class Banner():
                 "  ██████╔╝╚█████╗░██╔██╗██║███████║██████╔╝█████╗░░██║░░██║ \n" 
                 "  ██╔══██╗░╚═══██╗██║╚████║██╔══██║██╔═══╝░██╔══╝░░██║░░██║ \n" 
                 "  ██║░░██║██████╔╝██║░╚███║██║░░██║██║░░░░░███████╗██████╔╝ \n" 
-                "                            by : L. Aguilera, and B. Munsky ")
+                "                             by : L. Aguilera and B. Munsky ")
 
 
 class SSA_rsnapsim():
@@ -2165,7 +2165,7 @@ class Intensity():
     spot_positions_movement : NumPy array  or None (if not given).
         Array of images with dimensions [T, S, x_y_positions].  The default is None
     dataframe_format : str, optional
-        Format for the dataframe the options are : 'short' , and 'long'. The default is 'long'.
+        Format for the dataframe the options are : 'short' , and 'long'. The default is 'short'.
         "long" format generates this dataframe: [cell_number, particle, frame, red_int_mean, green_int_mean, blue_int_mean, red_int_std, green_int_std, blue_int_std, x, y, SNR_red,SNR_green,SNR_blue].
         "short" format generates this dataframe: [cell_number, particle, frame, red_int_mean, green_int_mean, blue_int_mean, x, y].
     method : str, optional
@@ -3091,7 +3091,7 @@ class SimulatedCellMultiplexing ():
                 simulated_trajectories_ch1 = None
                 simulated_trajectories_ch2 = ssa
             number_spots_per_cell = ssa.shape[0]
-            tensor_video, _,DataFrame_particles_intensities = SimulatedCell( base_video = base_video, video_for_mask = video_for_mask, number_spots = number_spots_per_cell, number_frames = ssa.shape[1], step_size = step_size, diffusion_coefficient = diffusion_coefficient, simulated_trajectories_ch0 = simulated_trajectories_ch0, size_spot_ch0 = spot_size, spot_sigma_ch0 = spot_sigma, simulated_trajectories_ch1 = simulated_trajectories_ch1, size_spot_ch1 = spot_size, spot_sigma_ch1 = spot_sigma, simulated_trajectories_ch2 = simulated_trajectories_ch2, size_spot_ch2 = spot_size, spot_sigma_ch2 = spot_sigma, save_as_tif_uint8 = 0, save_as_tif = 0, save_as_gif = save_as_gif, save_dataframe = 0, create_temp_folder = 1, intensity_calculation_method = intensity_calculation_method, using_for_multiplexing = using_for_multiplexing, min_int_multiplexing = min_int_multiplexing, max_int_multiplexing = max_int_multiplexing, frame_selection_empty_video = frame_selection_empty_video, ignore_trajectories_ch0 = ignore_trajectories_ch0, ignore_trajectories_ch1 = ignore_trajectories_ch1,ignore_trajectories_ch2 = ignore_trajectories_ch2,intensity_scale_ch0 = self.intensity_scale_ch0,intensity_scale_ch1 = self.intensity_scale_ch1,intensity_scale_ch2 = self.intensity_scale_ch2).make_simulation()
+            tensor_video, _,DataFrame_particles_intensities = SimulatedCell( base_video = base_video, video_for_mask = video_for_mask, mask_image=self.mask_image, number_spots = number_spots_per_cell, number_frames = ssa.shape[1], step_size = step_size, diffusion_coefficient = diffusion_coefficient, simulated_trajectories_ch0 = simulated_trajectories_ch0, size_spot_ch0 = spot_size, spot_sigma_ch0 = spot_sigma, simulated_trajectories_ch1 = simulated_trajectories_ch1, size_spot_ch1 = spot_size, spot_sigma_ch1 = spot_sigma, simulated_trajectories_ch2 = simulated_trajectories_ch2, size_spot_ch2 = spot_size, spot_sigma_ch2 = spot_sigma, save_as_tif_uint8 = 0, save_as_tif = 0, save_as_gif = save_as_gif, save_dataframe = 0, create_temp_folder = 1, intensity_calculation_method = intensity_calculation_method, using_for_multiplexing = using_for_multiplexing, min_int_multiplexing = min_int_multiplexing, max_int_multiplexing = max_int_multiplexing, frame_selection_empty_video = frame_selection_empty_video, ignore_trajectories_ch0 = ignore_trajectories_ch0, ignore_trajectories_ch1 = ignore_trajectories_ch1,ignore_trajectories_ch2 = ignore_trajectories_ch2,intensity_scale_ch0 = self.intensity_scale_ch0,intensity_scale_ch1 = self.intensity_scale_ch1,intensity_scale_ch2 = self.intensity_scale_ch2).make_simulation()
             DataFrame_particles_intensities['cell_number'] = DataFrame_particles_intensities['cell_number'].replace([0], self.cell_number)
             return tensor_video, DataFrame_particles_intensities  # [cell_number, particle, frame, red_int_mean, green_int_mean, blue_int_mean, red_int_std, green_int_std, blue_int_std, x, y].
         # Runs the SSA and the simulated cell functions
