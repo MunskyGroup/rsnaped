@@ -20,3 +20,4 @@ snapgene_reader>=0.1.18
 cellpose>=1.0.0
 rsnapsim-ssa-cpp >= 0.0.20
 rsnapsim>=0.0.47
+croparray==0.0.8

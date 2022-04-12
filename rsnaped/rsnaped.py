@@ -27,7 +27,7 @@ if import_libraries == 1:
     try:
         import rsnapsim as rss
     except:
-        print('Please install rsnapsim')
+        print('rsnapsim is not installed')
     # System libraries
     import io
     import sys
@@ -93,7 +93,7 @@ if import_libraries == 1:
     try:
         from cellpose import models
     except:
-        print('Please install cellpose')
+        print('cellpose is not installed')
     # Plotting
     import matplotlib.pyplot as plt
     import matplotlib.path as mpltPath
@@ -392,8 +392,8 @@ class AugmentationVideo():
     '''
 
     def __init__(self, video:np.ndarray,predefined_angle=None):
-     self.video = video
-     self.predefined_angle=predefined_angle
+        self.video = video
+        self.predefined_angle=predefined_angle
 
     def random_rotation(self):
         '''
@@ -1044,22 +1044,22 @@ class VisualizerImage():
                     title_str = 'Cell_'+str(counter)
                 # Figure with raw video
                 ax = fig.add_subplot(gs[index_video])
-                ax.imshow(self.list_videos[counter][self.selected_timepoint, :, :, self.selected_channel], cmap = 'gray', vmax = np.amax(self.list_videos[counter][self.selected_timepoint, :, :, self.selected_channel])*0.95)
+                ax.imshow(self.list_videos[counter][self.selected_timepoint, :, :, self.selected_channel], cmap = 'viridis', vmax = np.amax(self.list_videos[counter][self.selected_timepoint, :, :, self.selected_channel])*0.95)
                 ax.set_xticks([])
                 ax.set_yticks([])
                 ax.set(title = title_str + ' Original')
                 # Figure with filtered video
                 ax = fig.add_subplot(gs[index_video+1])
-                ax.imshow(self.list_videos_filtered[counter][self.selected_timepoint, :, :, self.selected_channel], cmap = 'gray', vmax = np.amax(self.list_videos[counter][self.selected_timepoint, :, :, self.selected_channel])*0.95)
+                ax.imshow(self.list_videos_filtered[counter][self.selected_timepoint, :, :, self.selected_channel], cmap = 'viridis', vmax = np.amax(self.list_videos[counter][self.selected_timepoint, :, :, self.selected_channel])*0.95)
                 ax.set_xticks([])
                 ax.set_yticks([])
                 ax.set(title = title_str + ' Filtered' )
-                # Figure with filtered video and marking the spots
+                # Figure with origianl video and marking the spots
                 ax = fig.add_subplot(gs[index_video+2])
-                ax.imshow(self.list_videos_filtered[counter][self.selected_timepoint, :, :, self.selected_channel], cmap = 'gray', vmax = np.amax(self.list_videos[counter][self.selected_timepoint, :, :, self.selected_channel])*0.95)
+                ax.imshow(self.list_videos[counter][self.selected_timepoint, :, :, self.selected_channel], cmap = 'viridis', vmax = np.amax(self.list_videos[counter][self.selected_timepoint, :, :, self.selected_channel])*0.95)
                 ax.set_xticks([])
                 ax.set_yticks([])
-                ax.set(title = title_str + ' F + M' )
+                ax.set(title = title_str + ' Detected Spots' )
                 # main loop to mark spots
                 number_particles  = None
                 frames_part = None
@@ -1130,7 +1130,7 @@ class VisualizerVideo():
     list_mask_array : List of NumPy arrays or a single NumPy array, with Boolean values, where 1 represents the masked area, and 0 represents the area outside the mask.
         An array of images with dimensions [Y, X].
     show_time_projection_spots : int, optional
-       Allows the user to display the projection of all detected spots for all time points on the current image. The default is 0.
+        Allows the user to display the projection of all detected spots for all time points on the current image. The default is 0.
     normalize : bool, optional
         Option to normalize the data by removing outliers. The code removes the 1 and 99 percentiles from the image. The default is False.
     step_size_in_sec : float, optional
@@ -1253,8 +1253,8 @@ class VisualizerVideo():
             options_channels = ['Ch_0', 'Ch_1', 'Ch_2', 'Ch_3', 'All_Channels']
         options_cells = list(range(0, self.number_videos))
         interactive_plot = interactive(figure_viewer, drop_cell = widgets.Dropdown(options = options_cells, description = 'Cell'), 
-                                       index_time_slider = widgets.IntSlider(min = 0, max = (self.min_time_all_cells-1)*self.step_size_in_sec , step = self.step_size_in_sec, value = 0, description = 'Time'), 
-                                       drop_channel = widgets.Dropdown(options = options_channels, description = 'Channel'))
+                                        index_time_slider = widgets.IntSlider(min = 0, max = (self.min_time_all_cells-1)*self.step_size_in_sec , step = self.step_size_in_sec, value = 0, description = 'Time'), 
+                                        drop_channel = widgets.Dropdown(options = options_channels, description = 'Channel'))
         controls = HBox(interactive_plot.children[:-1], layout = Layout(flex_flow = 'row wrap'))
         output = interactive_plot.children[-1]
         return controls, output
@@ -1428,8 +1428,8 @@ class VisualizerCrops():
             print('For track '+ str(track) + ' a spot is detected between time points : '+ str(int(frames_vector[track, 0])) + ' and ' + str(int(frames_vector[track, 1])) )
         options_cells = list(range(0, self.number_videos))
         interactive_plot = interactive(figure_viewer, drop_cell = widgets.Dropdown(options = options_cells, description = 'Cell'), 
-                                       track = widgets.IntSlider(min = 0, max = self.selected_particles_dataframe['particle'].nunique()-1, step = 1, value = 0, description = 'track'), 
-                                       index_time = widgets.IntSlider(min = 0, max = self.video.shape[0]-1, step = 1, value = 0, description = 'time'))
+                                        track = widgets.IntSlider(min = 0, max = self.selected_particles_dataframe['particle'].nunique()-1, step = 1, value = 0, description = 'track'), 
+                                        index_time = widgets.IntSlider(min = 0, max = self.video.shape[0]-1, step = 1, value = 0, description = 'time'))
         controls = HBox(interactive_plot.children[:-1], layout = Layout(flex_flow = 'row wrap'))
         output = interactive_plot.children[-1]
         return controls, output
@@ -1921,11 +1921,14 @@ class Trackpy():
         This parameter allows the user to use FISH images and connect spots detected along multiple z-slices. The default is 0.
     intensity_selection_threshold_int_std : float, optional. The default is None, and it uses a default value or an optimization method if use_optimization_for_tracking is set to TRUE. 
         Threshold intensity for tracking
+    intensity_threshold_tracking : float or None, optional.
+        Intensity threshold value to be used during tracking. If no value is passed, the code attempts to calculate this value. The default is None.
     '''
-    def __init__(self, video:np.ndarray, mask:np.ndarray, particle_size:int = 5, selected_channel:int = 0, minimal_frames:int = 5, optimization_iterations:int = 10, use_default_filter:int = 1, FISH_image: bool = 0, show_plot:bool = 1):
+    def __init__(self, video:np.ndarray, mask:np.ndarray, particle_size:int = 5, selected_channel:int = 0, minimal_frames:int = 5, optimization_iterations:int = 10, use_default_filter:int = 1, FISH_image: bool = 0, show_plot:bool = 1,intensity_threshold_tracking=None):
         self.NUMBER_OF_CORES = multiprocessing.cpu_count()
         self.time_points = video.shape[0]
         self.selected_channel = selected_channel
+        self.intensity_threshold_tracking = intensity_threshold_tracking
         # function that remove outliers from the video
         video = RemoveExtrema(video, min_percentile = 0.5, max_percentile = 99.9).remove_outliers()
         # Function to convert the video to uint
@@ -1946,7 +1949,6 @@ class Trackpy():
         else:
             self.min_time_particle_vanishes = 1
             self.max_distance_particle_moves = 7
-
         if minimal_frames > self.time_points:     # this line is making sure that "minimal_frames" is always less or equal than the total number of frames
             minimal_frames = self.time_points
         self.minimal_frames = minimal_frames
@@ -1964,17 +1966,14 @@ class Trackpy():
             self.min_time_particle_vanishes = 0
             self.max_distance_particle_moves = 1
             self.minimal_frames = minimal_frames
-
         def bandpass_filter (image: np.ndarray, lowfilter, highpass):
             temp_vid = difference_of_gaussians(image, lowfilter, highpass, truncate = 3.0)
             return img_as_uint(temp_vid)
-        
         def log_filter(image: np.ndarray, sigma):
             temp_vid = gaussian_laplace(image, sigma=sigma)
             return img_as_uint(temp_vid)
-
         if use_default_filter ==0:
-            num_std =3
+            num_std =4
             tmp_video = video[0, :, :,selected_channel].copy()
             temp_vid_dif_filter = Parallel(n_jobs = self.NUMBER_OF_CORES)(delayed(bandpass_filter)(tmp_video, self.low_pass_filter, self.highpass_filter) for i in range(0, self.time_points))
             temp_video_bp_filtered = np.asarray(temp_vid_dif_filter)
@@ -2008,9 +2007,9 @@ class Trackpy():
                 if num % 5 == 0:
                     return int(num)
                 elif num % 5 < 2.5:
-                     return int(num - num % 5)
+                    return int(num - num % 5)
                 else:
-                     return int(num + (5 - num % 5))
+                    return int(num + (5 - num % 5))
             else:
                 return int(0)
         # Functions with the bandpass and gaussian filters
@@ -2039,12 +2038,22 @@ class Trackpy():
             temp_image = img_as_float64(image)
             filtered_image = nd.median_filter(temp_image, size = size)
             return img_as_uint(filtered_image)
-
         def wavelet_filter(image: np.ndarray):
             temp_image = img_as_float64(image)
             filtered_image = denoise_wavelet(temp_image, rescale_sigma=True,method='BayesShrink', mode='soft')
             return img_as_uint(filtered_image)
-        if self.use_default_filter == 1: # This section uses a default value for the filter size.
+        
+        if not (self.intensity_threshold_tracking is None):
+            temp_vid_dif_filter = Parallel(n_jobs = self.NUMBER_OF_CORES)(delayed(bandpass_filter)(self.video[i, :, :], self.low_pass_filter, self.highpass_filter) for i in range(0, self.time_points))
+            temp_video_bp_filtered = np.asarray(temp_vid_dif_filter)
+            video_removed_mask = np.einsum('ijk, jk -> ijk', temp_video_bp_filtered, self.mask)
+            min_int_in_video = self.intensity_threshold_tracking
+            f = tp.batch(video_removed_mask[:, :, :], self.particle_size, minmass = min_int_in_video, processes = 'auto', max_iterations = 1000, preprocess = False, percentile = percentile)
+            t = tp.link_df(f, (self.max_distance_particle_moves, self.max_distance_particle_moves), memory = self.min_time_particle_vanishes, adaptive_stop = 1, link_strategy = 'auto') # tp.link_df(data_frame, min_distance_particle_moves, min_time_particle_vanish).
+            t_sel = tp.filter_stubs(t, self.minimal_frames)  # selecting trajectories that appear in at least 10 frames.
+            number_particles = t_sel['particle'].nunique()
+            trackpy_dataframe = t_sel
+        elif self.use_default_filter == 1: # This section uses a default value for the filter size.
             temp_vid_dif_filter = Parallel(n_jobs = self.NUMBER_OF_CORES)(delayed(bandpass_filter)(self.video[i, :, :], self.low_pass_filter, self.highpass_filter) for i in range(0, self.time_points))
             temp_video_bp_filtered = np.asarray(temp_vid_dif_filter)
             video_removed_mask = np.einsum('ijk, jk -> ijk', temp_video_bp_filtered, self.mask)
@@ -2064,11 +2073,6 @@ class Trackpy():
                 trackpy_dataframe = None
         else: # This section uses optimization to select the optimal value for the filter size.
             temp_vid_dif_filter = Parallel(n_jobs = self.NUMBER_OF_CORES)(delayed(bandpass_filter)(self.video[i, :, :], self.low_pass_filter, self.highpass_filter) for i in range(0, self.time_points))
-            
-            #temp_vid_dif_filter = Parallel(n_jobs = self.NUMBER_OF_CORES)(delayed(log_filter)(self.video[i, :, :], sigma=0.5) for i in range(0, self.time_points))
-            
-            #temp_vid_dif_filter = Parallel(n_jobs = self.NUMBER_OF_CORES)(delayed(temp_vid_dif_filter)(self.video[i, :, :], self.low_pass_filter, self.highpass_filter) for i in range(0, self.time_points))
-
             temp_video_bp_filtered = np.asarray(temp_vid_dif_filter)
             video_removed_mask = np.einsum('ijk, jk -> ijk', temp_video_bp_filtered, self.mask)
             for index_p, min_int_in_video in enumerate(min_int_vector):
@@ -2079,72 +2083,37 @@ class Trackpy():
                     num_detected_particles[index_p] = 0
             if self.optimization_iterations <= 10:
                 window_size = 2
-            elif (self.optimization_iterations > 10) and (self.optimization_iterations <= 20):
-                window_size = 3
-            else:
+            elif (self.optimization_iterations > 20) and (self.optimization_iterations <= 50):
                 window_size = 5
-            window_size =10
-            #convoluted_num_detected_particles = np.round( np.convolve(num_detected_particles, np.ones(window_size)/window_size, mode = 'same'))
-            #convoluted_num_detected_particles[0:window_size] = convoluted_num_detected_particles[1] # replacing the first element with the 
-            #rounded_num_particules = np.array([round_to_5(convoluted_num_detected_particles[x]) for x in range(len(convoluted_num_detected_particles))], dtype = np.float32)
+            else:
+                window_size = 20
             smooth_vector_detected_spots = gaussian_filter1d(num_detected_particles, window_size)
-            #plt.plot(smooth_vector_detected_spots)
-            #plt.show()
-            
-            try:
-                #threshold = 3 # threshold to reject if
-                #num_detected_particles_with_nans = rounded_num_particules.copy()
-                #num_detected_particles_with_nans[num_detected_particles_with_nans <= threshold] = np.nan
-                
-                second_derivative_vector_detected_spots = np.gradient(np.gradient(smooth_vector_detected_spots))      # Second deriivative
-                inflection_points = np.where(np.diff(np.sign(second_derivative_vector_detected_spots)))[0]  # Finding the inflection points                
-                selected_int_optimized = np.round(min_int_vector [inflection_points[1]],0)
-                
-                #mode_detected_particles = sps.mode(num_detected_particles_with_nans, nan_policy = 'omit')[0][0] # calculating the mode of nonzero num_detected_particles.
-                #center_modes = int (len(np.where(num_detected_particles_with_nans == mode_detected_particles)[0])/2)-1 #
-                #if center_modes < 0:
-                #    center_modes = 0
-                #index_contains_central_mode = np.where(num_detected_particles_with_nans == mode_detected_particles)[0][center_modes]
-                #selected_int_optimized = min_int_vector[index_contains_central_mode]
-                f = tp.batch(video_removed_mask[:, :, :], self.particle_size, minmass = selected_int_optimized, processes = 'auto', max_iterations = 1000, preprocess = False, percentile = percentile)
-                t = tp.link_df(f, (self.max_distance_particle_moves, self.max_distance_particle_moves), memory = self.min_time_particle_vanishes, adaptive_stop = 1, link_strategy = 'auto') # tp.link_df(data_frame, min_distance_particle_moves, min_time_particle_vanish).
-                t_sel = tp.filter_stubs(t, self.minimal_frames)  # selecting trajectories that appear in at least 10 frames.
-                number_particles = t_sel['particle'].nunique()
-                trackpy_dataframe = t_sel
-                
+            #try:
+            norm_smooth_vector_detected_spots= smooth_vector_detected_spots/np.max(smooth_vector_detected_spots)
+            second_derivative_vector_detected_spots = np.gradient(np.gradient(smooth_vector_detected_spots))      # Second deriivative
+            normalized_second_derivative = second_derivative_vector_detected_spots / np.max(second_derivative_vector_detected_spots)
+            max_second_derivative = normalized_second_derivative.argmax() +5
+            selected_int_optimized = min_int_vector[max_second_derivative]
+            f = tp.batch(video_removed_mask[:, :, :], self.particle_size, minmass = selected_int_optimized, processes = 'auto', max_iterations = 1000, preprocess = False, percentile = percentile)
+            t = tp.link_df(f, (self.max_distance_particle_moves, self.max_distance_particle_moves), memory = self.min_time_particle_vanishes, adaptive_stop = 1, link_strategy = 'auto') # tp.link_df(data_frame, min_distance_particle_moves, min_time_particle_vanish).
+            t_sel = tp.filter_stubs(t, self.minimal_frames)  # selecting trajectories that appear in at least 10 frames.
+            number_particles = t_sel['particle'].nunique()
+            trackpy_dataframe = t_sel
+            if self.show_plot == 1:
                 plt.figure(figsize =(5,5))
-                plt.plot(smooth_vector_detected_spots)
-                plt.plot(smooth_vector_detected_spots/np.max(smooth_vector_detected_spots) , label='norm detected_spots',linewidth=5,color='lime')
-                plt.plot(second_derivative_vector_detected_spots / np.max(second_derivative_vector_detected_spots), label=r"$f''(spots)$",color='orangered',linewidth=5)
-                for i, infl in enumerate(inflection_points, 1):
-                    plt.plot(infl,0, 'o',label='Inflection Point '+str(i), markersize=20, markerfacecolor='cyan')
-                plt.xlabel('Threshold index', size=16)
+                plt.plot(min_int_vector,norm_smooth_vector_detected_spots , label='norm detected_spots',linewidth=5,color='lime')
+                plt.plot(min_int_vector,normalized_second_derivative, label=r"$f''(spots)$",color='orangered',linewidth=5)
+                plt.plot(selected_int_optimized,normalized_second_derivative[max_second_derivative], 'o',label='selected threshold', markersize=20, markerfacecolor='cyan')
+                plt.xlabel('Threshold intensity', size=16)
                 plt.ylabel('Norm. number of spots', size=16)
                 plt.ylim(-0.2,1.1)
                 plt.show()
                 print('The number of detected trajectories is: ', number_particles)
-                        
-            except:
-                 number_particles = 0
-                 trackpy_dataframe = None
-                 self.show_plot = 0
-                 selected_int_optimized = 0
-            if self.show_plot == 1:
-                plt.figure(figsize = (7, 7))
-                plt.plot(min_int_vector, num_detected_particles, 'w-', linewidth = 2, label = 'real')
-                #plt.plot(min_int_vector[1:-1], convoluted_num_detected_particles[1:-1], 'g-', linewidth = 1, label = 'smoothed')
-                plt.plot(min_int_vector, smooth_vector_detected_spots, 'g-', linewidth = 1, label = 'smoothed')
-                plt.plot([selected_int_optimized, selected_int_optimized], [np.amin(num_detected_particles), np.amax(num_detected_particles)], 'r-', linewidth = 2, label = 'Automatic selection')
-                #plt.plot([vector_intensities[0], vector_intensities[-1]], [threshold, threshold], 'k -- ', linewidth = 1, label = 'min. selection threshold')
-                plt.legend(loc = 'best')
-                plt.xlabel('minimal value (int.)')
-                plt.ylabel('Detected Spots')
-                plt.title('Optimization: detecting the longest plateau')
-                plt.show()
-                print('')
-                print('The number of detected trajectories is: ', number_particles)
-                print('')
-                print('')
+                print('The selected intensity threshold is: ', str(selected_int_optimized), '\n' )
+            #except:
+            #    number_particles = 0
+            #    trackpy_dataframe = None
+            #    selected_int_optimized = 0
         video_filtered =  self.video_complete.copy()
         video_filtered[:, :, :, self.selected_channel] = video_removed_mask
         return trackpy_dataframe, int(number_particles), video_filtered
@@ -3174,11 +3143,14 @@ class PipelineTracking():
         Allows the user the times taken during each process. The default is 0.
     intensity_selection_threshold_int_std : float, optional. The default is None, and it uses a default value or an optimization method if use_optimization_for_tracking is set to TRUE. 
         Threshold intensity for tracking
+    min_percentage_time_tracking = float, optional
+        Value that indicates the minimal (normalized) percentage of time to consider a particle as a detected trajectory during the tracking process. The number must be between 0 and 1. The default is 0.3.
+    intensity_threshold_tracking : float or None, optional.
+        Intensity threshold value to be used during tracking. If no value is passed, the code attempts to calculate this value. The default is None.
     '''
-    def __init__(self, video:np.ndarray, particle_size:int = 5, file_name:str = 'Cell.tif', selected_channel:int = 0, intensity_calculation_method:str = 'disk_donut', mask_selection_method:str = 'max_spots', show_plot:bool = 1, use_optimization_for_tracking: bool = 1, real_positions_dataframe = None, average_cell_diameter: float = 120, print_process_times:bool = 0):
+    def __init__(self, video:np.ndarray, particle_size:int = 5, file_name:str = 'Cell.tif', selected_channel:int = 0, intensity_calculation_method:str = 'disk_donut', mask_selection_method:str = 'max_spots', show_plot:bool = 1, use_optimization_for_tracking: bool = 1, real_positions_dataframe = None, average_cell_diameter: float = 120, print_process_times:bool = 0,min_percentage_time_tracking=0.4,intensity_threshold_tracking=None):
         self.video = video
         self.particle_size = particle_size
-        #self.image = video[1, :, :, :]
         self.image = np.max(video,axis=0)
         self.num_frames = video.shape[0]
         self.file_name = file_name
@@ -3191,9 +3163,10 @@ class PipelineTracking():
         self.average_cell_diameter = average_cell_diameter
         self.print_process_times = print_process_times
         # Iterations
-        self.NUM_ITERATIONS_CELLPOSE = 8
-        self.NUM_ITERATIONS_TRACKING = 400
-        self.MN_PERCENTAGE_FRAMES_FOR_TRACKING = 0.3
+        self.NUM_ITERATIONS_CELLPOSE = 10
+        self.NUM_ITERATIONS_TRACKING = 1000
+        self.MIN_PERCENTAGE_FRAMES_FOR_TRACKING = min_percentage_time_tracking
+        self.intensity_threshold_tracking=intensity_threshold_tracking
     def run(self):
         '''
         Runs the pipeline.
@@ -3228,21 +3201,21 @@ class PipelineTracking():
             # Tracking
             start = timer()
             if self.num_frames > 20:
-                minimal_frames =  int(self.num_frames*self.MN_PERCENTAGE_FRAMES_FOR_TRACKING) # minimal number of frames to consider a trajectory
+                minimal_frames =  int(self.num_frames*self.MIN_PERCENTAGE_FRAMES_FOR_TRACKING) # minimal number of frames to consider a trajectory
             else:
-                minimal_frames =  int(self.num_frames*0.2) # minimal number of frames to consider a trajectory
+                minimal_frames =  int(self.num_frames*0.4) # minimal number of frames to consider a trajectory
             if self.use_optimization_for_tracking == 1:
                 use_default_filter = 0
             else:
                 use_default_filter = 1
-            Dataframe_trajectories, _, filtered_video = Trackpy(self.video, selected_mask, particle_size = self.particle_size, selected_channel = self.selected_channel, minimal_frames = minimal_frames, optimization_iterations = self.NUM_ITERATIONS_TRACKING, use_default_filter = use_default_filter, show_plot = 0).perform_tracking()
+            Dataframe_trajectories, _, filtered_video = Trackpy(self.video, selected_mask, particle_size = self.particle_size, selected_channel = self.selected_channel, minimal_frames = minimal_frames, optimization_iterations = self.NUM_ITERATIONS_TRACKING, use_default_filter = use_default_filter, show_plot = self.show_plot,intensity_threshold_tracking=self.intensity_threshold_tracking).perform_tracking()
             end = timer()
             if self.print_process_times == 1:
                 print('tracking time:', round(end - start), ' sec')
             # Intensity calculation
             start = timer()
             if not ( Dataframe_trajectories is None):
-                dataframe_particles, array_intensities, time_vector, mean_intensities, std_intensities, mean_intensities_normalized, std_intensities_normalized = Intensity(self.video, self.particle_size, Dataframe_trajectories, method = self.intensity_calculation_method, show_plot = 0 ).calculate_intensity()
+                dataframe_particles, array_intensities, time_vector, mean_intensities, std_intensities, mean_intensities_normalized, std_intensities_normalized = Intensity(self.video, self.particle_size, Dataframe_trajectories, method = self.intensity_calculation_method, show_plot = 0).calculate_intensity()
             else:
                 dataframe_particles = None
                 array_intensities = None
@@ -3266,7 +3239,7 @@ class PipelineTracking():
             std_intensities_normalized = None
         return dataframe_particles, array_intensities, time_vector, mean_intensities, std_intensities, mean_intensities_normalized, std_intensities_normalized
 
-   
+
 class PhotobleachingCalculation():
     '''
     This class is intended to calculate the intensity in the detected spots.
