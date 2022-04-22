@@ -2803,7 +2803,7 @@ class SimulatedCell():
                 spot_positions_movement [t_p, :, :] = np.vstack((newPosition_y, newPosition_x)).T
                 #print(spot_positions_movement)
             return spot_positions_movement # vector with dimensions (time, spot, y, x )
-
+            
         def make_simulation(base_video_selected_channel:np.ndarray, masked_video_selected_channel:np.ndarray, spot_positions_movement:np.ndarray, time_vector:np.ndarray, polygon_array, image_size:np.ndarray, size_spot:int, spot_sigma:int, simulated_trajectories, frame_selection_empty_video,ignore_trajectories,intensity_scale):
             def function_interpolate_video(orignal_video,num_requested_frames):
                 # test if num_requested_frames >  frames_in_orginal_video
@@ -2813,22 +2813,22 @@ class SimulatedCell():
                 # prealocating array for interpolated video
                 interpolated_video = np.zeros((num_requested_frames,y_dim,x_dim ))
                 # Populating array for end elements in the array
-                interpolated_video [0,...]=orignal_video[0,...]
-                interpolated_video [num_requested_frames-1,...]=orignal_video[frames_in_orginal_video-1,...]
+                interpolated_video [0]=orignal_video[0]
+                interpolated_video [num_requested_frames-1]=orignal_video[frames_in_orginal_video-1]
                 interpolated_indexes = np.linspace(1, frames_in_orginal_video-1, num_requested_frames-2).astype('int')
                 proportion_to_interpolate=0
                 for counter, interpolated_index_value in enumerate(interpolated_indexes):
                     num_rep_interpolated_index_value = np.count_nonzero(interpolated_indexes == interpolated_index_value)
-                    proportion_to_interpolate = proportion_to_interpolate + (1/num_rep_interpolated_index_value)
+                    proportion_to_interpolate =  np.round( proportion_to_interpolate + (1/num_rep_interpolated_index_value) , 3)
                     if num_rep_interpolated_index_value >1:    
-                        scaling_factor = proportion_to_interpolate/num_rep_interpolated_index_value
-                        interpolated_video [counter+1]= scaling_factor*(orignal_video[interpolated_index_value+1]) + (1-scaling_factor)*orignal_video[1-interpolated_index_value]
+                        print('index_val ',interpolated_index_value,' prop ',proportion_to_interpolate)
+                        reverse_proportion = np.amax( (0, 1-proportion_to_interpolate))
+                        interpolated_video [counter+1]= proportion_to_interpolate*(orignal_video[interpolated_index_value+1]) + reverse_proportion*orignal_video[1-interpolated_index_value]
                         proportion_to_interpolate+proportion_to_interpolate
                     else:
                         interpolated_video [counter+1]=orignal_video[interpolated_index_value]
-                    if proportion_to_interpolate >=1:
+                    if proportion_to_interpolate >= 1:
                         proportion_to_interpolate=0
-                
                 return interpolated_video
             
             # Main function that makes the simulated cell by calling multiple function.
@@ -2845,18 +2845,12 @@ class SimulatedCell():
                 interpolated_video = function_interpolate_video(orignal_video=base_video_selected_channel.copy(), num_requested_frames=len(time_vector))
                 index_frame_selection = range(0, len(time_vector))
                 base_video_selected_channel_copy = interpolated_video
-                
             if frame_selection_empty_video ==  'constant': # selects the first time point
                 index_frame_selection = np.zeros((len(time_vector)), dtype = np.int32)
             if frame_selection_empty_video ==  'loop':
                 index_frame_selection = np.resize(empty_video_index, len(time_vector))
             if frame_selection_empty_video ==  'shuffle':
                 index_frame_selection = np.random.randint(0, high = len_empty_video, size = len(time_vector), dtype = np.int32)
-            
-            
-            
-            
-            
             for t_p, _ in enumerate(time_vector):
                 matrix_background = base_video_selected_channel_copy[index_frame_selection[t_p], :, :]
                 if not ( simulated_trajectories is None):
