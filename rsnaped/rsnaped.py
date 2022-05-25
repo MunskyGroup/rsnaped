@@ -2805,7 +2805,24 @@ class SimulatedCell():
             return spot_positions_movement # vector with dimensions (time, spot, y, x )
             
         def make_simulation(base_video_selected_channel:np.ndarray, masked_video_selected_channel:np.ndarray, spot_positions_movement:np.ndarray, time_vector:np.ndarray, polygon_array, image_size:np.ndarray, size_spot:int, spot_sigma:int, simulated_trajectories, frame_selection_empty_video,ignore_trajectories,intensity_scale):
-            def function_interpolate_video(orignal_video,num_requested_frames):
+            
+            def generate_poisson_video(original_video, num_requested_frames):
+                # Take a given video and approximate its per pixel poission distribution
+                # in this case just take the means of each pixel over all time frames as the lambda for poission dist
+      
+                frames_in_orginal_video = original_video.shape[0]
+                x_dim = original_video.shape[2]
+                y_dim = original_video.shape[1]
+
+                
+                video_means = np.mean(original_video,axis=0) #per_pixel_mean per time
+                generated_video = np.zeros((num_requested_frames,y_dim,x_dim), dtype=np.uint16)
+                for j in range(x_dim):
+                    for k in range(y_dim):
+                        generated_video[:,j,k] = np.random.poisson(lam= video_means[j,k], size=(num_requested_frames,))
+                return generated_video
+            
+            def function_interpolate_video(orignal_video, num_requested_frames):
                 # test if num_requested_frames >  frames_in_orginal_video
                 frames_in_orginal_video = orignal_video.shape[0]
                 x_dim = orignal_video.shape[2]
@@ -2841,10 +2858,15 @@ class SimulatedCell():
             len_empty_video = base_video_selected_channel.shape[0]
             empty_video_index = np.arange(len_empty_video, dtype = np.int32)
             # array that stores the frames to be selected from the empty vector
+            
             if frame_selection_empty_video ==  'linear_interpolation': # selects the first time point
                 interpolated_video = function_interpolate_video(orignal_video=base_video_selected_channel.copy(), num_requested_frames=len(time_vector))
                 index_frame_selection = range(0, len(time_vector))
                 base_video_selected_channel_copy = interpolated_video
+            if frame_selection_empty_video ==  'generate_from_poisson': # selects the first time point
+                generated_video = generate_poisson_video(original_video=base_video_selected_channel.copy(), num_requested_frames=len(time_vector))
+                index_frame_selection = range(0, len(time_vector))
+                base_video_selected_channel_copy = generated_video
             if frame_selection_empty_video ==  'constant': # selects the first time point
                 index_frame_selection = np.zeros((len(time_vector)), dtype = np.int32)
             if frame_selection_empty_video ==  'loop':
