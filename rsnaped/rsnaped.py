@@ -2806,6 +2806,23 @@ class SimulatedCell():
             
         def make_simulation(base_video_selected_channel:np.ndarray, masked_video_selected_channel:np.ndarray, spot_positions_movement:np.ndarray, time_vector:np.ndarray, polygon_array, image_size:np.ndarray, size_spot:int, spot_sigma:int, simulated_trajectories, frame_selection_empty_video,ignore_trajectories,intensity_scale):
             
+            def generate_gaussian_video(original_video, num_requested_frames):
+                # Take a given video and approximate its per pixel poission distribution
+                # in this case just take the means of each pixel over all time frames as the lambda for poission dist
+      
+                frames_in_orginal_video = original_video.shape[0]
+                x_dim = original_video.shape[2]
+                y_dim = original_video.shape[1]
+
+                
+                video_means = np.mean(original_video,axis=0) #per_pixel_mean per time
+                video_std = np.std(original_video,axis=0) #per_pixel_mean per time
+                generated_video = np.zeros((num_requested_frames,y_dim,x_dim), dtype=np.uint16)
+                for j in range(x_dim):
+                    for k in range(y_dim):
+                        generated_video[:,j,k] = np.random.randn(size=(num_requested_frames,))*video_std[j,k] + video_means[j,k]
+                return generated_video
+
             def generate_poisson_video(original_video, num_requested_frames):
                 # Take a given video and approximate its per pixel poission distribution
                 # in this case just take the means of each pixel over all time frames as the lambda for poission dist
@@ -2865,6 +2882,10 @@ class SimulatedCell():
                 base_video_selected_channel_copy = interpolated_video
             if frame_selection_empty_video ==  'generate_from_poisson': # selects the first time point
                 generated_video = generate_poisson_video(original_video=base_video_selected_channel.copy(), num_requested_frames=len(time_vector))
+                index_frame_selection = range(0, len(time_vector))
+                base_video_selected_channel_copy = generated_video
+            if frame_selection_empty_video ==  'generate_from_guassian': # selects the first time point
+                generated_video = generate_gaussian_video(original_video=base_video_selected_channel.copy(), num_requested_frames=len(time_vector))
                 index_frame_selection = range(0, len(time_vector))
                 base_video_selected_channel_copy = generated_video
             if frame_selection_empty_video ==  'constant': # selects the first time point
