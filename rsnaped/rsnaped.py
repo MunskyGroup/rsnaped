@@ -2807,8 +2807,8 @@ class SimulatedCell():
         def make_simulation(base_video_selected_channel:np.ndarray, masked_video_selected_channel:np.ndarray, spot_positions_movement:np.ndarray, time_vector:np.ndarray, polygon_array, image_size:np.ndarray, size_spot:int, spot_sigma:int, simulated_trajectories, frame_selection_empty_video,ignore_trajectories,intensity_scale):
             
             def generate_gaussian_video(original_video, num_requested_frames):
-                # Take a given video and approximate its per pixel poission distribution
-                # in this case just take the means of each pixel over all time frames as the lambda for poission dist
+                # Take a given video and approximate its per pixel Gaussian distribution
+                # in this case just take the means and std over all pixels for generating the new frame
       
                 frames_in_orginal_video = original_video.shape[0]
                 x_dim = original_video.shape[2]
@@ -2816,7 +2816,7 @@ class SimulatedCell():
 
                 
                 video_means = np.mean(original_video,axis=0) #per_pixel_mean per time
-                video_std = np.std(original_video,axis=0) #per_pixel_mean per time
+                video_std = np.std(original_video,axis=0) #per_pixel_std per time
                 generated_video = np.zeros((num_requested_frames,y_dim,x_dim), dtype=np.uint16)
                 for j in range(x_dim):
                     for k in range(y_dim):
