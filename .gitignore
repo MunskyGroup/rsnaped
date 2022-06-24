@@ -13,6 +13,7 @@ LargeDataSets/
 *egg-info
 dist/
 build/
+Figures/
 
 # rSNAPsim_IP/temp
 temp/
