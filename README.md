@@ -18,14 +18,12 @@ This library is intended to quantify single-molecule gene expression experiments
 
 * Tracking for single-molecule translation (RNA + nascent protein) spots.
 * Tracking for single-molecule RNA spots.
-* RNA detection spots for FISH images.
 * Simulating the single-molecule translation for any gene.
 * Design of single-molecule gene expression experiments.
 
 ## Simulating translation
 
 The code is intended to simulated single-molecule translation. A  video with the simulated cell and a data frame containing spot and intensity positions are generated. This simulation can be used to train new algorithms or for teaching new students.
-
 
 ## Local installation using PIP
 
@@ -69,8 +67,6 @@ Additional steps to deactivate or remove the environment from the computer:
 ```
     conda env remove -n rsnaped_env
 ```
-
-
 
 ## References for main dependencies
 
