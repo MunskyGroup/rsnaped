@@ -1461,11 +1461,11 @@ class Cellpose():
         # Next two lines suppressing output from Cellpose
         old_stdout = sys.stdout
         sys.stdout = open(os.devnull, "w")
-        model = models.Cellpose(gpu = 1, model_type = self.model_type, omni = True) # model_type = 'cyto' or model_type = 'nuclei'
+        model = models.Cellpose(gpu = 1, model_type = self.model_type) # model_type = 'cyto' or model_type = 'nuclei'
         # Loop that test multiple probabilities in cell pose and returns the masks with the longest area.
         def cellpose_max_area( optimization_threshold):
             try:
-                masks, _, _, _ = model.eval(self.video, normalize = True, mask_threshold = optimization_threshold, diameter = self.diameter, min_size = 800, channels = self.channels, progress = None)
+                masks, _, _, _ = model.eval(self.video, normalize = True, cellprob_threshold = optimization_threshold, diameter = self.diameter, min_size = 1000, channels = self.channels, progress = None)
             except:
                 masks =0
             n_masks = np.amax(masks)
@@ -1481,13 +1481,13 @@ class Cellpose():
                 return np.sum(masks)
         def cellpose_max_cells(optimization_threshold):
             try:
-                masks, _, _, _ = model.eval(self.video, normalize = True, mask_threshold = optimization_threshold, diameter =self.diameter, min_size = 800, channels = self.channels, progress = None)
+                masks, _, _, _ = model.eval(self.video, normalize = True, cellprob_threshold = optimization_threshold, diameter =self.diameter, min_size = 1000, channels = self.channels, progress = None)
             except:
                 masks =0
             return np.amax(masks)
         def cellpose_max_cells_and_area( optimization_threshold):
             try:
-                masks, _, _, _ = model.eval(self.video, normalize = True, mask_threshold = optimization_threshold, diameter = self.diameter, min_size = 800, channels = self.channels, progress = None)
+                masks, _, _, _ = model.eval(self.video, normalize = True, cellprob_threshold = optimization_threshold, diameter = self.diameter, min_size = 1000, channels = self.channels, progress = None)
             except:
                 masks =0
             n_masks = np.amax(masks)
@@ -1513,7 +1513,7 @@ class Cellpose():
             evaluated_metric_for_masks = np.asarray(list_metrics_masks)
         if np.amax(evaluated_metric_for_masks) >0:
             selected_conditions = self.optimization_parameter[np.argmax(evaluated_metric_for_masks)]
-            selected_masks, _, _, _ = model.eval(self.video, normalize = True, mask_threshold = selected_conditions, diameter = self.diameter, min_size = -1, channels = self.channels, progress = None)
+            selected_masks, _, _, _ = model.eval(self.video, normalize = True, cellprob_threshold = selected_conditions, diameter = self.diameter, min_size = -1, channels = self.channels, progress = None)
             selected_masks[0:10, :] = 0;selected_masks[:, 0:10] = 0;selected_masks[selected_masks.shape[0]-10:selected_masks.shape[0]-1, :] = 0; selected_masks[:, selected_masks.shape[1]-10: selected_masks.shape[1]-1 ] = 0#This line of code ensures that the corners are zeros.
         else:
             selected_masks = None
@@ -1631,7 +1631,9 @@ class Trackpy():
         Intensity threshold value to be used during tracking. If no value is passed, the code attempts to calculate this value. The default is None.
     '''
     def __init__(self, video:np.ndarray, mask:np.ndarray, particle_size:int = 5, selected_channel:int = 0, minimal_frames:int = 5, optimization_iterations:int = 10, use_default_filter:int = 1, FISH_image: bool = 0, show_plot:bool = 1,intensity_threshold_tracking=None):
-        
+        self.NUMBER_OF_CORES = multiprocessing.cpu_count()
+        self.time_points = video.shape[0]
+        self.selected_channel = selected_channel
         # Functions with the bandpass and gaussian filters
         def bandpass_filter (image: np.ndarray, lowfilter, highpass):
             temp_vid = difference_of_gaussians(image, lowfilter, highpass, truncate = 3.0)
@@ -1645,22 +1647,17 @@ class Trackpy():
             temp_vid = gaussian_laplace(temp_image, sigma=sigma)
             temp_vid = np.clip(-temp_vid, a_min=0, a_max=None)
             return img_as_uint(temp_vid)
-        # non-linear filter
-        def nl_filter(image: np.ndarray):
-            temp_image = img_as_float64(image)
-            sigma_est = np.mean(estimate_sigma(temp_image, multichannel = True))
-            denoised_image = denoise_nl_means(temp_image, h = sigma_est, fast_mode = True, patch_size = 10, patch_distance = 3, multichannel = False)
-            return img_as_uint(denoised_image)
-        def median_filter (image: np.ndarray, size:float = 1):
-            temp_image = img_as_float64(image)
-            filtered_image = nd.median_filter(temp_image, size = size)
-            return img_as_uint(filtered_image)
-        def wavelet_filter(image: np.ndarray):
-            temp_image = img_as_float64(image)
-            filtered_image = denoise_wavelet(temp_image, rescale_sigma=True,method='BayesShrink', mode='soft')
-            return img_as_uint(filtered_image)
+        
+        # Function to convert the video to uint
+        def img_uint(image):
+            temp_vid = img_as_uint(image)
+            return temp_vid
+        ini_video = np.asarray(Parallel(n_jobs = self.NUMBER_OF_CORES)(delayed(img_uint)(video[i, :, :, self.selected_channel]) for i in range(0, self.time_points)) )
         
         def filter_video(video, tracking_filter,frames_to_track):
+            # function that remove outliers from the video
+            video = RemoveExtrema(video, min_percentile = 0.5, max_percentile = 99.9).remove_outliers()
+            # selecting the filter to apply
             if tracking_filter == 'bandpass_filter':
                 temp_vid_dif_filter = Parallel(n_jobs = self.NUMBER_OF_CORES)(delayed(bandpass_filter)(video[i, :, :], self.low_pass_filter, self.highpass_filter) for i in range(0, frames_to_track))
             elif tracking_filter == 'log_filter':       
@@ -1673,21 +1670,7 @@ class Trackpy():
             return video_filtered
         
         
-        self.NUMBER_OF_CORES = multiprocessing.cpu_count()
-        self.time_points = video.shape[0]
-        self.selected_channel = selected_channel
-        self.intensity_threshold_tracking = intensity_threshold_tracking
-        # function that remove outliers from the video
-        video = RemoveExtrema(video, min_percentile = 0.5, max_percentile = 99.9).remove_outliers()
-        # Function to convert the video to uint
-        def img_uint(image):
-            temp_vid = img_as_uint(image)
-            return temp_vid
-        init_video = Parallel(n_jobs = self.NUMBER_OF_CORES)(delayed(img_uint)(video[i, :, :, self.selected_channel]) for i in range(0, self.time_points))
-        self.video = np.asarray(init_video)
-        self.video_complete = video.copy()
-        
-
+        self.intensity_threshold_tracking = intensity_threshold_tracking   
         self.mask = mask
         if (particle_size % 2) == 0:
             particle_size = particle_size + 1
@@ -1720,14 +1703,13 @@ class Trackpy():
         #self.tracking_filter = 'bandpass_filter' # 'bandpass_filter' , 'log_filter', 'all'
         #self.tracking_filter = 'log_filter'
         self.tracking_filter = 'all'
-        self.video_filtered = filter_video(video=self.video, tracking_filter=self.tracking_filter,frames_to_track=self.time_points)
+        self.video_filtered = filter_video(video=ini_video, tracking_filter=self.tracking_filter,frames_to_track=self.time_points)
         self.MIN_INT_OPTIMIZATION = 1 
         if use_default_filter ==0:
             f_init = tp.locate(self.video_filtered[0, :, :], self.particle_size, minmass = 1, max_iterations = 100, preprocess = False, percentile = 70)
             self.MAX_INT_OPTIMIZATION = np.max( (1, np.round( np.max(f_init.mass.values) ) ) )
         else:
             self.MAX_INT_OPTIMIZATION = self.MAX_INT_OPTIMIZATION_DEFAULT_VALUE
-            
         if self.optimization_iterations <= 10:
             self.sigma_for_1d_gaussian_filter = 1
         elif (self.optimization_iterations > 20) and (self.optimization_iterations <= 200):
@@ -1791,7 +1773,7 @@ class Trackpy():
             num_detected_particles = np.asarray(num_particles)
             smooth_vector_detected_spots = gaussian_filter1d(num_detected_particles, self.sigma_for_1d_gaussian_filter)
             log_num_spots =  np.log(smooth_vector_detected_spots +1)
-            ignored_edges = 20
+            ignored_edges = 40
             derivative_vector_detected_spots = np.gradient(log_num_spots[ignored_edges:])      #  derivative
             index_max_second_derivative = derivative_vector_detected_spots.argmax()+ignored_edges #+ self.ADDED_INDEX_TO_OPTIMIZED_SELECTION 
             selected_int_optimized = min_int_vector[index_max_second_derivative]  # + self.ADDED_INTENSITY_TO_OPTIMIZED_SELECTION
@@ -1917,7 +1899,10 @@ class Intensity():
             mean_intensity_donut = np.nanmean(recentered_image_donut.flatten()) # mean calculation ignoring zeros
             std_intensity_donut = np.nanstd(recentered_image_donut.flatten()) # mean calculation ignoring zeros
             # Calculate SNR
-            calculated_signal_to_noise_ratio = (mean_intensity_disk-mean_intensity_donut) / std_intensity_donut
+            if std_intensity_donut >0:
+                calculated_signal_to_noise_ratio = (mean_intensity_disk-mean_intensity_donut) / std_intensity_donut
+            else:
+                calculated_signal_to_noise_ratio = 0
             # Calculation using a gaussian filter
             mean_background_int = mean_intensity_donut
             std_background_int = std_intensity_donut
@@ -1934,7 +1919,7 @@ class Intensity():
             mean_intensity_donut = np.nanmedian(recentered_image_donut.flatten()) # mean calculation ignoring zeros
             # substracting background minus center intensity
             spot_intensity_disk_donut = np.array( mean_intensity_disk - mean_intensity_donut, dtype = np.float32)
-            spot_intensity_disk_donut[spot_intensity_disk_donut < 0] = 0
+            #spot_intensity_disk_donut[spot_intensity_disk_donut < 0] = 0
             spot_intensity_disk_donut[np.isnan(spot_intensity_disk_donut)] = 0 # replacing nans with zero
             return spot_intensity_disk_donut, spot_intensity_disk_donut_std
         def return_crop(image:np.ndarray, x_pos:int, y_pos:int, crop_size:int):
@@ -2120,54 +2105,55 @@ class Intensity():
                 temporal_frames_vector = counter_time_vector
                 temporal_x_position_vector = self.spot_positions_movement[:, id, 1]
                 temporal_y_position_vector = self.spot_positions_movement[:, id, 0]
-            temporal_red_vector = array_intensities_mean[id, temporal_frames_vector, 0] # red
-            temporal_green_vector = array_intensities_mean[id, temporal_frames_vector, 1] # green
-            temporal_blue_vector = array_intensities_mean[id, temporal_frames_vector, 2] # blue
-            temporal_red_vector_std = array_intensities_std[id, temporal_frames_vector, 0] # red
-            temporal_green_vector_std = array_intensities_std[id, temporal_frames_vector, 1] # green
-            temporal_blue_vector_std = array_intensities_std[id, temporal_frames_vector, 2] # blue
-            temporal_spot_number_vector = np.around([counter] * len(temporal_frames_vector))
-            temporal_cell_number_vector = np.around([0] * len(temporal_frames_vector))
-            temporal_SNR_red = array_intensities_snr[id, temporal_frames_vector, 0] # red
-            temporal_SNR_green = array_intensities_snr[id, temporal_frames_vector, 1] # green
-            temporal_SNR_blue = array_intensities_snr[id, temporal_frames_vector, 2] # blue
-            temporal_background_int_mean_red  = array_intensities_background_mean [id, temporal_frames_vector, 0] # red
-            temporal_background_int_mean_green = array_intensities_background_mean [id, temporal_frames_vector, 1] # green
-            temporal_background_int_mean_blue= array_intensities_background_mean [id, temporal_frames_vector, 2] # blue
-            temporal_background_int_std_red  = array_intensities_background_std[id, temporal_frames_vector, 0] # red
-            temporal_background_int_std_green = array_intensities_background_std[id, temporal_frames_vector, 1] # green
-            temporal_background_int_std_blue = array_intensities_background_std[id, temporal_frames_vector, 2] # blue
+            
+            temporal_red_vector =  array_intensities_mean[id, temporal_frames_vector, 0]  # red
+            temporal_green_vector = array_intensities_mean[id, temporal_frames_vector, 1]  # green
+            temporal_blue_vector =  array_intensities_mean[id, temporal_frames_vector, 2]  # blue
+            temporal_red_vector_std =  array_intensities_std[id, temporal_frames_vector, 0]  # red
+            temporal_green_vector_std =  array_intensities_std[id, temporal_frames_vector, 1]  # green
+            temporal_blue_vector_std =  array_intensities_std[id, temporal_frames_vector, 2]  # blue
+            temporal_spot_number_vector = [counter] * len(temporal_frames_vector)
+            temporal_cell_number_vector = [0] * len(temporal_frames_vector)
+            temporal_SNR_red =  array_intensities_snr[id, temporal_frames_vector, 0] # red
+            temporal_SNR_green =  array_intensities_snr[id, temporal_frames_vector, 1]  # green
+            temporal_SNR_blue =  array_intensities_snr[id, temporal_frames_vector, 2]  # blue
+            temporal_background_int_mean_red  = array_intensities_background_mean [id, temporal_frames_vector, 0]  # red
+            temporal_background_int_mean_green = array_intensities_background_mean [id, temporal_frames_vector, 1]  # green
+            temporal_background_int_mean_blue=  array_intensities_background_mean [id, temporal_frames_vector, 2]  # blue
+            temporal_background_int_std_red  = array_intensities_background_std[id, temporal_frames_vector, 0]  # red
+            temporal_background_int_std_green = array_intensities_background_std[id, temporal_frames_vector, 1]  # green
+            temporal_background_int_std_blue = array_intensities_background_std[id, temporal_frames_vector, 2]  # blue
             # Section that append the information for each spots
             temp_data_frame = {'cell_number': temporal_cell_number_vector, 
                 'particle': temporal_spot_number_vector, 
                 'frame': temporal_frames_vector*self.step_size, 
-                'red_int_mean': temporal_red_vector, 
-                'green_int_mean': temporal_green_vector, 
-                'blue_int_mean': temporal_blue_vector, 
-                'red_int_std': temporal_red_vector_std, 
-                'green_int_std': temporal_green_vector_std, 
-                'blue_int_std': temporal_blue_vector_std, 
+                'red_int_mean': np.round( temporal_red_vector ,2), 
+                'green_int_mean': np.round( temporal_green_vector ,2), 
+                'blue_int_mean': np.round( temporal_blue_vector ,2), 
+                'red_int_std': np.round( temporal_red_vector_std ,2), 
+                'green_int_std': np.round( temporal_green_vector_std ,2), 
+                'blue_int_std': np.round( temporal_blue_vector_std, 2), 
                 'x': temporal_x_position_vector, 
                 'y': temporal_y_position_vector,
-                'SNR_red' : temporal_SNR_red,
-                'SNR_green': temporal_SNR_green,
-                'SNR_blue': temporal_SNR_blue,
-                'background_int_mean_red':temporal_background_int_mean_red,
-                'background_int_mean_green':temporal_background_int_mean_green,
-                'background_int_mean_blue':temporal_background_int_mean_blue,
-                'background_int_std_red':temporal_background_int_std_red,
-                'background_int_std_green':temporal_background_int_std_green,
-                'background_int_std_blue':temporal_background_int_std_blue }
+                'SNR_red' : np.round( temporal_SNR_red ,2),
+                'SNR_green': np.round( temporal_SNR_green ,2),
+                'SNR_blue': np.round( temporal_SNR_blue ,2),
+                'background_int_mean_red': np.round( temporal_background_int_mean_red ,2),
+                'background_int_mean_green': np.round( temporal_background_int_mean_green ,2),
+                'background_int_mean_blue': np.round( temporal_background_int_mean_blue ,2),
+                'background_int_std_red': np.round( temporal_background_int_std_red ,2),
+                'background_int_std_green': np.round( temporal_background_int_std_green ,2),
+                'background_int_std_blue': np.round( temporal_background_int_std_blue ,2) }
             counter += 1
             temp_DataFrame = pd.DataFrame(temp_data_frame)
             dataframe_particles = dataframe_particles.append(temp_DataFrame, ignore_index = True)
-            dataframe_particles = dataframe_particles.astype({"cell_number": int, "particle": int, "frame": int}) # specify data type as integer for some columns
+            dataframe_particles = dataframe_particles.astype({"cell_number": int, "particle": int, "frame": int, "x": int, "y": int}) # specify data type as integer for some columns
         def reduce_dataframe(df):
             # This function is intended to reduce the columns that are not used in the ML process.
             return df.drop(['red_int_std', 'green_int_std','blue_int_std','SNR_red', 'SNR_green', 'SNR_blue','background_int_mean_red','background_int_mean_green','background_int_mean_blue','background_int_std_red','background_int_std_green','background_int_std_blue'], axis = 1)
         if self.dataframe_format == 'short':
             dataframe_particles = reduce_dataframe(dataframe_particles)
-            dataframe_particles = dataframe_particles.astype({"red_int_mean": int, "green_int_mean": int, "blue_int_mean": int, "x": int, "y": int}) 
+            #dataframe_particles = dataframe_particles.astype({"red_int_mean": int, "green_int_mean": int, "blue_int_mean": int, "x": int, "y": int}) 
         return dataframe_particles, array_intensities_mean, time_vector, mean_intensities, std_intensities, mean_intensities_normalized, std_intensities_normalized
 
 class SimulatedCell():
@@ -2844,8 +2830,13 @@ class PipelineTracking():
         Value that indicates the minimal (normalized) percentage of time to consider a particle as a detected trajectory during the tracking process. The number must be between 0 and 1. The default is 0.3.
     intensity_threshold_tracking : float or None, optional.
         Intensity threshold value to be used during tracking. If no value is passed, the code attempts to calculate this value. The default is None.
+    dataframe_format : str, optional
+        Format for the dataframe the options are : 'short' , and 'long'. The default is 'short'.
+        "long" format generates this dataframe: [cell_number, particle, frame, red_int_mean, green_int_mean, blue_int_mean, red_int_std, green_int_std, blue_int_std, x, y, SNR_red,SNR_green,SNR_blue].
+        "short" format generates this dataframe: [cell_number, particle, frame, red_int_mean, green_int_mean, blue_int_mean, x, y].
+
     '''
-    def __init__(self, video:np.ndarray, particle_size:int = 5, file_name:str = 'Cell.tif', selected_channel:int = 0, intensity_calculation_method:str = 'disk_donut', mask_selection_method:str = 'max_spots', show_plot:bool = 1, use_optimization_for_tracking: bool = 1, real_positions_dataframe = None, average_cell_diameter: float = 120, print_process_times:bool = 0,min_percentage_time_tracking=0.4,intensity_threshold_tracking=None):
+    def __init__(self, video:np.ndarray, particle_size:int = 5, file_name:str = 'Cell.tif', selected_channel:int = 0, intensity_calculation_method:str = 'disk_donut', mask_selection_method:str = 'max_spots', show_plot:bool = 1, use_optimization_for_tracking: bool = 1, real_positions_dataframe = None, average_cell_diameter: float = 120, print_process_times:bool = 0,min_percentage_time_tracking=0.4,intensity_threshold_tracking=None,dataframe_format='short'):
         self.video = video
         self.particle_size = particle_size
         self.image = np.max(video,axis=0)
@@ -2864,6 +2855,7 @@ class PipelineTracking():
         self.NUM_ITERATIONS_TRACKING = 1000
         self.MIN_PERCENTAGE_FRAMES_FOR_TRACKING = min_percentage_time_tracking
         self.intensity_threshold_tracking=intensity_threshold_tracking
+        self.dataframe_format=dataframe_format
     def run(self):
         '''
         Runs the pipeline.
@@ -2912,7 +2904,7 @@ class PipelineTracking():
             # Intensity calculation
             start = timer()
             if not ( Dataframe_trajectories is None):
-                dataframe_particles, array_intensities, time_vector, mean_intensities, std_intensities, mean_intensities_normalized, std_intensities_normalized = Intensity(self.video, self.particle_size, Dataframe_trajectories, method = self.intensity_calculation_method, show_plot = 0).calculate_intensity()
+                dataframe_particles, array_intensities, time_vector, mean_intensities, std_intensities, mean_intensities_normalized, std_intensities_normalized = Intensity(self.video, self.particle_size, Dataframe_trajectories, method = self.intensity_calculation_method, show_plot = 0, dataframe_format=self.dataframe_format).calculate_intensity()
             else:
                 dataframe_particles = None
                 array_intensities = None
