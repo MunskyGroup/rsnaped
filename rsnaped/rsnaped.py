@@ -2806,7 +2806,7 @@ class SimulatedCell():
             
         def make_simulation(base_video_selected_channel:np.ndarray, masked_video_selected_channel:np.ndarray, spot_positions_movement:np.ndarray, time_vector:np.ndarray, polygon_array, image_size:np.ndarray, size_spot:int, spot_sigma:int, simulated_trajectories, frame_selection_empty_video,ignore_trajectories,intensity_scale):
             
-            def generate_gaussian_video(original_video, num_requested_frames):
+            def generate_gaussian_video(original_video, num_requested_frames, quantile=.95, scale=1.0):
                 # Take a given video and approximate its per pixel Gaussian distribution
                 # in this case just take the means and std over all pixels for generating the new frame
       
@@ -2814,13 +2814,14 @@ class SimulatedCell():
                 x_dim = original_video.shape[2]
                 y_dim = original_video.shape[1]
 
-                
+
                 video_means = np.mean(original_video,axis=0) #per_pixel_mean per time
                 video_std = np.std(original_video,axis=0) #per_pixel_std per time
-                generated_video = np.zeros((num_requested_frames,y_dim,x_dim), dtype=np.uint16)
+                video_std[video_std > np.quantile(video_std, .95)] = np.quantile(video_std, quantile)
+                generated_video_gaussian = np.zeros((num_requested_frames,y_dim,x_dim), dtype=np.uint16)
                 for j in range(x_dim):
                     for k in range(y_dim):
-                        generated_video[:,j,k] = np.random.randn(size=(num_requested_frames,))*video_std[j,k] + video_means[j,k]
+                        generated_video_gaussian[:,j,k] = np.random.randn(num_requested_frames)*video_std[j,k]*scale + video_means[j,k]
                 return generated_video
 
             def generate_poisson_video(original_video, num_requested_frames):
