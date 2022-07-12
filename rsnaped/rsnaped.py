@@ -751,8 +751,8 @@ class MaskManual_createMask():
         
     def make_mask(self):
         time_points, height, width, number_channels = self.video.shape[0],self.video.shape[1], self.video.shape[2], self.video.shape[3]
-        array_points_coordenates = np.array([self.mask_object.selected_points],'int')
-        mask = cv2.fillPoly(np.zeros(self.video[self.time_point_selected,:,:,self.selected_channel].shape,np.uint8),array_points_coordenates,[1,1,1])
+        array_points_coordinates = np.array([self.mask_object.selected_points],'int')
+        mask = cv2.fillPoly(np.zeros(self.video[self.time_point_selected,:,:,self.selected_channel].shape,np.uint8),array_points_coordinates,[1,1,1])
         mask_array = np.zeros((time_points, height, width))
         for i in range(0,number_channels):
             for k in range(0,time_points):
