@@ -23,7 +23,7 @@ This library is intended to quantify single-molecule gene expression experiments
 
 ## Simulating translation
 
-The code is intended to simulated single-molecule translation. A  video with the simulated cell and a data frame containing spot and intensity positions are generated. This simulation can be used to train new algorithms or for teaching new students.
+The code is intended to simulate single-molecule translation. A  video with the simulated cell and a data frame containing spot and intensity positions are generated. This simulation can be used to train new algorithms or for teaching new students.
 
 ## Local installation using PIP
 
