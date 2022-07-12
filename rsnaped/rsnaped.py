@@ -103,8 +103,10 @@ import re # to iterate in files
 import glob # to iterate in files
 import pathlib
 from pathlib import Path
+import cv2
 os.environ["CUDA_VISIBLE_DEVICES"] = "0,1"
 plt.style.use("dark_background")
+
 
 
 class Banner():
@@ -446,7 +448,7 @@ class RemoveExtrema():
         '''
 
         normalized_video = np.copy(self.video)
-        normalized_video = np.array(normalized_video, 'float32')
+        #normalized_video = np.array(normalized_video, 'float32')
         # Normalization code for image with format [Y, X]
         if len(self.video.shape) == 2:
             number_time_points = 1
@@ -458,6 +460,7 @@ class RemoveExtrema():
                 normalized_video_temp [normalized_video_temp > max_val] = max_val
                 normalized_video_temp [normalized_video_temp < min_val] = min_val
                 normalized_video_temp [normalized_video_temp < 0] = 0
+                normalized_video = normalized_video_temp
         # Normalization for video with format [Y, X, C].
         if len(self.video.shape) == 3:
             number_channels   = self.video.shape[2]
@@ -470,6 +473,7 @@ class RemoveExtrema():
                         normalized_video_temp [normalized_video_temp > max_val] = max_val
                         normalized_video_temp [normalized_video_temp < min_val] =  min_val
                         normalized_video_temp [normalized_video_temp < 0] = 0
+                        normalized_video[ :, :, index_channels] = normalized_video_temp[ :, :, index_channels] 
         # Normalization for video with format [T, Y, X, C] or [Z, Y, X, C].
         if len(self.video.shape) == 4:
             number_time_points, number_channels   = self.video.shape[0], self.video.shape[3]
@@ -484,6 +488,7 @@ class RemoveExtrema():
                             normalized_video_temp [normalized_video_temp > max_val] = max_val
                             normalized_video_temp [normalized_video_temp < min_val] = min_val
                             normalized_video_temp [normalized_video_temp < 0] = 0
+                            normalized_video[ index_time, :, :, index_channels] = normalized_video_temp
         return np.asarray(normalized_video, 'uint16')
 
 
@@ -705,21 +710,81 @@ class MaskingImage():
         return video_removed_mask
 
 
+#/***************************************************************************************
+#    This class has been modified from the following reference.
+#    Title: Select ROI within Jupyter Notebook.  bbox_select
+#    Author: Prateek Khandelwal
+#    Date: July 14, 2019
+#    Availability: https://gist.github.com/Pked01/83cdef1dfe49e4004f5af78708767850
+class ManualMask():
+    def __init__(self,video,time_point_selected,selected_channel):
+        normalized_video = RemoveExtrema(video, min_percentile= 0, max_percentile = 99,selected_channels=selected_channel).remove_outliers()
+        self.image = normalized_video[time_point_selected,:,:,selected_channel]
+        self.selected_points = []
+        self.figure_to_draw_points , axes_in_figure = plt.subplots()
+        self.new_image = axes_in_figure.imshow(self.image.copy(),cmap='Spectral_r')
+        self.cli = self.figure_to_draw_points.canvas.mpl_connect('button_press_event', self.onclick)
+    # Function to draw the polygon in the figure
+    def polygon(self,new_image,points_in_polygon):
+        points_in_polygon = np.array(points_in_polygon, np.int32)
+        points_in_polygon = points_in_polygon.reshape((-1,1,2))
+        cv2.polylines(new_image,pts=[points_in_polygon],isClosed=True,color=(0,0,0),thickness=3)
+        return new_image
+    # Event handling
+    def onclick(self, event):
+        self.selected_points.append([event.xdata,event.ydata])
+        if len(self.selected_points)>=1:
+            self.figure_to_draw_points
+            self.new_image.set_data(self.polygon(self.image.copy(),self.selected_points))
+#***************************************************************************************/
+
+
+class MaskManual_createMask():
+    def __init__(self,video,mask_object,time_point_selected=0,selected_channel=1,show_plot=1):
+        self.video = video
+        self.mask_object = mask_object
+        self.time_point_selected = time_point_selected
+        self.selected_channel = selected_channel
+        self.number_channels = video.shape
+        self.video_removed_mask= np.zeros_like(video) 
+        self.show_plot=show_plot
+        
+    def make_mask(self):
+        time_points, height, width, number_channels = self.video.shape[0],self.video.shape[1], self.video.shape[2], self.video.shape[3]
+        array_points_coordenates = np.array([self.mask_object.selected_points],'int')
+        mask = cv2.fillPoly(np.zeros(self.video[self.time_point_selected,:,:,self.selected_channel].shape,np.uint8),array_points_coordenates,[1,1,1])
+        mask_array = np.zeros((time_points, height, width))
+        for i in range(0,number_channels):
+            for k in range(0,time_points):
+                self.video_removed_mask[k,:height,:width,i] = np.multiply(self.video[k,:height,:width,i], mask)
+                mask_array [k,:,:] = mask
+        if self.show_plot ==1:
+        # Plotting
+            plt.rcParams["figure.figsize"] = (5,5)
+            plt.imshow(self.video_removed_mask[self.time_point_selected,:,:,self.selected_channel], cmap=plt.cm.cividis)
+            plt.show()        
+
+        return self.video_removed_mask, mask_array
+
+
 class BeadsAlignment():
     '''
     This class is intended to detected and align spots detected in the various channels of an image with dimensions [C, Y, X]. The class returns a homography matrix that can be used to align the images captured from two different cameras during the experiment. Notice that this class should only be used for images taken from a microscope setup that uses two cameras to image various channels.
     
     Parameters
 
-    image_beads : NumPy array
-        Array with a simple image with dimensions [C, Y, X].
+    first_image_beads : NumPy array
+        Array with a simple image with dimensions [ Y, X].
+    second_image_beads : NumPy array
+        Array with a simple image with dimensions [ Y, X].
     spot_size : int, optional
         Average size of the beads,  The default is 5.
     min_intensity : float, optional
         Minimal expected intensity for the beads. The default is 400.
     '''
-    def __init__(self, image_beads:np.ndarray, spot_size:int = 5, min_intensity:float = 400):
-        self.image_beads = image_beads
+    def __init__(self, first_image_beads:np.ndarray,second_image_beads:np.ndarray, spot_size:int = 5, min_intensity:float = 100):
+        self.first_image_beads = first_image_beads
+        self.second_image_beads = second_image_beads
         self.spot_size = spot_size
         self.min_intensity = min_intensity
     def make_beads_alignment(self):
@@ -731,58 +796,86 @@ class BeadsAlignment():
         homography_matrix : object
             The homography matrix is a 3x3 matrix. This transformation matrix maps the points between two planes (images).
         '''
-        # Bandpass filter for the beads function
-        low_pass_filter = 1 # low pass filter threshold
-        high_pass_filter = 71 # high pass filter threshold
-        self.image_beads[0, :, :] = tp.bandpass(self.image_beads[0, :, :], low_pass_filter, high_pass_filter, threshold = 1, truncate = 4) # Red channel
-        self.image_beads[1, :, :] = tp.bandpass(self.image_beads[1, :, :], low_pass_filter, high_pass_filter, threshold = 1, truncate = 4) # Green channel
+        # Applying a log filter to the image
+        filtered_first_image_beads= Utilities.log_filter(self.first_image_beads, sigma=1.5)
+        filtered_first_image_beads= Utilities.bandpass_filter(filtered_first_image_beads, lowfilter=0.5, highpass=10)
+        filtered_second_image_beads = Utilities.log_filter(self.second_image_beads, sigma=1.5)
+        filtered_second_image_beads = Utilities.bandpass_filter(filtered_second_image_beads, lowfilter=0.5, highpass=10)
         # Locating beads in the image using "tp.locate" function from trackpy.
-        f_red = tp.locate(self.image_beads[0, :, :], self.spot_size, self.min_intensity, maxsize = 7, percentile = 60) # data frame for the red channel
-        f_green = tp.locate(self.image_beads[1, :, :], self.spot_size, self.min_intensity, maxsize = 7, percentile = 60)  # data frame for the green channel
-        # Converting coordinates to float32 array for the red channel
-        x_coord_red = np.array(f_red.x.values, np.float32)
-        y_coord_red = np.array(f_red.y.values, np.float32)
-        positions_red = np.column_stack((x_coord_red, y_coord_red ))
-        # Converting coordinates to float32 array for the green channel
-        x_coord_green = np.array(f_green.x.values, np.float32)
-        y_coord_green = np.array(f_green.y.values, np.float32)
-        positions_green = np.column_stack(( x_coord_green, y_coord_green ))
-        # First step to remove of unmatched spots. Comparing Red versus Green channel.
-        comparison_red = np.zeros((positions_red.shape[0]))
-        comparison_green = np.zeros((positions_green.shape[0]))
-        MIN_DISTANCE_TO_MATCH_BEADS = 4
-        for i in range (0, positions_red.shape[0]):
-            idx = np.argmin(abs((positions_green[:, 0] - positions_red[i, 0])))
-            comparison_red[i] = (abs(positions_green[idx, 0] - positions_red[i, 0]) < MIN_DISTANCE_TO_MATCH_BEADS) & (abs(positions_green [idx, 1] - positions_red[i, 1]) < MIN_DISTANCE_TO_MATCH_BEADS)
-        for i in range (0, positions_green.shape[0]):
-            idx = np.argmin(abs((positions_red[:, 0] - positions_green[i, 0])))
-            comparison_green[i] = (abs(positions_red[idx, 0] - positions_green[i, 0]) < MIN_DISTANCE_TO_MATCH_BEADS) & (abs(positions_red [idx, 1] - positions_green[i, 1]) < MIN_DISTANCE_TO_MATCH_BEADS)
-        positions_red = np.delete(positions_red, np.where( comparison_red == 0)[0], 0)
-        positions_green = np.delete(positions_green, np.where(comparison_green == 0)[0], 0)
-        # Second step to remove of unmatched spots. Comparing Green versus Red channel.
-        comparison_red = np.zeros((positions_red.shape[0]))
-        comparison_green = np.zeros((positions_green.shape[0]))
-        for i in range (0, positions_green.shape[0]):
-            idx = np.argmin(abs((positions_red[:, 0] - positions_green[i, 0])))
-            comparison_green[i] = (abs(positions_red[idx, 0] - positions_green[i, 0]) < MIN_DISTANCE_TO_MATCH_BEADS) & (abs(positions_red [idx, 1] - positions_green[i, 1]) < MIN_DISTANCE_TO_MATCH_BEADS)
-        for i in range (0, positions_red.shape[0]):
-            idx = np.argmin(abs((positions_green[:, 0] - positions_red[i, 0])))
-            comparison_red[i] = (abs(positions_green[idx, 0] - positions_red[i, 0]) < MIN_DISTANCE_TO_MATCH_BEADS) & (abs(positions_green [idx, 1] - positions_red[i, 1]) < MIN_DISTANCE_TO_MATCH_BEADS)
-        positions_red = np.delete(positions_red, np.where( comparison_red == 0)[0], 0)
-        positions_green = np.delete(positions_green, np.where(comparison_green == 0)[0], 0)
-        print('The number of spots detected for the red channel are:')
-        print(positions_red.shape)
-        print('The number of spots detected for the green channel are:')
-        print(positions_green.shape)
+        dataframe_spots_in_first_image = tp.locate(filtered_first_image_beads, diameter = self.spot_size, minmass=self.min_intensity, maxsize=self.spot_size*2, preprocess=False,max_iterations=100) # data frame for the first channel
+        dataframe_spots_in_second_image = tp.locate(filtered_second_image_beads, diameter= self.spot_size, minmass=self.min_intensity, maxsize=self.spot_size*2, preprocess=False,max_iterations=100)  # data frame for the second channel
+        # Converting coordinates to float32 array for the first channel
+        x_coord_in_first_image= np.array(dataframe_spots_in_first_image.x.values, np.float32)
+        y_coord_in_first_image = np.array(dataframe_spots_in_first_image.y.values, np.float32)
+        positions_in_first_image = np.column_stack((x_coord_in_first_image, y_coord_in_first_image ))
+        # Converting coordinates to float32 array for the second channel
+        x_coord_in_second_image = np.array(dataframe_spots_in_second_image.x.values, np.float32)
+        y_coord_in_second_image = np.array(dataframe_spots_in_second_image.y.values, np.float32)
+        positions_in_second_image = np.column_stack(( x_coord_in_second_image, y_coord_in_second_image ))
+        # First step to remove of unmatched spots. Comparing first versus second image.
+        comparison_fist_image = np.zeros((positions_in_first_image.shape[0]))
+        comparison_second_image = np.zeros((positions_in_second_image.shape[0]))
+        MIN_DISTANCE_TO_MATCH_BEADS = 5
+        for i in range (0, positions_in_first_image.shape[0]):
+            idx = np.argmin(abs((positions_in_second_image[:, 0] - positions_in_first_image[i, 0])))
+            comparison_fist_image[i] = (abs(positions_in_second_image[idx, 0] - positions_in_first_image[i, 0]) < MIN_DISTANCE_TO_MATCH_BEADS) or (abs(positions_in_second_image [idx, 1] - positions_in_first_image[i, 1]) < MIN_DISTANCE_TO_MATCH_BEADS)
+        for i in range (0, positions_in_second_image.shape[0]):
+            idx = np.argmin(abs((positions_in_first_image[:, 0] - positions_in_second_image[i, 0])))
+            comparison_second_image[i] = (abs(positions_in_first_image[idx, 0] - positions_in_second_image[i, 0]) < MIN_DISTANCE_TO_MATCH_BEADS) or (abs(positions_in_first_image [idx, 1] - positions_in_second_image[i, 1]) < MIN_DISTANCE_TO_MATCH_BEADS)
+        positions_in_first_image = np.delete(positions_in_first_image, np.where( comparison_fist_image == 0)[0], 0)
+        positions_in_second_image = np.delete(positions_in_second_image, np.where(comparison_second_image == 0)[0], 0)
+        # Second step to remove of unmatched spots. Comparing second versus first image.
+        comparison_fist_image = np.zeros((positions_in_first_image.shape[0]))
+        comparison_second_image = np.zeros((positions_in_second_image.shape[0]))
+        for i in range (0, positions_in_second_image.shape[0]):
+            idx = np.argmin(abs((positions_in_first_image[:, 0] - positions_in_second_image[i, 0])))
+            comparison_second_image[i] = (abs(positions_in_first_image[idx, 0] - positions_in_second_image[i, 0]) < MIN_DISTANCE_TO_MATCH_BEADS) or (abs(positions_in_first_image [idx, 1] - positions_in_second_image[i, 1]) < MIN_DISTANCE_TO_MATCH_BEADS)
+        for i in range (0, positions_in_first_image.shape[0]):
+            idx = np.argmin(abs((positions_in_second_image[:, 0] - positions_in_first_image[i, 0])))
+            comparison_fist_image[i] = (abs(positions_in_second_image[idx, 0] - positions_in_first_image[i, 0]) < MIN_DISTANCE_TO_MATCH_BEADS) or (abs(positions_in_second_image [idx, 1] - positions_in_first_image[i, 1]) < MIN_DISTANCE_TO_MATCH_BEADS)
+        positions_in_first_image = np.delete(positions_in_first_image, np.where( comparison_fist_image == 0)[0], 0)
+        positions_in_second_image = np.delete(positions_in_second_image, np.where(comparison_second_image == 0)[0], 0)
+        
+        number_spots_first_image = positions_in_first_image.shape[0]
+        number_spots_second_image = positions_in_second_image.shape[0]
+        print('Calculating the homography matrix between the two images.')
+        print('_______ ')
+        print(' # Spots in first image : ', number_spots_first_image, '  # Spots in second image : ',number_spots_second_image, '\n')
+        print('Spots detected in the first image: ')
+        print(np.round(positions_in_first_image[0:np.min( (3, number_spots_first_image)), :] ,1))
+        #print('The number of spots detected for the second image are: ', number_spots_second_image, '\n')
+        print('Spots detected in the second image:')
+        print(np.round(positions_in_second_image[0:np.min((3, number_spots_second_image)),:],1))
+        print('_______ ')
+        # Plotting the detected spots.
+        fig, ax = plt.subplots(2,2, figsize=(10, 10))
+        ax[0,0].imshow(self.first_image_beads,cmap='Greys_r')
+        ax[0,0].set_xticks([]); ax[0,0].set_yticks([])
+        ax[0,0].set_title('Original first image')
+        ax[0,1].imshow(filtered_first_image_beads,cmap='Greys_r')
+        ax[0,1].set_xticks([]); ax[0,1].set_yticks([])
+        ax[0,1].set_title('Filtered image')
+        for i in range(0, positions_in_first_image.shape[0]):
+            circle1=plt.Circle((positions_in_first_image[i,0], positions_in_first_image[i,1]), self.spot_size, color = 'yellow', fill = False)
+            ax[0,1].add_artist(circle1)        
+        ax[1,0].imshow(self.second_image_beads,cmap='Greys_r')
+        ax[1,0].set_xticks([]); ax[1,0].set_yticks([])
+        ax[1,0].set_title('Original second image')
+        ax[1,1].imshow(filtered_second_image_beads,cmap='Greys_r')
+        ax[1,1].set_xticks([]); ax[1,1].set_yticks([])
+        ax[1,1].set_title('Filtered image')
+        for i in range(0, positions_in_second_image.shape[0]):
+            circle2=plt.Circle((positions_in_second_image[i,0], positions_in_second_image[i,1]), self.spot_size, color = 'yellow', fill = False)
+            ax[1,1].add_artist(circle2)
         # Calculating the minimum value of rows for the alignment
-        no_spots_for_alignment = min(positions_red.shape[0], positions_green.shape[0])
+        no_spots_for_alignment = min(positions_in_first_image.shape[0], positions_in_second_image.shape[0])
         homography = transform.ProjectiveTransform()
-        src = positions_red[:no_spots_for_alignment, :2]
-        dst = positions_green[:no_spots_for_alignment, :2]
+        src = positions_in_first_image[:no_spots_for_alignment, :2]
+        dst = positions_in_second_image[:no_spots_for_alignment, :2]
         homography.estimate(src, dst)
         homography_matrix = homography
         print('')
-        print('The homography matrix is:')
+        print('Calculated homography matrix: ')
         print (homography_matrix)
         return homography_matrix
 
@@ -2156,6 +2249,50 @@ class Intensity():
             #dataframe_particles = dataframe_particles.astype({"red_int_mean": int, "green_int_mean": int, "blue_int_mean": int, "x": int, "y": int}) 
         return dataframe_particles, array_intensities_mean, time_vector, mean_intensities, std_intensities, mean_intensities_normalized, std_intensities_normalized
 
+
+class SimulateRNA():
+    
+    '''
+    This class simulates RNA intensity.
+    
+    Parameters
+
+    shape_output_array: tuple
+        Desired shape of the array, a tuple with two elements where the first element is the number of trajectories and the second element represents the number of time points.
+    rna_intensity_method : str, optional.
+        Method to generate intensity. The options are 'constant' and 'random_values'. The default is 'constant'.
+    min_int : float, optional.
+        Value representing the minimal intensity in the output array. the default is zero.
+    max_int : float, optional.
+        Value representing the maximum intensity in the output array. the default is 10.
+    mean_int : float, optional.
+        Value representing the mean intensity in the output array. the default is 5.
+    '''
+
+    def __init__(self, shape_output_array, rna_intensity_method='constant',min_int=0,max_int=10,mean_int=5 ):
+        self.shape_output_array = shape_output_array
+        self.rna_intensity_method = rna_intensity_method
+        self.min_int = min_int
+        self.max_int = max_int
+        self.mean_int = mean_int 
+        
+    def simulate(self):
+        '''
+        Method that simulates the RNA intensity
+
+        Returns
+
+        rna_intensities : NumPy. 
+            NumPy arrays with format np.int32 and dimensions equal to shape_output_array. 
+
+        '''
+        if self.rna_intensity_method =='random_values':
+            rna_intensities = np.random.uniform(low=self.min_int, high=self.max_int, size=self.shape_output_array) 
+        elif self.rna_intensity_method =='constant':
+            rna_intensities = np.full(shape=self.shape_output_array, fill_value= self.mean_int)
+        return rna_intensities
+
+
 class SimulatedCell():
     '''
     This class takes a base video, and it draws simulated spots on top of the image. The intensity for each simulated spot is proportional to the stochastic simulation given by the user.
@@ -2252,8 +2389,8 @@ class SimulatedCell():
             self.base_video = base_video
             self.mask_image = mask_image
         self.intensity_calculation_method = intensity_calculation_method
-        MAXIMUM_INTENSITY_IN_BASE_VIDEO = 10000
-        self.MAXIMUM_INTENSITY_IN_BASE_VIDEO = MAXIMUM_INTENSITY_IN_BASE_VIDEO
+        #MAXIMUM_INTENSITY_IN_BASE_VIDEO = 10000
+        #self.MAXIMUM_INTENSITY_IN_BASE_VIDEO = MAXIMUM_INTENSITY_IN_BASE_VIDEO
         if using_for_multiplexing == 0:
             base_video = RemoveExtrema(base_video, min_percentile = 1, max_percentile = 99).remove_outliers()
         if not (video_for_mask is None):
@@ -2444,6 +2581,35 @@ class SimulatedCell():
             return spot_positions_movement # vector with dimensions (time, spot, y, x )
             
         def make_simulation(base_video_selected_channel:np.ndarray, masked_video_selected_channel:np.ndarray, spot_positions_movement:np.ndarray, time_vector:np.ndarray, polygon_array, image_size:np.ndarray, size_spot:int, spot_sigma:int, simulated_trajectories, frame_selection_empty_video,ignore_trajectories,intensity_scale):
+            
+            def generate_gaussian_video(original_video, num_requested_frames, quantile=.95, scale=1.0):
+                # Take a given video and approximate its per pixel Gaussian distribution
+                # in this case just take the means and std over all pixels for generating the new frame
+                #frames_in_orginal_video = original_video.shape[0]
+                x_dim = original_video.shape[2]
+                y_dim = original_video.shape[1]
+                video_means = np.mean(original_video,axis=0) #per_pixel_mean per time
+                video_std = np.std(original_video,axis=0) #per_pixel_std per time
+                video_std[video_std > np.quantile(video_std, .95)] = np.quantile(video_std, quantile)
+                generated_video_gaussian = np.zeros((num_requested_frames,y_dim,x_dim), dtype=np.uint16)
+                for j in range(x_dim):
+                    for k in range(y_dim):
+                        generated_video_gaussian[:,j,k] = np.random.randn(num_requested_frames)*video_std[j,k]*scale + video_means[j,k]
+                return generated_video_gaussian
+
+            def generate_poisson_video(original_video, num_requested_frames):
+                # Take a given video and approximate its per pixel poission distribution
+                # in this case just take the means of each pixel over all time frames as the lambda for poission dist
+                #frames_in_orginal_video = original_video.shape[0]
+                x_dim = original_video.shape[2]
+                y_dim = original_video.shape[1]
+                video_means = np.mean(original_video,axis=0) #per_pixel_mean per time
+                generated_video = np.zeros((num_requested_frames,y_dim,x_dim), dtype=np.uint16)
+                for j in range(x_dim):
+                    for k in range(y_dim):
+                        generated_video[:,j,k] = np.random.poisson(lam= video_means[j,k], size=(num_requested_frames,))
+                return generated_video
+            
             def function_interpolate_video(orignal_video,num_requested_frames):
                 # test if num_requested_frames >  frames_in_orginal_video
                 frames_in_orginal_video = orignal_video.shape[0]
@@ -2469,6 +2635,7 @@ class SimulatedCell():
                         proportion_to_interpolate=0
                 return interpolated_video
             
+            
             # Main function that makes the simulated cell by calling multiple function.
             temp_image = masked_video_selected_channel[0, :, :]
             temp_image_nonzeros = temp_image.copy()
@@ -2483,6 +2650,14 @@ class SimulatedCell():
                 interpolated_video = function_interpolate_video(orignal_video=base_video_selected_channel.copy(), num_requested_frames=len(time_vector))
                 index_frame_selection = range(0, len(time_vector))
                 base_video_selected_channel_copy = interpolated_video
+            if frame_selection_empty_video ==  'generate_from_poisson': # selects the first time point
+                generated_video = generate_poisson_video(original_video=base_video_selected_channel.copy(), num_requested_frames=len(time_vector))
+                index_frame_selection = range(0, len(time_vector))
+                base_video_selected_channel_copy = generated_video
+            if frame_selection_empty_video ==  'generate_from_gaussian': # selects the first time point
+                generated_video = generate_gaussian_video(original_video=base_video_selected_channel.copy(), num_requested_frames=len(time_vector))
+                index_frame_selection = range(0, len(time_vector))
+                base_video_selected_channel_copy = generated_video
             if frame_selection_empty_video ==  'constant': # selects the first time point
                 index_frame_selection = np.zeros((len(time_vector)), dtype = np.int32)
             if frame_selection_empty_video ==  'loop':
@@ -3090,6 +3265,27 @@ class Utilities():
         elif image_new.shape[2]> 3:
             image_new = image_new[:,:,0:3]
         return image_new
+    
+    
+    # Functions with the bandpass and gaussian filters
+    def bandpass_filter (image: np.ndarray, lowfilter, highpass):
+        temp_vid = difference_of_gaussians(image, lowfilter, highpass, truncate = 3.0)
+        return img_as_uint(temp_vid)
+    
+    def gaussian_filter(image: np.ndarray, sigma:float = 0.1):
+        temp_image = img_as_float64(image)
+        filtered_image = gaussian(temp_image, sigma = sigma, output = None, mode = 'nearest', cval = 0, multichannel = None, preserve_range = True, truncate = 4.0)
+        return img_as_uint(filtered_image)
+    
+    def log_filter(image: np.ndarray, sigma=1):
+        temp_image = img_as_float64(image)
+        temp_vid = gaussian_laplace(temp_image, sigma=sigma)
+        temp_vid = np.clip(-temp_vid, a_min=0, a_max=None)
+        return img_as_uint(temp_vid)
+    # Function to convert the video to uint
+    def img_uint(image):
+        temp_vid = img_as_uint(image)
+        return temp_vid
 
 # Class spot classification
 
