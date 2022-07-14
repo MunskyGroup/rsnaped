@@ -2822,7 +2822,7 @@ class SimulatedCell():
                 for j in range(x_dim):
                     for k in range(y_dim):
                         generated_video_gaussian[:,j,k] = np.random.randn(num_requested_frames)*video_std[j,k]*scale + video_means[j,k]
-                return generated_video
+                return generated_video_gaussian
 
             def generate_poisson_video(original_video, num_requested_frames):
                 # Take a given video and approximate its per pixel poission distribution
