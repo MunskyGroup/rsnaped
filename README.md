@@ -9,7 +9,8 @@ rSNAPed : RNA Sequence to NAscent Protein Experiment Designer.
 Authors: Luis U. Aguilera, William Raymond, Brooke Silagy, Brian Munsky.
 
 [![License](https://img.shields.io/badge/License-BSD_3--Clause-blue.svg)](https://opensource.org/licenses/BSD-3-Clause)
-
+ [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/drive/1ABxBfqsmDtv8dORBUhvFcg5Xqdy-OoaE?usp=sharing)
+[![Documentation Status](https://readthedocs.org/projects/rsnaped/badge/?version=latest)](http://rsnaped.readthedocs.io/?badge=latest)
 
 ## Description
 ___
@@ -19,7 +20,6 @@ This library is intended to generate simulated single-molecule gene expression e
 The code generates simulated intensity translation spots using [rSNAPsim](https://github.com/MunskyGroup/rSNAPsim). The code uses [Cellpose](https://github.com/MouseLand/cellpose) to segment the cell in the image. Then, it uses [Trackpy](http://soft-matter.github.io/trackpy/dev/index.html) to detect spots inside the mask. 
 
 If you use `rSNAPed`, please make sure you properly cite `cellpose`, `trackpy` and `rSNAPsim`.
-
 
 ## Usage
 ___
@@ -32,11 +32,13 @@ ___
 ## Implementation in Google Colab
 ___
 
- * Test it in Colab!    [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/drive/1ABxBfqsmDtv8dORBUhvFcg5Xqdy-OoaE?usp=sharing)
+
 
 # Documentation accessible in readthedocs
 
-The documentation is accessible at the following [link](https://fish-processing.readthedocs.io/en/latest/).
+The documentation is accessible at the following [link](https://rsnaped.readthedocs.io/en/latest/).
+
+
 
 ## Simulating translation
 ___
