@@ -6,13 +6,15 @@ rSNAPed : RNA Sequence to NAscent Protein Experiment Designer.
 
 Authors: Luis U. Aguilera, William Raymond, Brooke Silagy, Brian Munsky.
 
-[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
-
-> :warning: **This software is in a very early and experimental stage**: at this point, it is intended to be used for testing and debugging purposes!
+[![License](https://img.shields.io/badge/License-BSD_3--Clause-blue.svg)](https://opensource.org/licenses/BSD-3-Clause)
 
 ## Description
 
-This library is intended to quantify single-molecule gene expression experiments. Specifically, the code uses [Cellpose](https://github.com/MouseLand/cellpose) to segment the cell in the image. Then, it uses [Trackpy](http://soft-matter.github.io/trackpy/dev/index.html) to detect spots inside the mask. Finally, it uses the spot position to quantify the spot intensity. The code also generates simulated data using [rSNAPsim](https://github.com/MunskyGroup/rSNAPsim). If you use `rSNAPed`, please make sure you properly cite `cellpose`, `trackpy` and `rSNAPsim`.
+This library is intended to generate simulated single-molecule gene expression experiments to test machine learning pipelines. 
+
+The code generates simulated intensity translation spots using [rSNAPsim](https://github.com/MunskyGroup/rSNAPsim). The code uses [Cellpose](https://github.com/MouseLand/cellpose) to segment the cell in the image. Then, it uses [Trackpy](http://soft-matter.github.io/trackpy/dev/index.html) to detect spots inside the mask. 
+
+If you use `rSNAPed`, please make sure you properly cite `cellpose`, `trackpy` and `rSNAPsim`.
 
 ## Usage
 
@@ -23,7 +25,7 @@ This library is intended to quantify single-molecule gene expression experiments
 
 ## Simulating translation
 
-The code is intended to simulate single-molecule translation. A  video with the simulated cell and a data frame containing spot and intensity positions are generated. This simulation can be used to train new algorithms or for teaching new students.
+The code generates videos with the simulated cell and a data frame containing spot and intensity positions. This simulation can be used to train new algorithms.
 
 ## Local installation using PIP
 
