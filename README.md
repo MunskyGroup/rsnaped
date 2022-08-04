@@ -33,7 +33,11 @@ ___
 ___
 
  * Test it in Colab!    [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/drive/1ABxBfqsmDtv8dORBUhvFcg5Xqdy-OoaE?usp=sharing)
-  
+
+# Documentation accessible in readthedocs
+
+The documentation is accessible at the following [link](https://fish-processing.readthedocs.io/en/latest/).
+
 ## Simulating translation
 ___
 
