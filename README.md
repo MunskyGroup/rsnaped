@@ -29,7 +29,11 @@ ___
 * Simulating the single-molecule translation for any gene.
 * Design of single-molecule gene expression experiments.
 
+## Implementation in Google Colab
+___
 
+ * Test it in Colab!    [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/drive/1ABxBfqsmDtv8dORBUhvFcg5Xqdy-OoaE?usp=sharing)
+  
 ## Simulating translation
 ___
 
