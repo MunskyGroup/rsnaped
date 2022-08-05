@@ -15,29 +15,29 @@ Authors: Luis U. Aguilera, William Raymond, Brooke Silagy, Brian Munsky.
 ## Description
 ___
 
-This library is intended to generate simulated single-molecule gene expression experiments to test machine learning pipelines. 
+This library is intended to generate simulated single-molecule gene expression experiments to test machine learning pipelines. The code generates simulated intensity translation spots using [rSNAPsim](https://github.com/MunskyGroup/rSNAPsim). The code uses [Cellpose](https://github.com/MouseLand/cellpose) to segment the cell in the image. Then, it uses [Trackpy](http://soft-matter.github.io/trackpy/dev/index.html) to detect spots inside the mask. If you use `rSNAPed`, please make sure you properly cite `cellpose`, `trackpy` and `rSNAPsim`.
 
-The code generates simulated intensity translation spots using [rSNAPsim](https://github.com/MunskyGroup/rSNAPsim). The code uses [Cellpose](https://github.com/MouseLand/cellpose) to segment the cell in the image. Then, it uses [Trackpy](http://soft-matter.github.io/trackpy/dev/index.html) to detect spots inside the mask. 
-
-If you use `rSNAPed`, please make sure you properly cite `cellpose`, `trackpy` and `rSNAPsim`.
-
-## Usage
+## Summary of uses
 ___
 
-* Tracking for single-molecule translation (RNA + nascent protein) spots.
-* Tracking for single-molecule RNA spots.
 * Simulating the single-molecule translation for any gene.
 * Design of single-molecule gene expression experiments.
+* Tracking for single-molecule translation (RNA + nascent protein) spots.
+* Tracking for single-molecule RNA spots.
 
-## Implementation in Google Colab
+## Ethical considerations and Content Policy
 ___
+You must accept our Content Policy when using this library: 
 
-
+* All simulated images generated with this software are intended to be used to test Machine learning or computational algorithms. 
+* All images generated with this software should always be labeled with the specific terms "simulated data" or "simulated images".
+* All datasets resulting from a simulated image should explicitly be reported with the term "simulated data".
+* Under any circumstance, a simulated image or dataset generated with rSNAPed should be used to misrepresent real data.
+* For public or private use, you must state clearly disclose that the generated images are simulated data and give proper credit to rSNAPed. 
 
 # Documentation accessible in readthedocs
 
 The documentation is accessible at the following [link](https://rsnaped.readthedocs.io/en/latest/).
-
 
 
 ## Simulating translation
