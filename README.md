@@ -27,7 +27,7 @@ ___
 * Tracking for single-molecule translation (RNA + nascent protein) spots.
 * Tracking for single-molecule RNA spots.
 
-## Ethical considerations and Content Policy
+## Ethical Considerations and Content Policy
 ___
 You must accept our Content Policy when using this library: 
 
