@@ -18,4 +18,5 @@ Figures/
 # rSNAPsim_IP/temp
 temp/
 FISH_ONeil/
-testing/
+testing_simulated_cell/
+testing*
