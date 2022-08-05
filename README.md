@@ -6,7 +6,7 @@
 
 rSNAPed : RNA Sequence to NAscent Protein Experiment Designer.
 
-Authors: Luis U. Aguilera, William Raymond, Brooke Silagy, Brian Munsky.
+Authors: Luis U. Aguilera, William Raymond, Brooke Silagy, Timothy J. Stasevich, and  Brian Munsky.
 
 [![License](https://img.shields.io/badge/License-BSD_3--Clause-blue.svg)](https://opensource.org/licenses/BSD-3-Clause)
  [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/drive/1ABxBfqsmDtv8dORBUhvFcg5Xqdy-OoaE?usp=sharing)
