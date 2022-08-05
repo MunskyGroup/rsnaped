@@ -116,3 +116,8 @@ ___
 - License for [rSNAPsim](https://github.com/MunskyGroup/rSNAPsim): MIT. Copyright © 2018 Dr. Luis Aguilera, William Raymond
 - License for [Trackpy](http://soft-matter.github.io/trackpy/dev/index.html): BSD-3-Clause. Copyright © 2013-2014 trackpy contributors https://github.com/soft-matter/trackpy. All rights reserved.
 - License for [Cellpose](https://github.com/MouseLand/cellpose): BSD 3-Clause. Copyright © 2020 Howard Hughes Medical Institute
+
+## Cite as
+___
+
+Luis Aguilera, William Raymond, Tatsuya Morisak, Brooke Silagy, Timothy J. Stasevich, & Brian Munsky. (2022). rSNAPed. RNA Sequence to NAscent Protein Experiment Designer. (v0.1-beta.2). Zenodo. https://doi.org/10.5281/zenodo.6967555
