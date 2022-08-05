@@ -11,6 +11,8 @@ Authors: Luis U. Aguilera, William Raymond, Brooke Silagy, Brian Munsky.
 [![License](https://img.shields.io/badge/License-BSD_3--Clause-blue.svg)](https://opensource.org/licenses/BSD-3-Clause)
  [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/drive/1ABxBfqsmDtv8dORBUhvFcg5Xqdy-OoaE?usp=sharing)
 [![Documentation Status](https://readthedocs.org/projects/rsnaped/badge/?version=latest)](http://rsnaped.readthedocs.io/?badge=latest)
+[![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.6967555.svg)](https://doi.org/10.5281/zenodo.6967555)
+
 
 ## Description
 ___
