@@ -111,7 +111,7 @@ ___
 ## Licenses for dependencies
 ___
 
-**For a complete list containing the complete licenses for the dependencies, check file:  [Licenses_Dependencies.txt](https://github.com/MunskyGroup/rsnaped/blob/master/Licenses_Dependencies.md).**
+**For a complete list containing the complete licenses for the dependencies, check file:  [Licenses_Dependencies.md](https://github.com/MunskyGroup/rsnaped/blob/master/Licenses_Dependencies.md).**
 
 - License for [rSNAPsim](https://github.com/MunskyGroup/rSNAPsim): MIT. Copyright © 2018 Dr. Luis Aguilera, William Raymond
 - License for [Trackpy](http://soft-matter.github.io/trackpy/dev/index.html): BSD-3-Clause. Copyright © 2013-2014 trackpy contributors https://github.com/soft-matter/trackpy. All rights reserved.
@@ -120,4 +120,4 @@ ___
 ## Cite as
 ___
 
-Luis Aguilera, William Raymond, Tatsuya Morisak, Brooke Silagy, Timothy J. Stasevich, & Brian Munsky. (2022). rSNAPed. RNA Sequence to NAscent Protein Experiment Designer. (v0.1-beta.2). Zenodo. https://doi.org/10.5281/zenodo.6967555
+Luis Aguilera, William Raymond, Tatsuya Morisaki, Brooke Silagy, Timothy J. Stasevich, & Brian Munsky. (2022). rSNAPed. RNA Sequence to NAscent Protein Experiment Designer. (v0.1-beta.2). Zenodo. https://doi.org/10.5281/zenodo.6967555
