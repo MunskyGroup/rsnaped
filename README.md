@@ -35,7 +35,7 @@ You must accept our Content Policy when using this library:
 * All images generated with this software should always be labeled with the specific terms "simulated data" or "simulated images".
 * All datasets resulting from a simulated image should explicitly be reported with the term "simulated data".
 * Under any circumstance, a simulated image or dataset generated with rSNAPed should be used to misrepresent real data.
-* For public or private use, you must state clearly disclose that the generated images are simulated data and give proper credit to rSNAPed. 
+* For public or private use, you must disclose that the generated images are simulated data. 
 
 # Documentation accessible in readthedocs
 
