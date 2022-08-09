@@ -781,12 +781,15 @@ class BeadsAlignment():
         Average size of the beads,  The default is 5.
     min_intensity : float, optional
         Minimal expected intensity for the beads. The default is 400.
+    show_plot : Bool, optional
+        Shows a plot with the detected beads in the image. The default is true.
     '''
-    def __init__(self, first_image_beads:np.ndarray,second_image_beads:np.ndarray, spot_size:int = 5, min_intensity:float = 100):
+    def __init__(self, first_image_beads:np.ndarray,second_image_beads:np.ndarray, spot_size:int = 5, min_intensity:float = 100,show_plot=True):
         self.first_image_beads = first_image_beads
         self.second_image_beads = second_image_beads
         self.spot_size = spot_size
         self.min_intensity = min_intensity
+        self.show_plot = show_plot
     def make_beads_alignment(self):
         '''
         This method aligns a list of spots detected in an image with dimensions [C, Y, X] and returns a homography matrix.
@@ -847,26 +850,29 @@ class BeadsAlignment():
         print('Spots detected in the second image:')
         print(np.round(positions_in_second_image[0:np.min((3, number_spots_second_image)),:],1))
         print('_______ ')
+        
+        if self.show_plot == True:
         # Plotting the detected spots.
-        fig, ax = plt.subplots(2,2, figsize=(10, 10))
-        ax[0,0].imshow(self.first_image_beads,cmap='Greys_r')
-        ax[0,0].set_xticks([]); ax[0,0].set_yticks([])
-        ax[0,0].set_title('Original first image')
-        ax[0,1].imshow(filtered_first_image_beads,cmap='Greys_r')
-        ax[0,1].set_xticks([]); ax[0,1].set_yticks([])
-        ax[0,1].set_title('Filtered image')
-        for i in range(0, positions_in_first_image.shape[0]):
-            circle1=plt.Circle((positions_in_first_image[i,0], positions_in_first_image[i,1]), self.spot_size, color = 'yellow', fill = False)
-            ax[0,1].add_artist(circle1)        
-        ax[1,0].imshow(self.second_image_beads,cmap='Greys_r')
-        ax[1,0].set_xticks([]); ax[1,0].set_yticks([])
-        ax[1,0].set_title('Original second image')
-        ax[1,1].imshow(filtered_second_image_beads,cmap='Greys_r')
-        ax[1,1].set_xticks([]); ax[1,1].set_yticks([])
-        ax[1,1].set_title('Filtered image')
-        for i in range(0, positions_in_second_image.shape[0]):
-            circle2=plt.Circle((positions_in_second_image[i,0], positions_in_second_image[i,1]), self.spot_size, color = 'yellow', fill = False)
-            ax[1,1].add_artist(circle2)
+            fig, ax = plt.subplots(2,2, figsize=(10, 10))
+            ax[0,0].imshow(self.first_image_beads,cmap='Greys_r')
+            ax[0,0].set_xticks([]); ax[0,0].set_yticks([])
+            ax[0,0].set_title('Original first image')
+            ax[0,1].imshow(filtered_first_image_beads,cmap='Greys_r')
+            ax[0,1].set_xticks([]); ax[0,1].set_yticks([])
+            ax[0,1].set_title('Filtered image')
+            for i in range(0, positions_in_first_image.shape[0]):
+                circle1=plt.Circle((positions_in_first_image[i,0], positions_in_first_image[i,1]), self.spot_size, color = 'yellow', fill = False)
+                ax[0,1].add_artist(circle1)        
+            ax[1,0].imshow(self.second_image_beads,cmap='Greys_r')
+            ax[1,0].set_xticks([]); ax[1,0].set_yticks([])
+            ax[1,0].set_title('Original second image')
+            ax[1,1].imshow(filtered_second_image_beads,cmap='Greys_r')
+            ax[1,1].set_xticks([]); ax[1,1].set_yticks([])
+            ax[1,1].set_title('Filtered image')
+            for i in range(0, positions_in_second_image.shape[0]):
+                circle2=plt.Circle((positions_in_second_image[i,0], positions_in_second_image[i,1]), self.spot_size, color = 'yellow', fill = False)
+                ax[1,1].add_artist(circle2)
+        
         # Calculating the minimum value of rows for the alignment
         no_spots_for_alignment = min(positions_in_first_image.shape[0], positions_in_second_image.shape[0])
         homography = transform.ProjectiveTransform()
@@ -3039,6 +3045,8 @@ class PipelineTracking():
 
         dataframe_particles : pandas dataframe
             Dataframe with fields [cell_number, particle, frame, red_int_mean, green_int_mean, blue_int_mean, red_int_std, green_int_std, blue_int_std, x, y].
+        selected_mask : Numpy array
+            Array with the selected mask. Where zeros represents the background and one represent the area in the cell.
         array_intensities : Numpy array
             Array with dimensions [S, T, C].
         time_vector : Numpy array
@@ -3101,7 +3109,7 @@ class PipelineTracking():
             std_intensities = None
             mean_intensities_normalized = None
             std_intensities_normalized = None
-        return dataframe_particles, array_intensities, time_vector, mean_intensities, std_intensities, mean_intensities_normalized, std_intensities_normalized
+        return dataframe_particles,selected_mask, array_intensities, time_vector, mean_intensities, std_intensities, mean_intensities_normalized, std_intensities_normalized,selected_mask
 
 
 class PhotobleachingCalculation():
