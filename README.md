@@ -1,13 +1,10 @@
 | <p align="left"><img src="./docs/images/logo/rSNAPed_Logo.png" width="300" /></p> | `rSNAPed:` RNA Sequence to NAscent Protein Experiment Designer.<br> `Authors:` Luis U. Aguilera, William Raymond, Tatsuya Morisaki, Brooke Silagy, Timothy J. Stasevich, and  Brian Munsky. |
 | -------- | -------- |
 
-
-
 [![License](https://img.shields.io/badge/License-BSD_3--Clause-blue.svg)](https://opensource.org/licenses/BSD-3-Clause)
 [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/drive/1ABxBfqsmDtv8dORBUhvFcg5Xqdy-OoaE?usp=sharing)
 [![Documentation Status](https://readthedocs.org/projects/rsnaped/badge/?version=latest)](http://rsnaped.readthedocs.io/?badge=latest)
 [![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.6967555.svg)](https://doi.org/10.5281/zenodo.6967555)
-
 
 ## Description
 
@@ -21,7 +18,7 @@ This library is intended to generate simulated single-molecule gene expression e
 * Tracking for single-molecule RNA spots.
 
 ## Ethical Considerations and Content Policy
-___
+
 You must accept our Content Policy when using this library: 
 
 * All simulated images generated with this software are intended to be used to test Machine learning or computational algorithms. 
@@ -38,12 +35,11 @@ You must accept our Content Policy when using this library:
 | Manual particle tracking | [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/drive/1XirW6zbmVTLYvv2K6cq1VjJPjVPriQ5O?usp=sharing) |
 | Automated particle tracking  | [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/drive/1pGO3RD81WsTtZT-1-cRpXTKZ1mw4Cv_T?usp=sharing) |
 
+## Simulating single-molecule translation
 
+The code generates videos with the simulated cell and a data frame containing spot and intensity positions. This simulation can be used to train new algorithms. 
 
-## Simulating translation
-
-The code generates videos with the simulated cell and a data frame containing spot and intensity positions. This simulation can be used to train new algorithms.
-
+<img src= ./docs/images/gallery/simulated_cell.gif alt="drawing" width="1200"/>
 
 ## Local installation using PIP
 
@@ -58,7 +54,6 @@ The code generates videos with the simulated cell and a data frame containing sp
 ```bash
     pip install rsnaped
 ```
-
 
 ## Local installation from the Github repository
 
@@ -89,7 +84,6 @@ Additional steps to deactivate or remove the environment from the computer:
     conda env remove -n rsnaped_env
 ```
 
-
 ## References for main dependencies
 
 - [rSNAPsim](https://github.com/MunskyGroup/rSNAPsim):
@@ -100,7 +94,6 @@ Additional steps to deactivate or remove the environment from the computer:
 
 - [Cellpose](https://github.com/MouseLand/cellpose):
  Stringer, Carsen, et al. "Cellpose: a generalist algorithm for cellular segmentation." Nature Methods 18.1 (2021): 100-106.
-
 
 ## Licenses for dependencies
 
