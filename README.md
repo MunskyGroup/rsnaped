@@ -24,7 +24,7 @@ You must accept our Content Policy when using this library:
 * All simulated images generated with this software are intended to be used to test Machine learning or computational algorithms. 
 * All images generated with this software should always be labeled with the specific terms "simulated data" or "simulated images".
 * All datasets resulting from a simulated image should explicitly be reported with the term "simulated data".
-* Under any circumstance, a simulated image or dataset generated with rSNAPed should be used to misrepresent real data.
+* Under any circumstance, a simulated image or dataset generated with rSNAPed should not be used to misrepresent real data.
 * For public or private use, you must disclose that the generated images are simulated data and give proper credit to rSNAPed. 
 
 ## Test the codes in Google Colab
