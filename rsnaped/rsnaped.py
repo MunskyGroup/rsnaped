@@ -3109,7 +3109,7 @@ class PipelineTracking():
             std_intensities = None
             mean_intensities_normalized = None
             std_intensities_normalized = None
-        return dataframe_particles,selected_mask, array_intensities, time_vector, mean_intensities, std_intensities, mean_intensities_normalized, std_intensities_normalized,selected_mask
+        return dataframe_particles,selected_mask, array_intensities, time_vector, mean_intensities, std_intensities, mean_intensities_normalized, std_intensities_normalized
 
 
 class PhotobleachingCalculation():
