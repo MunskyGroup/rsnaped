@@ -2989,8 +2989,10 @@ class PipelineTracking():
         Average particle size. The default is 5.
     file_name : str, optional
         The file name for the simulated cell. The default is 'Cell.tif'.
-    selected_channel : int, optional
-        Allows the user to define the channel to visualize in the plotted images. The default is 0.
+    selected_channel_tracking : int, optional
+        Integer indicating the channel used for particle tracking. The default is 0.
+    selected_channel_segmentation: int, optional
+        Integer indicating the channel used for segmenting the cytosol. The default is 0.
     intensity_calculation_method : str, optional
         Method to calculate intensity the options are : 'total_intensity' , 'disk_donut' and 'gaussian_fit'. The default is 'disk_donut'..
     mask_selection_method :  str, optional
@@ -3017,7 +3019,7 @@ class PipelineTracking():
         "short" format generates this dataframe: [cell_number, particle, frame, red_int_mean, green_int_mean, blue_int_mean, x, y].
 
     '''
-    def __init__(self, video:np.ndarray, particle_size:int = 5, file_name:str = 'Cell.tif', selected_channel:int = 0, intensity_calculation_method:str = 'disk_donut', mask_selection_method:str = 'max_spots', show_plot:bool = 1, use_optimization_for_tracking: bool = 1, real_positions_dataframe = None, average_cell_diameter: float = 120, print_process_times:bool = 0,min_percentage_time_tracking=0.4,intensity_threshold_tracking=None,dataframe_format='short'):
+    def __init__(self, video:np.ndarray, particle_size:int = 5, file_name:str = 'Cell.tif', selected_channel_tracking:int = 0,selected_channel_segmentation:int = 0,  intensity_calculation_method:str = 'disk_donut', mask_selection_method:str = 'max_spots', show_plot:bool = 1, use_optimization_for_tracking: bool = 1, real_positions_dataframe = None, average_cell_diameter: float = 120, print_process_times:bool = 0,min_percentage_time_tracking=0.4,intensity_threshold_tracking=None,dataframe_format='short'):
         self.video = video
         self.particle_size = particle_size
         self.image = np.max(video,axis=0)
@@ -3025,7 +3027,8 @@ class PipelineTracking():
         self.file_name = file_name
         self.intensity_calculation_method = intensity_calculation_method  # options are : 'total_intensity' and 'disk_donut'
         self.mask_selection_method = mask_selection_method # options are : 'max_spots' and 'max_area'
-        self.selected_channel = selected_channel
+        self.selected_channel_tracking = selected_channel_tracking
+        self.selected_channel_segmentation = selected_channel_segmentation
         self.show_plot = show_plot
         self.use_optimization_for_tracking = use_optimization_for_tracking
         self.real_positions_dataframe = real_positions_dataframe
@@ -3063,7 +3066,7 @@ class PipelineTracking():
         start = timer()
         selected_masks = Cellpose(self.image, num_iterations = self.NUM_ITERATIONS_CELLPOSE, selection_method = 'max_cells_and_area', diameter = self.average_cell_diameter ).calculate_masks() # options are 'max_area' or 'max_cells'
         if not ( selected_masks is None):
-            selected_mask  = CellposeSelection(selected_masks, self.video, selection_method = self.mask_selection_method, particle_size = self.particle_size, selected_channel = self.selected_channel).select_mask()
+            selected_mask  = CellposeSelection(selected_masks, self.video, selection_method = self.mask_selection_method, particle_size = self.particle_size, selected_channel = self.selected_channel_segmentation).select_mask()
         else:
             selected_mask = None
         end = timer()
@@ -3080,7 +3083,7 @@ class PipelineTracking():
                 use_default_filter = 0
             else:
                 use_default_filter = 1
-            Dataframe_trajectories, _, filtered_video = Trackpy(self.video, selected_mask, particle_size = self.particle_size, selected_channel = self.selected_channel, minimal_frames = minimal_frames, optimization_iterations = self.NUM_ITERATIONS_TRACKING, use_default_filter = use_default_filter, show_plot = self.show_plot,intensity_threshold_tracking=self.intensity_threshold_tracking).perform_tracking()
+            Dataframe_trajectories, _, filtered_video = Trackpy(self.video, selected_mask, particle_size = self.particle_size, selected_channel = self.selected_channel_tracking, minimal_frames = minimal_frames, optimization_iterations = self.NUM_ITERATIONS_TRACKING, use_default_filter = use_default_filter, show_plot = self.show_plot,intensity_threshold_tracking=self.intensity_threshold_tracking).perform_tracking()
             end = timer()
             if self.print_process_times == 1:
                 print('tracking time:', round(end - start), ' sec')
@@ -3100,7 +3103,7 @@ class PipelineTracking():
             if self.print_process_times == 1:
                 print('intensity calculation time:', round(end - start), ' sec')
             if (self.show_plot == 1):
-                VisualizerImage(self.video, filtered_video, Dataframe_trajectories, self.file_name, list_mask_array = selected_mask, selected_channel = self.selected_channel, selected_time_point = 0, normalize = False, individual_figure_size = 7, list_real_particle_positions = self.real_positions_dataframe).plot()
+                VisualizerImage(self.video, filtered_video, Dataframe_trajectories, self.file_name, list_mask_array = selected_mask, selected_channel = self.selected_channel_tracking, selected_time_point = 0, normalize = False, individual_figure_size = 7, list_real_particle_positions = self.real_positions_dataframe).plot()
         else:
             dataframe_particles = None
             array_intensities = None
