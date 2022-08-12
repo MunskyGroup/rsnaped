@@ -8,7 +8,7 @@
 
 ## Description
 
-This library is intended to generate simulated single-molecule gene expression experiments to test machine learning pipelines. The code generates simulated intensity translation spots using [rSNAPsim](https://github.com/MunskyGroup/rSNAPsim). The code uses [Cellpose](https://github.com/MouseLand/cellpose) to segment the cell in the image. Then, it uses [Trackpy](http://soft-matter.github.io/trackpy/dev/index.html) to detect spots inside the mask. If you use `rSNAPed`, please make sure you properly cite `cellpose`, `trackpy` and `rSNAPsim`.
+**rSNAPed** is a library to simulate single-molecule gene expression experiments to test machine learning and computational pipelines. The code generates simulated intensity translation spots using [rSNAPsim](https://github.com/MunskyGroup/rSNAPsim). Cell segmentation is performed using code using [Cellpose](https://github.com/MouseLand/cellpose). Spot detection and tracking is achieved using [Trackpy](http://soft-matter.github.io/trackpy/dev/index.html). If you use `rSNAPed`, please make sure you properly cite `cellpose`, `trackpy` and `rSNAPsim`.
 
 ## Summary of uses
 
@@ -63,15 +63,15 @@ The code generates videos with the simulated cell and a data frame containing sp
     conda create -n rsnaped_env python=3.8.5 -y
     source activate rsnaped_env
 ```
-* To install GPU for Cellpose (Optional step). Only for **Linux and Windows users** check the specific version for your computer on this [link]( https://pytorch.org/get-started/locally/) :
+* To install GPU for Cellpose (Optional step). For **Linux and Windows users** check the specific version for your computer on this [link]( https://pytorch.org/get-started/locally/) :
 ```
     conda install pytorch cudatoolkit=10.2 -c pytorch -y
 ```
-* To install CPU for Cellpose (Optional step). Only for **Mac users** check the specific version for your computer on this [link]( https://pytorch.org/get-started/locally/) :
+* To install CPU for Cellpose (Optional step). For **Mac users** check the specific version for your computer on this [link]( https://pytorch.org/get-started/locally/) :
 ```
     conda install pytorch -c pytorch
 ```
-* To include the rest of requirements use:
+* To include the rest of the requirements use:
 ```
     pip install -r requirements.txt
 ```
