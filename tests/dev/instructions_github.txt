@@ -1,9 +1,0 @@
-git config --global user.email "luisub"
-git config --global user.email "luisubald@gmail.com"
-unset SSH_ASKPASS
-
-
-# If you need to pull changes from github use:
-git fetch --all
-git reset --hard origin/master
-git pull origin master
