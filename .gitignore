@@ -20,3 +20,6 @@ temp/
 FISH_ONeil/
 testing_simulated_cell/
 testing*
+.vscode
+tests/
+TODO.md
