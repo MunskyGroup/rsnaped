@@ -8,7 +8,7 @@
 
 ## Description
 
-**rSNAPed** is a library to simulate single-molecule gene expression experiments to test machine learning and computational pipelines. The code generates simulated intensity translation spots using [rSNAPsim](https://github.com/MunskyGroup/rSNAPsim). Cell segmentation is performed using code using [Cellpose](https://github.com/MouseLand/cellpose). Spot detection and tracking is achieved using [Trackpy](http://soft-matter.github.io/trackpy/dev/index.html). If you use `rSNAPed`, please make sure you properly cite `cellpose`, `trackpy` and `rSNAPsim`.
+**rSNAPed** is a library to simulate single-molecule gene expression experiments to test machine learning and computational pipelines. The code generates simulated intensity translation spots using [rSNAPsim](https://github.com/MunskyGroup/rSNAPsim). Cell segmentation is performed using [Cellpose](https://github.com/MouseLand/cellpose). Spot detection and tracking is achieved using [Trackpy](http://soft-matter.github.io/trackpy/dev/index.html). If you use `rSNAPed`, please make sure you properly cite `cellpose`, `trackpy` and `rSNAPsim`.
 
 ## Summary of uses
 
