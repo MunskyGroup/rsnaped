@@ -1669,7 +1669,6 @@ class CellposeSelection():
                 selected_mask = temp_mask + (self.mask == largest_mask) # Selecting a single mask and making this mask equal to one and the background equal to zero.
             else: # do nothing if only a single mask is detected per image.
                 selected_mask = self.mask
-        
         if self.selection_method == 'max_spots':
             # Iterating for each mask to select the mask with the largest area.
             n_masks = np.amax(self.mask)
@@ -1695,7 +1694,6 @@ class CellposeSelection():
         mask_int = np.where(selected_mask > 0.5, 1, 0).astype(np.int)
         dilated_image = dilation(mask_int, square(20))
         mask_final = np.where(dilated_image > 0.5, 1, 0).astype(np.int)
-        #mask_final[0, :] = 0;mask_final[:, 0] = 0;mask_final[mask_final.shape[0]-1, :] = 0;mask_final[:, mask_final.shape[1]-1] = 0#This line of code ensures that the corners are zeros.
         mask_final[0:10, :] = 0;mask_final[:, 0:10] = 0;mask_final[mask_final.shape[0]-10:mask_final.shape[0]-1, :] = 0; mask_final[:, mask_final.shape[1]-10: mask_final.shape[1]-1 ] = 0#This line of code ensures that the corners are zeros.
         return mask_final
 
@@ -2016,13 +2014,13 @@ class Intensity():
             spot_intensity_disk_donut_std = np.std(image_in_disk)
             recentered_image_donut[center_coordinates-disk_size:center_coordinates+disk_size+1, center_coordinates-disk_size:center_coordinates+disk_size+1] = np.nan
             mean_intensity_donut = np.nanmedian(recentered_image_donut.flatten()) # mean calculation ignoring zeros
-            # substracting background minus center intensity
+            # subtracting background minus center intensity
             spot_intensity_disk_donut = np.array( mean_intensity_disk - mean_intensity_donut, dtype = np.float32)
             #spot_intensity_disk_donut[spot_intensity_disk_donut < 0] = 0
             spot_intensity_disk_donut[np.isnan(spot_intensity_disk_donut)] = 0 # replacing nans with zero
             return spot_intensity_disk_donut, spot_intensity_disk_donut_std
         def return_crop(image:np.ndarray, x_pos:int, y_pos:int, crop_size:int):
-            # function that recenters the spots
+            # function that recenter the spots
             crop_image = image[y_pos-(crop_size):y_pos+(crop_size+1), x_pos-(crop_size):x_pos+(crop_size+1)]
             return crop_image
         # Section that marks particles if a numpy array with spot positions is passed.
@@ -2037,19 +2035,19 @@ class Intensity():
                     x_pos = self.spot_positions_movement[j,particle_index, 1]
                     y_pos = self.spot_positions_movement[j,particle_index, 0]
                     if self.method == 'disk_donut':
-                        crop_image = return_crop(self.video[j, :, :, i], x_pos, y_pos, self.crop_size) # NOT RECENTERING IMAGE
+                        crop_image = return_crop(self.video[j, :, :, i], x_pos, y_pos, self.crop_size) # NOT RE-CENTERING IMAGE
                         intensities_mean[j, i], intensities_std[j, i] = disk_donut(crop_image,self.disk_size)
                         intensities_snr[j, i]  , intensities_background_mean [j, i], intensities_background_std [j, i] = signal_to_noise_ratio(crop_image,self.disk_size) # SNR
                     elif self.method == 'total_intensity':
-                        crop_image = return_crop(self.video[j, :, :, i], x_pos, y_pos, self.crop_size) # NOT RECENTERING IMAGE
+                        crop_image = return_crop(self.video[j, :, :, i], x_pos, y_pos, self.crop_size) # NOT RE-CENTERING IMAGE
                         intensities_mean[j, i] = np.amax((0, np.mean(crop_image)))# mean intensity in the crop
                         intensities_std[ j, i] = np.amax((0, np.std(crop_image)))# std intensity in the crop
                         intensities_snr[j, i] , intensities_background_mean [j, i], intensities_background_std [j, i] = signal_to_noise_ratio(crop_image,self.disk_size) # SNR
                     elif self.method == 'gaussian_fit':
-                        crop_image = return_crop(self.video[j, :, :, i], x_pos, y_pos, self.crop_size) # NOT RECENTERING IMAGE
+                        crop_image = return_crop(self.video[j, :, :, i], x_pos, y_pos, self.crop_size) # NOT RE-CENTERING IMAGE
                         intensities_snr[j, i] , intensities_background_mean [j, i], intensities_background_std [j, i] = signal_to_noise_ratio(crop_image,self.disk_size) # SNR
                         particle_half_size = int(self.particle_size/2)
-                        crop_image_gaussian = return_crop(self.video[j, :, :, i], x_pos, y_pos, particle_half_size) # NOT RECENTERING IMAGE
+                        crop_image_gaussian = return_crop(self.video[j, :, :, i], x_pos, y_pos, particle_half_size) # NOT RE-CENTERING IMAGE
                         intensities_mean[j, i], intensities_std[j, i] = gaussian_fit(crop_image_gaussian)# disk_donut(crop_image, self.disk_size
             return intensities_mean, intensities_std, intensities_snr, intensities_background_mean, intensities_background_std
         def intensity_from_dataframe(particle_index ,time_points, number_channels ):
