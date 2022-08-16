@@ -2531,7 +2531,7 @@ class SimulatedCell():
             counter_number_spots = 0
             conter_security = 0
             MAX_ITERATIONS = 5000
-            NUMBER_SPACIAL_DIMENSSIONS_IN_SIMULATION = 1
+            NUMBER_SPACIAL_DIMENSSIONS_IN_SIMULATION = 2
             min_position = 20 # minimal position in pixels
             max_position = image_size[1]-20 # maximal position in pixels
             while (counter_number_spots < number_spots) and (conter_security < MAX_ITERATIONS):
