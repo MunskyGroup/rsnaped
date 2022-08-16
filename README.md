@@ -34,7 +34,7 @@ You must accept our Content Policy when using this library:
 | How to simulate your cell! :point_right: | [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/drive/1ABxBfqsmDtv8dORBUhvFcg5Xqdy-OoaE?usp=sharing) |
 | Harringtonin experiment :point_right:| [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/drive/1cBiwfpAmAuChZRQO4sXe8quU_i7cz2DE?usp=sharing) |
 | Manual particle tracking :point_right: | [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/drive/1XirW6zbmVTLYvv2K6cq1VjJPjVPriQ5O?usp=sharing) |
-| Automated particle tracking  :point_right: | [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/drive/1pGO3RD81WsTtZT-1-cRpXTKZ1mw4Cv_T?usp=sharing) |
+| :fire: Automated cell segmentation and particle tracking :fire:   :point_right: | [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/drive/1pGO3RD81WsTtZT-1-cRpXTKZ1mw4Cv_T?usp=sharing) |
 
 ## Simulating single-molecule translation
 
