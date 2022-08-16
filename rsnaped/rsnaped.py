@@ -2531,6 +2531,7 @@ class SimulatedCell():
             counter_number_spots = 0
             conter_security = 0
             MAX_ITERATIONS = 5000
+            NUMBER_SPACIAL_DIMENSSIONS_IN_SIMULATION = 2
             min_position = 20 # minimal position in pixels
             max_position = image_size[1]-20 # maximal position in pixels
             while (counter_number_spots < number_spots) and (conter_security < MAX_ITERATIONS):
@@ -2557,7 +2558,7 @@ class SimulatedCell():
                     print('error generating spots')
             ## Brownian motion
             # scaling factor for Brownian motion.
-            brownian_movement = math.sqrt(2*diffusion_coefficient*step_size)
+            brownian_movement = math.sqrt(2*NUMBER_SPACIAL_DIMENSSIONS_IN_SIMULATION*diffusion_coefficient*step_size)
             # Preallocating memory
             y_positions = np.array(initial_points_in_polygon[:, 0], dtype = 'int') #  x_position for selected spots inside the polygon
             x_positions = np.array(initial_points_in_polygon[:, 1], dtype = 'int') #  y_position for selected spots inside the polygon
@@ -3295,6 +3296,31 @@ class Utilities():
     def img_uint(image):
         temp_vid = img_as_uint(image)
         return temp_vid
+
+
+    def compute_msd(trajectory):
+        '''
+        This function is intended to calculate the mean square displacement of a given trajectory.
+        msd(τ)  = <[r(t+τ) - r(t)]^2>
+        
+        Parameters:
+            trajectory: list of temporal evolution of a centers of mass .  [Y_val_particle_i_tp_0, X_val_particle_i_tp_0]   , ... , [Y_val_particle_i_tp_n, X_val_particle_i_tp_n] ]
+
+        Returns:
+            msd: mean square displacement
+            rmsd: root mean square displacement
+        '''
+        total_length_trajectory=len(trajectory)
+        msd=[]
+        for i in range(total_length_trajectory-1):
+            tau=i+1
+            # Distance that a particle moves for each time point (tau) divided by time
+            # msd(τ)                 = <[r(t+τ)  -    r(t)]^2>
+            msd.append(np.sum((trajectory[0:-tau]-trajectory[tau::])**2)/(total_length_trajectory-tau)) # Reverse Indexing 
+        # Converting list to np.array
+        msd=np.array(msd)   # array with shape Nspots vs time_points
+        rmsd = np.sqrt(msd)
+        return msd, rmsd 
 
 # Class spot classification
 
