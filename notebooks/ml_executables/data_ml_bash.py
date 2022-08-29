@@ -68,6 +68,8 @@ multiplexing_path_folder = current_folder.joinpath('temp')
 if not os.path.exists(str(multiplexing_path_folder)):
     os.makedirs(str(multiplexing_path_folder))
 
+simulated_RNA_intensities_method = 'constant'
+
 # Reading all empty cells in directory
 list_files_names = sorted([f for f in listdir(video_dir) if isfile(join(video_dir, f)) and ('.tif') in f], key=str.lower)  # reading all tif files in the folder
 list_files_names.sort(key=lambda f: int(re.sub('\D', '', f)))  # sorting the index in numerical order
@@ -100,12 +102,12 @@ list_target_channels_proteins = [1, 1] # channel where the simulated protein spo
 list_target_channels_mRNA = [0, 2] # channel where the simulated mRNA spots will be located. Integer between 0 and 2. 
 list_diffusion_coefficients =[0.55, 0.55] # diffusion coefficients for each gene
 
-# SSA to intensity converstion scales 
+# SSA to intensity conversion scales 
 intensity_scale_ch0 = 100
 intensity_scale_ch1 = 200
 intensity_scale_ch2 = 200
 
-def simulate_multiplexing(tested_list_elongation_rates,tested_list_initiation_rates,tested_list_diffusion_coefficients,multiplexing_path_folder):
+def simulate_multiplexing( path_files,masks_dir,tested_list_elongation_rates,tested_list_initiation_rates,tested_list_diffusion_coefficients,multiplexing_path_folder,frame_selection_empty_video,simulated_RNA_intensities_method):
     # function  that simulates the multiplexing experiments    
     list_dataframe_simulated_cell =[]
     list_ssa_all_cells_and_genes =[]
@@ -115,10 +117,32 @@ def simulate_multiplexing(tested_list_elongation_rates,tested_list_initiation_ra
         video_path = path_files[sel_shape]
         initial_video = io.imread(video_path) # video with empty cell
         mask_image = imread(masks_dir.joinpath('mask_cell_shape_'+str(sel_shape)+'.tif'))
-
         # This step reduces the intensity of the empty video by a half. This is necessary to match the intensity in a video with spots. Check code "Analysis_simulated_cells.ipynb"
-        initial_video = initial_video//2
-        _, single_dataframe_simulated_cell, list_ssa = rsp.SimulatedCellMultiplexing(initial_video,list_gene_sequences,list_number_spots,list_target_channels_proteins,list_target_channels_mRNA, tested_list_diffusion_coefficients,list_label_names,tested_list_elongation_rates,tested_list_initiation_rates,simulation_time_in_sec,step_size_in_sec,save_as_tif, save_dataframe, saved_file_name,create_temp_folder,mask_image=mask_image,cell_number =i,frame_selection_empty_video=frame_selection_empty_video,spot_size =spot_size ,intensity_scale_ch0 = intensity_scale_ch0,intensity_scale_ch1 = intensity_scale_ch1,intensity_scale_ch2 = intensity_scale_ch2).make_simulation()
+        _, single_dataframe_simulated_cell, list_ssa = rsp.SimulatedCellMultiplexing(initial_video,
+                                                                                    list_gene_sequences,
+                                                                                    list_number_spots,
+                                                                                    list_target_channels_proteins,
+                                                                                    list_target_channels_mRNA, 
+                                                                                    tested_list_diffusion_coefficients,
+                                                                                    list_label_names,
+                                                                                    tested_list_elongation_rates,
+                                                                                    tested_list_initiation_rates,
+                                                                                    simulation_time_in_sec,
+                                                                                    step_size_in_sec,
+                                                                                    save_as_tif, 
+                                                                                    save_dataframe, 
+                                                                                    saved_file_name,
+                                                                                    create_temp_folder,
+                                                                                    mask_image=mask_image,
+                                                                                    cell_number =i,
+                                                                                    frame_selection_empty_video=frame_selection_empty_video,
+                                                                                    spot_size =spot_size ,
+                                                                                    intensity_scale_ch0 = intensity_scale_ch0,
+                                                                                    intensity_scale_ch1 = intensity_scale_ch1,
+                                                                                    intensity_scale_ch2 = intensity_scale_ch2,
+                                                                                    dataframe_format='long',
+                                                                                    simulated_RNA_intensities_method=simulated_RNA_intensities_method).make_simulation()
+        # appending dataframes for each cell
         list_dataframe_simulated_cell.append(single_dataframe_simulated_cell)
         list_ssa_all_cells_and_genes.append(list_ssa)
     # Creating a folder
@@ -129,9 +153,6 @@ def simulate_multiplexing(tested_list_elongation_rates,tested_list_initiation_ra
     ssas_multiplexing = np.array(list_ssa_all_cells_and_genes)
     return multiplexing_path,folder_to_save_data, dataframe_simulated_cell, ssas_multiplexing
 
-def reduce_dataframe(df):
-    # This function is intended to reduce the columns that are not used in the ML process.
-    return df.drop(['red_int_std', 'green_int_std','blue_int_std', 'x','y','SNR_red', 'SNR_green', 'SNR_blue','background_int_mean_red','background_int_mean_green','background_int_mean_blue','background_int_std_red','background_int_std_green','background_int_std_blue'], axis = 1)
 
 def save_data (multiplexing_path,folder_to_save_data, dataframe_simulated_cell, ssas_multiplexing):
     # This function compresses and saves the data in the correct repository
@@ -153,12 +174,20 @@ def save_data (multiplexing_path,folder_to_save_data, dataframe_simulated_cell, 
         shutil.make_archive(multiplexing_path, 'zip', multiplexing_path.parents[0],folder_to_save_data)
         shutil.rmtree(multiplexing_path)
     else:
-        print ('The folder doesnt exist')
+        print ('The folder does not exist')
 
 
 frame_selection_empty_video = 'constant' # Options are: 'constant' , 'shuffle' and 'loop'
 # Simulation_0
+multiplexing_path,folder_to_save_data, dataframe_simulated_cell, ssas_multiplexing = simulate_multiplexing( path_files,
+                                                                                                            masks_dir,
+                                                                                                            list_elongation_rates,
+                                                                                                            list_initiation_rates,
+                                                                                                            list_diffusion_coefficients,
+                                                                                                            multiplexing_path_folder,
+                                                                                                            frame_selection_empty_video,
+                                                                                                            simulated_RNA_intensities_method)
 
-multiplexing_path,folder_to_save_data, dataframe_simulated_cell, ssas_multiplexing = simulate_multiplexing(list_elongation_rates,list_initiation_rates,list_diffusion_coefficients,multiplexing_path_folder)
+
 #dataframe_simulated_cell = reduce_dataframe(dataframe_simulated_cell_complete)
 save_data (multiplexing_path,folder_to_save_data, dataframe_simulated_cell, ssas_multiplexing)
