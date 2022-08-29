@@ -2394,8 +2394,6 @@ class SimulatedCell():
             self.base_video = base_video
             self.mask_image = mask_image
         self.intensity_calculation_method = intensity_calculation_method
-        #MAXIMUM_INTENSITY_IN_BASE_VIDEO = 10000
-        #self.MAXIMUM_INTENSITY_IN_BASE_VIDEO = MAXIMUM_INTENSITY_IN_BASE_VIDEO
         if using_for_multiplexing == 0:
             base_video = RemoveExtrema(base_video, min_percentile = 1, max_percentile = 99).remove_outliers()
         if not (video_for_mask is None):
@@ -2499,7 +2497,7 @@ class SimulatedCell():
         dataframe_particles : pandas dataframe
             Dataframe with fields [cell_number, particle, frame, red_int_mean, green_int_mean, blue_int_mean, red_int_std, green_int_std, blue_int_std, x, y, SNR_red,SNR_green,SNR_blue].
         '''
-        def make_replacement_pixelated_spots(matrix_background:np.ndarray, center_positions_vector:np.ndarray, size_spot:int, spot_sigma:int, using_ssa:bool, simulated_trajectories_time_point:np.ndarray, min_SSA_value:float, max_SSA_value:float,intensity_scale:float):
+        def make_replacement_pixelated_spots(matrix_background:np.ndarray, center_positions_vector:np.ndarray, size_spot:int, spot_sigma:int, using_ssa:bool, simulated_trajectories_time_point:np.ndarray,intensity_scale:float):
             #This function is intended to replace a kernel gaussian matrix for each spot position. The kernel gaussian matrix is scaled with the values obtained from the SSA o with the values given in a range.
             if size_spot%2 == 0:
                 print('The size of the spot must be an odd number')
@@ -2641,7 +2639,6 @@ class SimulatedCell():
                         proportion_to_interpolate=0
                 return interpolated_video
             
-            
             # Main function that makes the simulated cell by calling multiple function.
             temp_image = masked_video_selected_channel[0, :, :]
             temp_image_nonzeros = temp_image.copy()
@@ -2675,22 +2672,22 @@ class SimulatedCell():
                 if not ( simulated_trajectories is None):
                     using_ssa = 1
                     simulated_trajectories_tp = simulated_trajectories[:, t_p]
-                    if  not (self.min_int_multiplexing is None):
-                        max_SSA_value = self.max_int_multiplexing
-                        min_SSA_value = self.min_int_multiplexing
-                    else:
-                        max_SSA_value = simulated_trajectories.max()
-                        min_SSA_value = simulated_trajectories.min()
+                    # if  not (self.min_int_multiplexing is None):
+                    #     max_SSA_value = self.max_int_multiplexing
+                    #     min_SSA_value = self.min_int_multiplexing
+                    # else:
+                    #     max_SSA_value = simulated_trajectories.max()
+                    #     min_SSA_value = simulated_trajectories.min()
                 else:
                     using_ssa = 0
                     simulated_trajectories_tp = 0
-                    max_SSA_value = 0
-                    min_SSA_value = 0
+                    # max_SSA_value = 0
+                    # min_SSA_value = 0
                 # Making the pixelated spots
                 if ignore_trajectories ==1:
                     tensor_image[t_p, :, :] = matrix_background
                 else:
-                    tensor_image[t_p, :, :] = make_replacement_pixelated_spots(matrix_background, spot_positions_movement[t_p, :, :], size_spot, spot_sigma, using_ssa, simulated_trajectories_tp, min_SSA_value, max_SSA_value,intensity_scale)
+                    tensor_image[t_p, :, :] = make_replacement_pixelated_spots(matrix_background, spot_positions_movement[t_p, :, :], size_spot, spot_sigma, using_ssa, simulated_trajectories_tp,intensity_scale)
             return tensor_image
         # Create the spots for all channels. Return array with 3-dimensions: T, Sop, XY-Coord
         spot_positions_movement = make_spots_movement(self.polygon_array, self.number_spots, self.time_vector, self.step_size, self.image_size, self.diffusion_coefficient, self.base_video[0, :, :, 1])
@@ -2975,22 +2972,19 @@ class SimulatedCellMultiplexing ():
         list_min_ssa = []
         list_max_ssa = []
         for i in range(0, self.number_genes):
-            #_ , ssa_solution = rsnapsim_ssa(self.list_gene_sequences[i], ke = self.list_elongation_rates[i], ki = self.list_initiation_rates[i], simulation_time_in_sec = self.simulation_time_in_sec, 
-            #                                n_traj = self.list_number_spots[i])
-            
             # # Simulations for intensity
             _,ssa_ump,_ = SSA_rsnapsim( gene_file = self.list_gene_sequences[i], 
-                                                ke = self.list_elongation_rates[i],
-                                                ki = self.list_initiation_rates[i],
-                                                frames = self.simulation_time_in_sec,
-                                                frame_rate = 1,
-                                                n_traj = self.list_number_spots[i]).simulate() 
+                                        ke = self.list_elongation_rates[i],
+                                        ki = self.list_initiation_rates[i],
+                                        frames = self.simulation_time_in_sec,
+                                        frame_rate = 1,
+                                        n_traj = self.list_number_spots[i]).simulate() 
                         
             simulated_trajectories_RNA= SimulateRNA(shape_output_array=(self.list_number_spots[i], self.simulation_time_in_sec), 
                                                                             rna_intensity_method = self.simulated_RNA_intensities_method,
                                                                             min_int=0,
                                                                             max_int=10,
-                                                                            mean_int=5 ).simulate()
+                                                                            mean_int=10 ).simulate()
             # appending simulated data
             list_ssa.append(ssa_ump)
             list_min_ssa.append(ssa_ump.min())

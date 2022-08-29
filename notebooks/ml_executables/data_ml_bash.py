@@ -70,11 +70,7 @@ if not os.path.exists(str(multiplexing_path_folder)):
 
 simulated_RNA_intensities_method = 'constant'
 
-# Reading all empty cells in directory
-list_files_names = sorted([f for f in listdir(video_dir) if isfile(join(video_dir, f)) and ('.tif') in f], key=str.lower)  # reading all tif files in the folder
-list_files_names.sort(key=lambda f: int(re.sub('\D', '', f)))  # sorting the index in numerical order
-path_files = [ str(video_dir.joinpath(f).resolve()) for f in list_files_names ] # creating the complete path for each file
-num_cell_shapes = len(path_files)
+
 
 # Coding sequence
 gene_file_KDM5B_PP7 = str(sequences_dir.joinpath('pUB_SM_KDM5B_PP7_coding_sequence.txt')) # coding sequence for SM_KDM5B_PP7    ### 5685 nt   ### 1895 codons
@@ -107,10 +103,17 @@ intensity_scale_ch0 = 100
 intensity_scale_ch1 = 200
 intensity_scale_ch2 = 200
 
-def simulate_multiplexing( path_files,masks_dir,tested_list_elongation_rates,tested_list_initiation_rates,tested_list_diffusion_coefficients,multiplexing_path_folder,frame_selection_empty_video,simulated_RNA_intensities_method):
+def simulate_multiplexing( video_dir,masks_dir,tested_list_elongation_rates,tested_list_initiation_rates,tested_list_diffusion_coefficients,multiplexing_path_folder,frame_selection_empty_video,simulated_RNA_intensities_method):
     # function  that simulates the multiplexing experiments    
     list_dataframe_simulated_cell =[]
     list_ssa_all_cells_and_genes =[]
+    
+    # Reading all empty cells in directory
+    list_files_names = sorted([f for f in listdir(video_dir) if isfile(join(video_dir, f)) and ('.tif') in f], key=str.lower)  # reading all tif files in the folder
+    list_files_names.sort(key=lambda f: int(re.sub('\D', '', f)))  # sorting the index in numerical order
+    path_files = [ str(video_dir.joinpath(f).resolve()) for f in list_files_names ] # creating the complete path for each file
+    num_cell_shapes = len(path_files)
+    
     for i in range(0,number_cells): # for i in range (0,number_cells ):
         saved_file_name = 'cell_' + str(i)  # if the video or dataframe are save, this variable assigns the name to the files
         sel_shape = randrange(num_cell_shapes)
@@ -179,7 +182,7 @@ def save_data (multiplexing_path,folder_to_save_data, dataframe_simulated_cell, 
 
 frame_selection_empty_video = 'constant' # Options are: 'constant' , 'shuffle' and 'loop'
 # Simulation_0
-multiplexing_path,folder_to_save_data, dataframe_simulated_cell, ssas_multiplexing = simulate_multiplexing( path_files,
+multiplexing_path,folder_to_save_data, dataframe_simulated_cell, ssas_multiplexing = simulate_multiplexing( video_dir,
                                                                                                             masks_dir,
                                                                                                             list_elongation_rates,
                                                                                                             list_initiation_rates,
