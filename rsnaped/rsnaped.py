@@ -2341,9 +2341,9 @@ class SimulatedCell():
     ignore_ch0 : bool, optional
         A flag that ignores channel 0 returning a NumPy array filled with zeros. The default is 0.
     ignore_ch1 : bool, optional
-        A flag that ignores channel 1 returning a NumPy array filled with zeros. The default is 1.
+        A flag that ignores channel 1 returning a NumPy array filled with zeros. The default is 0.
     ignore_ch2 : bool, optional
-        A flag that ignores channel 2 returning a NumPy array filled with zeros. The default is 1.
+        A flag that ignores channel 2 returning a NumPy array filled with zeros. The default is 0.
     save_as_tif_uint8 : bool, optional
         If true, it generates and saves a uint8 (low) quality image tif file for the simulation. The default is 0.
     save_as_tif : bool, optional
@@ -2823,9 +2823,14 @@ class SimulatedCellMultiplexing ():
         Format for the dataframe the options are : 'short' , and 'long'. The default is 'short'.
         "long" format generates this dataframe: [cell_number, particle, frame, red_int_mean, green_int_mean, blue_int_mean, red_int_std, green_int_std, blue_int_std, x, y, SNR_red,SNR_green,SNR_blue].
         "short" format generates this dataframe: [cell_number, particle, frame, red_int_mean, green_int_mean, blue_int_mean, x, y].
-    
+    ignore_ch0 : bool, optional
+        A flag that ignores channel 0 returning a NumPy array filled with zeros. The default is 0.
+    ignore_ch1 : bool, optional
+        A flag that ignores channel 1 returning a NumPy array filled with zeros. The default is 0.
+    ignore_ch2 : bool, optional
+        A flag that ignores channel 2 returning a NumPy array filled with zeros. The default is 0.
     '''
-    def __init__(self, initial_video:np.ndarray, list_gene_sequences:list, list_number_spots:list, list_target_channels_proteins:list, list_target_channels_mRNA:list, list_diffusion_coefficients:list, list_label_names:list, list_elongation_rates:list, list_initiation_rates:list, simulation_time_in_sec:float, step_size_in_sec:float, save_as_tif:bool, save_dataframe:bool, saved_file_name:str = 'temp', create_temp_folder:bool = False, mask_image:Union[np.ndarray, None] = None, cell_number:int = 0, save_as_gif:bool = 0, perform_video_augmentation:bool = True, frame_selection_empty_video:str = 'shuffle',spot_size:int = 5 ,intensity_scale_ch0 = 10,intensity_scale_ch1 = 10,intensity_scale_ch2 = 10,dataframe_format='short',simulated_RNA_intensities_method='constant',spot_sigma=1):
+    def __init__(self, initial_video:np.ndarray, list_gene_sequences:list, list_number_spots:list, list_target_channels_proteins:list, list_target_channels_mRNA:list, list_diffusion_coefficients:list, list_label_names:list, list_elongation_rates:list, list_initiation_rates:list, simulation_time_in_sec:float, step_size_in_sec:float, save_as_tif:bool, save_dataframe:bool, saved_file_name:str = 'temp', create_temp_folder:bool = False, mask_image:Union[np.ndarray, None] = None, cell_number:int = 0, save_as_gif:bool = 0, perform_video_augmentation:bool = True, frame_selection_empty_video:str = 'shuffle',spot_size:int = 5 ,intensity_scale_ch0 = 10,intensity_scale_ch1 = 10,intensity_scale_ch2 = 10,dataframe_format='short',simulated_RNA_intensities_method='constant',spot_sigma=1,ignore_ch0: bool = 0, ignore_ch1: bool = 0, ignore_ch2: bool = 0):
         if perform_video_augmentation == True:
             self.initial_video,selected_angle = AugmentationVideo(initial_video).random_rotation()
             if not(mask_image is None):
@@ -2864,7 +2869,9 @@ class SimulatedCellMultiplexing ():
             raise ValueError('The target channel in the list should be a int between 0 and 2.')
         if max(list_target_channels_mRNA)>2:
             raise ValueError('The target channel in the list should be a int between 0 and 2.')    
-
+        self.ignore_ch0 = ignore_ch0
+        self.ignore_ch1 = ignore_ch1
+        self.ignore_ch2 = ignore_ch2
     def make_simulation (self):
         '''
         Method that runs the simulations for the multiplexing experiment.
@@ -2960,7 +2967,10 @@ class SimulatedCellMultiplexing ():
                                                                             intensity_scale_ch0 = self.intensity_scale_ch0,
                                                                             intensity_scale_ch1 = self.intensity_scale_ch1,
                                                                             intensity_scale_ch2 = self.intensity_scale_ch2,
-                                                                            dataframe_format =self.dataframe_format ).make_simulation()
+                                                                            dataframe_format =self.dataframe_format,
+                                                                            ignore_ch0 = self.ignore_ch0,
+                                                                            ignore_ch1 = self.ignore_ch1,
+                                                                            ignore_ch2 = self.ignore_ch2).make_simulation()
             
             DataFrame_particles_intensities['cell_number'] = DataFrame_particles_intensities['cell_number'].replace([0], self.cell_number)
             return tensor_video, DataFrame_particles_intensities  # [cell_number, particle, frame, red_int_mean, green_int_mean, blue_int_mean, red_int_std, green_int_std, blue_int_std, x, y].
@@ -3395,98 +3405,7 @@ class Utilities():
         return msd, rmsd 
 
 
-def fun_simulated_cells(current_dir, video_dir,masks_dir = None, ke = 3, ki = 0.03, gene_file = None, trajectories_dir = None, 
-                    number_of_simulated_cells = 3,number_spots_per_cell = 80, simulation_time_in_sec = 100, step_size_in_sec = 1,
-                    spot_size = 5, spot_sigma = 1, diffusion_coefficient = 1, path_to_save_output = 'temp', intensity_calculation_method = 'gaussian_fit',
-                    frame_selection_empty_video = 'shuffle', dataframe_format = 'long', rna_intensity_method = 'constant'):
-
-    # Code that creates the folder to store results.
-    diffusion_coefficient_string = str(diffusion_coefficient).replace('.','_')
-    directory_name = 'simulated_cell__'+'ns_'+str(number_spots_per_cell) +'_diff_'+ diffusion_coefficient_string 
-    path_to_save_output = 'temp'
-    save_to_path =  current_dir.joinpath(path_to_save_output , directory_name )
-    if not os.path.exists(str(save_to_path)):
-        os.makedirs(str(save_to_path))
-    else:
-        shutil.rmtree(str(save_to_path))
-        os.makedirs(str(save_to_path))
-    counter = 0
-    ## Main loop that creates each cell and dataframe
-    for cell_number in range (0, number_of_simulated_cells):
-        output_directory_name = str(video_dir)
-        list_files_names = sorted([f for f in listdir(output_directory_name) if isfile(join(output_directory_name, f)) and ('.tif') in f], key=str.lower)  # reading all tif files in the folder
-        list_files_names.sort(key=lambda f: int(re.sub('\D', '', f)))  # sorting the index in numerical order
-        path_files = [ str(video_dir.joinpath(f).resolve()) for f in list_files_names ] # creating the complete path for each file
-        video_path = path_files[counter]        
-        video = imread(str(video_path)) 
-        # Loading the mask image
-        if not (masks_dir is None):
-            mask_image=imread(masks_dir.joinpath('mask_cell_shape_'+str(counter)+'.tif'))        
-        counter +=1
-        if counter>=len(path_files):
-            counter =0
-        if not (trajectories_dir is None ):
-            # Loading trajectories from file
-            ssa_trajectories = np.load(str(trajectories_dir))
-            random_index_ch0 = np.random.randint(low=0, high=ssa_trajectories.shape[0]-1, size=(number_spots_per_cell,))
-            random_index_ch1 = np.random.randint(low=0, high=ssa_trajectories.shape[0]-1, size=(number_spots_per_cell,))
-            random_index_ch2 = np.random.randint(low=0, high=ssa_trajectories.shape[0]-1, size=(number_spots_per_cell,))
-            simulated_trajectories_ch0 = ssa_trajectories[random_index_ch0,0:simulation_time_in_sec:step_size_in_sec]
-            simulated_trajectories_ch1 = ssa_trajectories[random_index_ch1,0:simulation_time_in_sec:step_size_in_sec]
-            simulated_trajectories_ch2 =  ssa_trajectories[random_index_ch2,0:simulation_time_in_sec:step_size_in_sec]
-        else:
-            # Simulations for intensity
-            ssa1_ump = rsnapsim_ssa(gene_file,ke,ki,frames=simulation_time_in_sec,frame_rate=1,n_traj=number_spots_per_cell)[1] # rss.ssa_solver(n_traj = number_spots_per_cell, start_time=starting_time,tf=starting_time+n_frames, tstep=starting_time+n_frames,k_elong_mean=3, k_initiation=.03)  # tstep = total number of steps including the burnin time 
-            simulated_trajectories_ch1 = ssa1_ump
-            ssa2_ump =  rsnapsim_ssa(gene_file,ke,ki,frames=simulation_time_in_sec,frame_rate=1,n_traj=number_spots_per_cell)[1] # rss.ssa_solver(n_traj = number_spots_per_cell, start_time=starting_time,tf=starting_time+n_frames, tstep=starting_time+n_frames,k_elong_mean=3, k_initiation=.03)  # tstep = total number of steps including the burnin time 
-            simulated_trajectories_ch2 = ssa2_ump
-            # making a random vector with intensities for the RNA channel. 
-            max_int_in_ssa =simulated_trajectories_ch1.max()
-            min_int_in_ssa = simulated_trajectories_ch1.min()
-            mean_int_in_ssa = simulated_trajectories_ch1.mean()
-            simulated_trajectories_ch0 = SimulateRNA(shape_output_array=(number_spots_per_cell, simulation_time_in_sec), 
-                                                    rna_intensity_method=rna_intensity_method,
-                                                    min_int=min_int_in_ssa,
-                                                    max_int=max_int_in_ssa,
-                                                    mean_int=mean_int_in_ssa ).simulate()
-        # Running the cell simulation
-        saved_file_name = str(save_to_path.joinpath('sim_cell_'+str(cell_number)))
-        tensor_video , spot_positions_movement, DataFrame_particles_intensities = SimulatedCell( base_video=video,
-                                                                                                mask_image=mask_image, 
-                                                                                                number_spots = number_spots_per_cell, 
-                                                                                                number_frames=simulation_time_in_sec, 
-                                                                                                step_size=step_size_in_sec, 
-                                                                                                diffusion_coefficient =diffusion_coefficient, 
-                                                                                                simulated_trajectories_ch0=simulated_trajectories_ch0, 
-                                                                                                size_spot_ch0=spot_size, 
-                                                                                                spot_sigma_ch0=spot_sigma, 
-                                                                                                simulated_trajectories_ch1=simulated_trajectories_ch1, 
-                                                                                                size_spot_ch1=spot_size, 
-                                                                                                spot_sigma_ch1=spot_sigma, 
-                                                                                                simulated_trajectories_ch2=simulated_trajectories_ch2, 
-                                                                                                size_spot_ch2=spot_size, 
-                                                                                                spot_sigma_ch2=spot_sigma, 
-                                                                                                ignore_ch0=0,ignore_ch1=0, 
-                                                                                                ignore_ch2=1,
-                                                                                                save_as_tif_uint8=0,
-                                                                                                save_as_tif =1,
-                                                                                                save_as_gif=0, 
-                                                                                                save_dataframe=1, 
-                                                                                                saved_file_name=saved_file_name,
-                                                                                                create_temp_folder = False, 
-                                                                                                intensity_calculation_method=intensity_calculation_method,
-                                                                                                perform_video_augmentation=1,
-                                                                                                frame_selection_empty_video=frame_selection_empty_video ,
-                                                                                                intensity_scale_ch0 = intensity_scale_ch0,
-                                                                                                intensity_scale_ch1 = intensity_scale_ch1,
-                                                                                                intensity_scale_ch2 = intensity_scale_ch2,
-                                                                                                dataframe_format=dataframe_format).make_simulation()      
-        print ('The simulated cell results are saved in folder: ', saved_file_name)
-    return save_to_path, simulated_trajectories_ch0, simulated_trajectories_ch1, simulated_trajectories_ch2
-
-
-
-def simulate_multiplexing(  video_dir, 
+def function_simulate_cell ( video_dir, 
                             masks_dir, 
                             list_gene_sequences,
                             list_number_spots,
@@ -3516,7 +3435,7 @@ def simulate_multiplexing(  video_dir,
         if isinstance(tested_list, list):
             return tested_list
         else:
-            return list(tested_list)
+            return [tested_list]
     list_gene_sequences = test_if_list (list_gene_sequences)
     list_number_spots = test_if_list (list_number_spots)
     list_target_channels_proteins = test_if_list (list_target_channels_proteins)
@@ -3525,6 +3444,20 @@ def simulate_multiplexing(  video_dir,
     list_label_names = test_if_list(list_label_names)
     list_elongation_rates = test_if_list(list_elongation_rates)
     list_initiation_rates = test_if_list(list_initiation_rates)
+    
+    # Testing if some of the intensities is None. If true, the channel is ignored during the simulation. Resulting in tensor full with zeros.
+    if intensity_scale_ch0 is None:
+        ignore_ch0 = True
+    else:
+        ignore_ch0 = False
+    if intensity_scale_ch1 is None:
+        ignore_ch1 = True
+    else:
+        ignore_ch1 = False
+    if intensity_scale_ch2 is None:
+        ignore_ch2 = True
+    else:
+        ignore_ch2 = False        
     
     # creating the folder name
     name_folder = '_bg_' + frame_selection_empty_video 
@@ -3601,7 +3534,10 @@ def simulate_multiplexing(  video_dir,
                                                                                     intensity_scale_ch1 = intensity_scale_ch1,
                                                                                     intensity_scale_ch2 = intensity_scale_ch2,
                                                                                     dataframe_format=dataframe_format,
-                                                                                    simulated_RNA_intensities_method=simulated_RNA_intensities_method).make_simulation()
+                                                                                    simulated_RNA_intensities_method=simulated_RNA_intensities_method,
+                                                                                    ignore_ch0 = ignore_ch0,
+                                                                                    ignore_ch1 = ignore_ch1,
+                                                                                    ignore_ch2 = ignore_ch2).make_simulation()
         
         if save_as_tif == True:
             tifffile.imwrite(str(save_to_path_video.joinpath(saved_file_name+'.tif')), video)
@@ -3623,7 +3559,7 @@ def simulate_multiplexing(  video_dir,
         # saving the ssa
         np.save(save_to_path_df.joinpath('ssas_multiplexing.npy') , ssas_multiplexing)
         # creating zip
-        shutil.make_archive( base_name = save_to_path_df.name, format = 'zip', root_dir = save_to_path_df.parents[0], base_dir =save_to_path_df.name )
+        shutil.make_archive( base_name = save_to_path_df, format = 'zip', root_dir = save_to_path_df.parents[0], base_dir =save_to_path_df.name )
         shutil.rmtree(save_to_path_df)
         print('The simulation dataframes are stored here:', str(save_to_path_df))
 
