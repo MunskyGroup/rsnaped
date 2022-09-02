@@ -184,10 +184,11 @@ class SSA_rsnapsim():
             Time vector used in the simulation.
         '''
         t = np.linspace(0,self.t_burnin+self.frames,(self.t_burnin+self.frames+1)*(self.frame_rate))
-        _, _, tagged_pois,_ = rss.seqmanip.open_seq_file(str(self.gene_file))
+        _, _, tagged_pois,raw_seq = rss.seqmanip.open_seq_file(str(self.gene_file))
         gene_obj = tagged_pois['1'][0]
         gene_obj.ke_mu = self.ke
         number_probes = np.amax(gene_obj.probe_vec)
+        gene_length = len(raw_seq)
 
         if not ( self.perturbation_time_stop is None):
             t_stop_perturbation = self.perturbation_time_stop+self.t_burnin
@@ -202,7 +203,7 @@ class SSA_rsnapsim():
         list_ssa = Parallel(n_jobs=self.NUMBER_OF_CORES)(delayed(ssa_parallel)(gene_obj,t,self.t_burnin,self.ki) for i in range(0,self.n_traj)) 
         ssa = np.concatenate( list_ssa, axis=0 )
         ssa_ump = ssa/number_probes
-        return ssa, ssa_ump, t
+        return ssa, ssa_ump, t,gene_length
 
         
 
@@ -457,9 +458,9 @@ class RemoveExtrema():
             number_time_points = 1
             number_channels = 1
             normalized_video_temp = normalized_video
-            if not np.amax(normalized_video_temp) == 0: # this section detect that the channel is not empty to perform the normalization.
+            if not np.max(normalized_video_temp) == 0: # this section detect that the channel is not empty to perform the normalization.
                 max_val = np.percentile(normalized_video_temp, self.max_percentile)
-                min_val = np.percentile(normalized_video_temp, self.min_percentile)
+                min_val = np.min ( (0, np.percentile(normalized_video_temp, self.min_percentile)))
                 normalized_video_temp [normalized_video_temp > max_val] = max_val
                 normalized_video_temp [normalized_video_temp < min_val] = min_val
                 normalized_video_temp [normalized_video_temp < 0] = 0
@@ -470,9 +471,9 @@ class RemoveExtrema():
             for index_channels in range (number_channels):
                 if (index_channels in self.selected_channels) or (self.selected_channels is None) :
                     normalized_video_temp = normalized_video[ :, :, index_channels]
-                    if not np.amax(normalized_video_temp) == 0: # this section detect that the channel is not empty to perform the normalization.
+                    if not np.max(normalized_video_temp) == 0: # this section detect that the channel is not empty to perform the normalization.
                         max_val = np.percentile(normalized_video_temp, self.max_percentile)
-                        min_val = np.percentile(normalized_video_temp, self.min_percentile)
+                        min_val = np.min ( (0,np.percentile(normalized_video_temp, self.min_percentile)))
                         normalized_video_temp [normalized_video_temp > max_val] = max_val
                         normalized_video_temp [normalized_video_temp < min_val] =  min_val
                         normalized_video_temp [normalized_video_temp < 0] = 0
@@ -482,16 +483,16 @@ class RemoveExtrema():
             number_time_points, number_channels   = self.video.shape[0], self.video.shape[3]
             for index_channels in range (number_channels):
                 if (index_channels in self.selected_channels) or (self.selected_channels is None) :
-                #if not self.ignore_channel == index_channels:
                     for index_time in range (number_time_points):
                         normalized_video_temp = normalized_video[index_time, :, :, index_channels]
-                        if not np.amax(normalized_video_temp) == 0: # this section detect that the channel is not empty to perform the normalization.
+                        if not np.max(normalized_video_temp) == 0: # this section detect that the channel is not empty to perform the normalization.
                             max_val = np.percentile(normalized_video_temp, self.max_percentile)
-                            min_val = np.percentile(normalized_video_temp, self.min_percentile)
+                            min_val = np.min ( (0,np.percentile(normalized_video_temp, self.min_percentile)))
                             normalized_video_temp [normalized_video_temp > max_val] = max_val
                             normalized_video_temp [normalized_video_temp < min_val] = min_val
                             normalized_video_temp [normalized_video_temp < 0] = 0
                             normalized_video[ index_time, :, :, index_channels] = normalized_video_temp
+            normalized_video[normalized_video<0]=0
         return np.asarray(normalized_video, 'uint16')
 
 
@@ -526,14 +527,17 @@ class ScaleIntensity():
         number_time_points, number_channels   = self.video.shape[0], self.video.shape[3]
         for index_channels in range (number_channels):
             if not self.ignore_channel == index_channels:
+                max_val = np.max(scaled_video[:, :, :, index_channels])
+                min_val = np.min(( 0, np.min(scaled_video[:, :, :, index_channels]) ) )
                 for index_time in range (number_time_points):
-                    max_val = np.amax(scaled_video[index_time, :, :, index_channels])
-                    min_val = np.amin(scaled_video[index_time, :, :, index_channels])
                     if max_val != 0: # this section detect that the channel is not empty to perform the normalization.
-                        scaled_video[index_time, :, :, index_channels] = (scaled_video[index_time, :, :, index_channels]-min_val) / (max_val-min_val)
-                        scaled_video[index_time, :, :, index_channels] = scaled_video[index_time, :, :, index_channels]*self.scale_maximum_value
-                        scaled_video[index_time, :, :, index_channels][scaled_video[index_time, :, :, index_channels] < 0] = 0
-        return np.asarray(scaled_video, 'uint16')
+                        scaled_video[index_time, :, :, index_channels] = ((scaled_video[index_time, :, :, index_channels])-min_val) / (max_val-min_val)
+                        #scaled_video[index_time, :, :, index_channels][scaled_video[index_time, :, :, index_channels] < 0] = 0
+                        scaled_video[scaled_video<0]=0
+                        scaled_video[index_time, :, :, index_channels] = np.multiply( scaled_video[index_time, :, :, index_channels] , self.scale_maximum_value)                         
+        scaled_video_int = scaled_video.astype(int)
+        
+        return scaled_video_int
 
 
 class GaussianLaplaceFilter():
@@ -2276,11 +2280,9 @@ class SimulateRNA():
         Value representing the mean intensity in the output array. the default is 5.
     '''
 
-    def __init__(self, shape_output_array, rna_intensity_method='constant',min_int=0,max_int=10,mean_int=5 ):
+    def __init__(self, shape_output_array, rna_intensity_method='constant',mean_int=10 ):
         self.shape_output_array = shape_output_array
         self.rna_intensity_method = rna_intensity_method
-        self.min_int = min_int
-        self.max_int = max_int
         self.mean_int = mean_int 
         
     def simulate(self):
@@ -2294,7 +2296,7 @@ class SimulateRNA():
 
         '''
         if self.rna_intensity_method =='random_values':
-            rna_intensities = np.random.uniform(low=self.min_int, high=self.max_int, size=self.shape_output_array) 
+            rna_intensities = np.random.normal(loc=self.mean_int, scale=2, size=self.shape_output_array) 
         elif self.rna_intensity_method =='constant':
             rna_intensities = np.full(shape=self.shape_output_array, fill_value= self.mean_int)
         return rna_intensities
@@ -2360,10 +2362,6 @@ class SimulatedCell():
         Method to calculate intensity the options are : 'total_intensity' , 'disk_donut' and 'gaussian_fit'. The default is 'disk_donut'.
     using_for_multiplexing : bool, optional
         Flag that indicates that multiple genes are simulated per cell.
-    min_int_multiplexing : float or None, optional
-        Indicates the minimal SSA value for all simulated genes in a multiplexing experiment. The default is None.
-    max_int_multiplexing : float or None, optional
-        Indicates the maximum SSA value for all simulated genes in a multiplexing experiment. The default is None.
     perform_video_augmentation : bool, optional
         If true, it performs random rotations the initial video. The default is 1.
     frame_selection_empty_video : str, optional
@@ -2384,20 +2382,22 @@ class SimulatedCell():
         Format for the dataframe the options are : 'short' , and 'long'. The default is 'short'.
         "long" format generates this dataframe: [cell_number, particle, frame, red_int_mean, green_int_mean, blue_int_mean, red_int_std, green_int_std, blue_int_std, x, y, SNR_red,SNR_green,SNR_blue].
         "short" format generates this dataframe: [cell_number, particle, frame, red_int_mean, green_int_mean, blue_int_mean, x, y].
+    
     '''
     def __init__(self, base_video:np.ndarray, video_for_mask:Union[np.ndarray, None] = None,  mask_image:Union[np.ndarray, None] = None, number_spots:int = 10, number_frames:int = 20, step_size:float = 1, diffusion_coefficient:float = 0.01, simulated_trajectories_ch0:Union[np.ndarray, None]  = None, size_spot_ch0:int = 5, spot_sigma_ch0:int = 1, simulated_trajectories_ch1:Union[np.ndarray, None] = None, size_spot_ch1:int = 5, spot_sigma_ch1:int = 1, simulated_trajectories_ch2:Union[np.ndarray, None] = None, size_spot_ch2:int = 5, spot_sigma_ch2:int = 1, ignore_ch0: bool = 0, ignore_ch1: bool = 0, ignore_ch2: bool = 0, save_as_tif_uint8: bool = 0, save_as_tif: bool = 0, save_as_gif: bool = 0, save_dataframe: bool = 0, saved_file_name :str = 'temp', create_temp_folder: bool = True, intensity_calculation_method :str = 'disk_donut', using_for_multiplexing = 0, min_int_multiplexing: bool = None, max_int_multiplexing :Union[float, None] = None, perform_video_augmentation: bool = 0, frame_selection_empty_video:str = 'shuffle',ignore_trajectories_ch0:bool =0, ignore_trajectories_ch1:bool =0, ignore_trajectories_ch2:bool =0,intensity_scale_ch0:float = 10,intensity_scale_ch1:float = 10,intensity_scale_ch2:float = 10,dataframe_format:str = 'short' ):
         if (perform_video_augmentation == 1) and (video_for_mask is None):
-            self.base_video,selected_angle = AugmentationVideo(base_video).random_rotation()
+            preprocessed_base_video,selected_angle = AugmentationVideo(base_video).random_rotation()
             if not(mask_image is None):
                 self.mask_image,selected_angle = AugmentationVideo(mask_image,selected_angle).random_rotation()
             else:
                 self.mask_image=mask_image
         else:
-            self.base_video = base_video
+            preprocessed_base_video = base_video
             self.mask_image = mask_image
         self.intensity_calculation_method = intensity_calculation_method
-        if using_for_multiplexing == 0:
-            base_video = RemoveExtrema(base_video, min_percentile = 1, max_percentile = 99).remove_outliers()
+        
+        self.base_video = preprocessed_base_video
+        
         if not (video_for_mask is None):
             video_for_mask = RemoveExtrema(video_for_mask, min_percentile = 0, max_percentile = 99.8).remove_outliers()
             self.video_for_mask = video_for_mask
@@ -2435,8 +2435,6 @@ class SimulatedCell():
         self.save_dataframe = save_dataframe
         self.saved_file_name = saved_file_name
         self.create_temp_folder = create_temp_folder
-        self.min_int_multiplexing = min_int_multiplexing
-        self.max_int_multiplexing = max_int_multiplexing
         self.frame_selection_empty_video = frame_selection_empty_video
         self.dataframe_format =dataframe_format
         # The following two constants are weights used to define a range of intensities for the simulated spots.
@@ -2829,17 +2827,35 @@ class SimulatedCellMultiplexing ():
         A flag that ignores channel 1 returning a NumPy array filled with zeros. The default is 0.
     ignore_ch2 : bool, optional
         A flag that ignores channel 2 returning a NumPy array filled with zeros. The default is 0.
+    scale_intensity_in_base_video : bool, optional
+        Flag to scale intensity to a maximum value of 10000. This arbritary value is selected based on the maximum intensities obtained from the original images. The default is False.
+    basal_intensity_in_background_video : int, optional
+        if the base video is rescaled, this value indicates the maximum value to rescale the original video. The default is 20000    
     '''
-    def __init__(self, initial_video:np.ndarray, list_gene_sequences:list, list_number_spots:list, list_target_channels_proteins:list, list_target_channels_mRNA:list, list_diffusion_coefficients:list, list_label_names:list, list_elongation_rates:list, list_initiation_rates:list, simulation_time_in_sec:float, step_size_in_sec:float, save_as_tif:bool, save_dataframe:bool, saved_file_name:str = 'temp', create_temp_folder:bool = False, mask_image:Union[np.ndarray, None] = None, cell_number:int = 0, save_as_gif:bool = 0, perform_video_augmentation:bool = True, frame_selection_empty_video:str = 'shuffle',spot_size:int = 5 ,intensity_scale_ch0 = 10,intensity_scale_ch1 = 10,intensity_scale_ch2 = 10,dataframe_format='short',simulated_RNA_intensities_method='constant',spot_sigma=1,ignore_ch0: bool = 0, ignore_ch1: bool = 0, ignore_ch2: bool = 0):
+    def __init__(self, initial_video:np.ndarray, list_gene_sequences:list, list_number_spots:list, list_target_channels_proteins:list, list_target_channels_mRNA:list, list_diffusion_coefficients:list, list_label_names:list, list_elongation_rates:list, list_initiation_rates:list, simulation_time_in_sec:float, step_size_in_sec:float, save_as_tif:bool, save_dataframe:bool, saved_file_name:str = 'temp', create_temp_folder:bool = False, mask_image:Union[np.ndarray, None] = None, cell_number:int = 0, save_as_gif:bool = 0, perform_video_augmentation:bool = True, frame_selection_empty_video:str = 'shuffle',spot_size:int = 5 ,intensity_scale_ch0 = 10,intensity_scale_ch1 = 10,intensity_scale_ch2 = 10,dataframe_format='short',simulated_RNA_intensities_method='constant',spot_sigma=1,ignore_ch0: bool = False, ignore_ch1: bool = False, ignore_ch2: bool = False, scale_intensity_in_base_video: bool = False, basal_intensity_in_background_video : int = 20000):
         if perform_video_augmentation == True:
-            self.initial_video,selected_angle = AugmentationVideo(initial_video).random_rotation()
+            preprocessed_base_video,selected_angle = AugmentationVideo(initial_video).random_rotation()
             if not(mask_image is None):
                 self.mask_image,selected_angle = AugmentationVideo(mask_image,selected_angle).random_rotation()
             else:
                 self.mask_image = mask_image    
         else:
-            self.initial_video = initial_video
+            preprocessed_base_video  = initial_video
             self.mask_image = mask_image
+            
+        preprocessed_base_video = RemoveExtrema(preprocessed_base_video, min_percentile = 0, max_percentile = 99).remove_outliers()
+        if scale_intensity_in_base_video == True:
+            preprocessed_base_video = ScaleIntensity(video=preprocessed_base_video, scale_maximum_value=basal_intensity_in_background_video).apply_scale()
+
+        # Calculating statistics from initial video
+        mean_int_in_video = [ np.median(preprocessed_base_video[1,:,:,i]) for i in range(preprocessed_base_video.shape[3]) ]
+        if len(mean_int_in_video)<3:
+            mean_int_in_video.append(mean_int_in_video[1])
+        self.mean_int_in_video = np.array(mean_int_in_video)
+        
+        print('mean_int__', mean_int_in_video)
+        
+        self.initial_video = preprocessed_base_video
         self.list_gene_sequences = list_gene_sequences
         self.list_number_spots = list_number_spots
         self.list_target_channels_proteins = list_target_channels_proteins
@@ -2885,23 +2901,9 @@ class SimulatedCellMultiplexing ():
         list_ssa : List of NumPy arrays
             List of numpy arrays with the stochastic simulations for each gene. The format is [S, T], where the dimensions are S = spots and T = time.
         '''
-        # FUNCTION THAT RUNS THE SSA IN rSNAPsim
-        # def rsnapsim_ssa(gene_file, ke , ki, simulation_time_in_sec = 100, n_traj = 20, frame_rate = self.step_size_in_sec):
-        #     _, _, tagged_pois, _ = rss.seqmanip.open_seq_file(gene_file)
-        #     gene_obj = tagged_pois['1'][0]
-        #     gene_obj.ke_mu = ke
-        #     rss.solver.protein = gene_obj #pass the protein object
-        #     t_burnin = 1000
-        #     t = np.linspace(0, t_burnin+simulation_time_in_sec, int((t_burnin+simulation_time_in_sec)/frame_rate) )   # ask Will how to pass the step_size. (start, stop, num)
-        #     ssa_solution = rss.solver.solve_ssa(gene_obj.kelong, t, ki = ki, kt = ke, low_memory = True, record_stats = False, n_traj = n_traj)
-        #     time_ssa = ssa_solution.time[int(t_burnin/frame_rate)-1:-1]
-        #     time_ssa = time_ssa-t_burnin
-        #     ssa_int =  ssa_solution.intensity_vec[0, int(t_burnin/frame_rate)-1 :-1, :].T
-        #     return time_ssa, ssa_int
-        
+
         # Wrapper for the simulated cell
-        def wrapper_simulated_cell (base_video, video_for_mask = None, ssa_protein = None, rna_intensity=None, target_channel_protein = 1,target_channel_mRNA =0,  diffusion_coefficient = 0.05, step_size = self.step_size_in_sec, spot_size = self.spot_size, intensity_calculation_method = 'disk_donut', using_for_multiplexing = 0, min_int_multiplexing = 0 , max_int_multiplexing = 0, save_as_gif = 0, frame_selection_empty_video = self.frame_selection_empty_video ):
-            
+        def wrapper_simulated_cell (base_video, video_for_mask = None, ssa_protein = None, rna_intensity=None, target_channel_protein = 1,target_channel_mRNA =0,  diffusion_coefficient = 0.05, step_size = self.step_size_in_sec, spot_size = self.spot_size, intensity_calculation_method = 'disk_donut', save_as_gif = 0, frame_selection_empty_video = self.frame_selection_empty_video,int_scale_to_snr=np.array([100,100,100]) ):
             if target_channel_protein == 0 and target_channel_mRNA==1:
                 ignore_trajectories_ch0 = 0; ignore_trajectories_ch1 = 0; ignore_trajectories_ch2 = 1
                 simulated_trajectories_ch0 = ssa_protein 
@@ -2957,16 +2959,13 @@ class SimulatedCellMultiplexing ():
                                                                             save_dataframe = 0, 
                                                                             create_temp_folder = 0, 
                                                                             intensity_calculation_method = intensity_calculation_method, 
-                                                                            using_for_multiplexing = using_for_multiplexing, 
-                                                                            min_int_multiplexing = min_int_multiplexing, 
-                                                                            max_int_multiplexing = max_int_multiplexing, 
                                                                             frame_selection_empty_video = frame_selection_empty_video, 
                                                                             ignore_trajectories_ch0 = ignore_trajectories_ch0, 
                                                                             ignore_trajectories_ch1 = ignore_trajectories_ch1,
                                                                             ignore_trajectories_ch2 = ignore_trajectories_ch2,
-                                                                            intensity_scale_ch0 = self.intensity_scale_ch0,
-                                                                            intensity_scale_ch1 = self.intensity_scale_ch1,
-                                                                            intensity_scale_ch2 = self.intensity_scale_ch2,
+                                                                            intensity_scale_ch0 = int_scale_to_snr[0],
+                                                                            intensity_scale_ch1 = int_scale_to_snr[1],
+                                                                            intensity_scale_ch2 = int_scale_to_snr[2],
                                                                             dataframe_format =self.dataframe_format,
                                                                             ignore_ch0 = self.ignore_ch0,
                                                                             ignore_ch1 = self.ignore_ch1,
@@ -2978,9 +2977,10 @@ class SimulatedCellMultiplexing ():
         list_ssa = []
         list_min_ssa = []
         list_max_ssa = []
+        RNA_INTENSITY_MAX_VALUE =10 # this variable defines a value of units of RNA
         for i in range(0, self.number_genes):
             # # Simulations for intensity
-            _,ssa_ump,_ = SSA_rsnapsim( gene_file = self.list_gene_sequences[i], 
+            _,ssa_ump,_,_ = SSA_rsnapsim( gene_file = self.list_gene_sequences[i], 
                                         ke = self.list_elongation_rates[i],
                                         ki = self.list_initiation_rates[i],
                                         frames = self.simulation_time_in_sec,
@@ -2989,13 +2989,36 @@ class SimulatedCellMultiplexing ():
                         
             simulated_trajectories_RNA= SimulateRNA(shape_output_array=(self.list_number_spots[i], self.simulation_time_in_sec), 
                                                                             rna_intensity_method = self.simulated_RNA_intensities_method,
-                                                                            min_int=0,
-                                                                            max_int=10,
-                                                                            mean_int=10 ).simulate()
+                                                                            mean_int=RNA_INTENSITY_MAX_VALUE ).simulate()
             # appending simulated data
             list_ssa.append(ssa_ump)
             list_min_ssa.append(ssa_ump.min())
             list_max_ssa.append(ssa_ump.max())
+        
+        ####
+        vector_int_scales  = np.array ([self.intensity_scale_ch0,self.intensity_scale_ch1, self.intensity_scale_ch2])
+        ############
+        
+        # Calculating the estimated elongation rates based on parameter values
+        calculated_mean_int_in_ssa = np.zeros(len(self.list_gene_sequences))+0.001
+        for g in range(len(self.list_gene_sequences)):
+            _, _,tagged_pois,raw_seq = rss.seqmanip.open_seq_file(str(self.list_gene_sequences[g]))
+            gene_len = len(raw_seq)
+            gene_obj = tagged_pois['1'][0]
+            number_probes = np.amax(gene_obj.probe_vec)
+            calculated_mean_int_in_ssa[g] = (gene_len * self.list_initiation_rates[g]) / (self.list_elongation_rates[g] * number_probes)
+            
+        print('calculated_mean_int_in_ssa: ', calculated_mean_int_in_ssa)
+        # Calculated Scaling factors for intensity
+        int_scale_to_snr = np.zeros(3)
+        #counter_protein_index = 0
+        for i in range (len(self.list_target_channels_proteins)):
+            int_scale_to_snr[self.list_target_channels_proteins[i]] = (vector_int_scales[self.list_target_channels_proteins[i]] * self.mean_int_in_video[self.list_target_channels_proteins[i]]) / calculated_mean_int_in_ssa[i]
+            #counter_protein_index+=1
+        # Intensity scale for RNA Channel
+        for i in range (len(self.list_target_channels_mRNA)):
+            int_scale_to_snr[self.list_target_channels_mRNA[i]] = (vector_int_scales[self.list_target_channels_mRNA[i]] * self.mean_int_in_video[self.list_target_channels_mRNA[i]]) / RNA_INTENSITY_MAX_VALUE        
+        print('scales ', int_scale_to_snr)
         # Creating the videos
         list_DataFrame_particles_intensities = []
         for i in range(0, self.number_genes):
@@ -3007,10 +3030,9 @@ class SimulatedCellMultiplexing ():
                                                                                         target_channel_protein = self.list_target_channels_proteins[i],
                                                                                         target_channel_mRNA =  self.list_target_channels_mRNA[i], 
                                                                                         diffusion_coefficient = self.list_diffusion_coefficients[i], 
-                                                                                        min_int_multiplexing = min(list_min_ssa) , 
-                                                                                        max_int_multiplexing = max(list_max_ssa), 
                                                                                         save_as_gif = self.save_as_gif, 
-                                                                                        frame_selection_empty_video = self.frame_selection_empty_video)
+                                                                                        frame_selection_empty_video = self.frame_selection_empty_video,
+                                                                                        int_scale_to_snr=int_scale_to_snr)
             else:
                 tensor_video , DataFrame_particles_intensities = wrapper_simulated_cell(tensor_video, 
                                                                                         video_for_mask = self.initial_video, 
@@ -3019,11 +3041,10 @@ class SimulatedCellMultiplexing ():
                                                                                         target_channel_protein = self.list_target_channels_proteins[i], 
                                                                                         target_channel_mRNA = self.list_target_channels_mRNA[i] , 
                                                                                         diffusion_coefficient = self.list_diffusion_coefficients[i], 
-                                                                                        using_for_multiplexing = 1, 
-                                                                                        min_int_multiplexing = min(list_min_ssa) , 
-                                                                                        max_int_multiplexing = max(list_max_ssa),
                                                                                         save_as_gif = self.save_as_gif, 
-                                                                                        frame_selection_empty_video = 'loop') # notice that for the multiplexing frame_selection_empty_video has to be 'loop', because the initial video deffines the initial background image.
+                                                                                        frame_selection_empty_video = 'loop',
+                                                                                        int_scale_to_snr=int_scale_to_snr) # notice that for the multiplexing frame_selection_empty_video has to be 'loop', because the initial video deffines the initial background image.
+
             list_DataFrame_particles_intensities.append(DataFrame_particles_intensities)
         # Adding a classification column to all dataframes
         for i in range(0, self.number_genes):
@@ -3428,7 +3449,9 @@ def function_simulate_cell ( video_dir,
                             intensity_scale_ch2 = None,
                             dataframe_format = 'long',
                             simulated_RNA_intensities_method='constant',
-                            store_videos_in_memory= False):
+                            store_videos_in_memory= False,
+                            scale_intensity_in_base_video =False,
+                            basal_intensity_in_background_video= 20000):
     
     # Testing if the user passed parameters as lists. If not the code conver the parameters into lists
     def test_if_list(tested_list):
@@ -3537,7 +3560,9 @@ def function_simulate_cell ( video_dir,
                                                                                     simulated_RNA_intensities_method=simulated_RNA_intensities_method,
                                                                                     ignore_ch0 = ignore_ch0,
                                                                                     ignore_ch1 = ignore_ch1,
-                                                                                    ignore_ch2 = ignore_ch2).make_simulation()
+                                                                                    ignore_ch2 = ignore_ch2,
+                                                                                    scale_intensity_in_base_video=scale_intensity_in_base_video,
+                                                                                    basal_intensity_in_background_video=basal_intensity_in_background_video).make_simulation()
         
         if save_as_tif == True:
             tifffile.imwrite(str(save_to_path_video.joinpath(saved_file_name+'.tif')), video)
@@ -3560,7 +3585,7 @@ def function_simulate_cell ( video_dir,
         np.save(save_to_path_df.joinpath('ssas_multiplexing.npy') , ssas_multiplexing)
         # creating zip
         shutil.make_archive( base_name = save_to_path_df, format = 'zip', root_dir = save_to_path_df.parents[0], base_dir =save_to_path_df.name )
-        shutil.rmtree(save_to_path_df)
+        #shutil.rmtree(save_to_path_df)
         print('The simulation dataframes are stored here:', str(save_to_path_df))
 
     return list_videos, dataframe_simulated_cell, ssas_multiplexing
