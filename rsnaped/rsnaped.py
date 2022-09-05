@@ -28,6 +28,10 @@ except:
 # System libraries
 import io
 import sys
+import datetime
+import getpass
+import socket
+import platform
 #import statistics
 from statistics import median_low
 import random
@@ -2759,7 +2763,7 @@ class SimulatedCell():
         return tensor_video , spot_positions_movement, dataframe_particles
 
 
-class SimulatedCellMultiplexing ():
+class SimulatedCellDispatcher():
     '''
     This class takes a base video and simulates a multiplexing experiment, and it draws simulated spots on top of the image. The intensity for each simulated spot is proportional to the stochastic simulation given by the user.
 
@@ -3011,10 +3015,8 @@ class SimulatedCellMultiplexing ():
         print('calculated_mean_int_in_ssa: ', calculated_mean_int_in_ssa)
         # Calculated Scaling factors for intensity
         int_scale_to_snr = np.zeros(3)
-        #counter_protein_index = 0
         for i in range (len(self.list_target_channels_proteins)):
             int_scale_to_snr[self.list_target_channels_proteins[i]] = (vector_int_scales[self.list_target_channels_proteins[i]] * self.mean_int_in_video[self.list_target_channels_proteins[i]]) / calculated_mean_int_in_ssa[i]
-            #counter_protein_index+=1
         # Intensity scale for RNA Channel
         for i in range (len(self.list_target_channels_mRNA)):
             int_scale_to_snr[self.list_target_channels_mRNA[i]] = (vector_int_scales[self.list_target_channels_mRNA[i]] * self.mean_int_in_video[self.list_target_channels_mRNA[i]]) / RNA_INTENSITY_MAX_VALUE        
@@ -3336,6 +3338,8 @@ class PhotobleachingCorrection():
         return video_photobleached_corrected
 
 
+
+
 class Utilities():
     '''
     This class contains miscellaneous methods to perform tasks needed in multiple classes. No parameters are necessary for this class.
@@ -3495,6 +3499,7 @@ def function_simulate_cell ( video_dir,
     name_folder+= temp_list_ns + 'time_' + str(simulation_time_in_sec) + '_num_cells_' + str(number_cells)
     name_folder+='_int0_' +str(intensity_scale_ch0)+'_int1_' +str(intensity_scale_ch1)+'_int2_' +str(intensity_scale_ch2)
     name_folder = name_folder.replace(".", "_")
+    metadata_filename = 'metadata'+ name_folder + '.txt'
     folder_dataframe = 'dataframe' + name_folder
     folder_video = 'videos' + name_folder
         
@@ -3523,6 +3528,7 @@ def function_simulate_cell ( video_dir,
     list_dataframe_simulated_cell =[]
     list_ssa_all_cells_and_genes =[]
     list_videos = []
+    list_files_names_outputs = []
     # Reading all empty cells in directory
     list_files_names = sorted([f for f in listdir(video_dir) if isfile(join(video_dir, f)) and ('.tif') in f], key=str.lower)  # reading all tif files in the folder
     list_files_names.sort(key=lambda f: int(re.sub('\D', '', f)))  # sorting the index in numerical order
@@ -3534,7 +3540,7 @@ def function_simulate_cell ( video_dir,
         selected_video = randrange(num_cell_shapes)
         initial_video = imread(str(path_files[selected_video])) # video with empty cell
         mask_image = imread(masks_dir.joinpath('mask_cell_shape_'+str(selected_video)+'.tif'))
-        video, single_dataframe_simulated_cell, list_ssa = SimulatedCellMultiplexing(initial_video,
+        video, single_dataframe_simulated_cell, list_ssa = SimulatedCellDispatcher(initial_video,
                                                                                     list_gene_sequences,
                                                                                     list_number_spots,
                                                                                     list_target_channels_proteins,
@@ -3573,6 +3579,9 @@ def function_simulate_cell ( video_dir,
         list_dataframe_simulated_cell.append(single_dataframe_simulated_cell)
         list_ssa_all_cells_and_genes.append(list_ssa)
         list_videos.append(video)
+        
+        # list file names
+        list_files_names_outputs.append(saved_file_name+'.tif')
     
     dataframe_simulated_cell = pd.concat(list_dataframe_simulated_cell)
     ssas_multiplexing = np.array(list_ssa_all_cells_and_genes)
@@ -3588,7 +3597,173 @@ def function_simulate_cell ( video_dir,
         #shutil.rmtree(save_to_path_df)
         print('The simulation dataframes are stored here:', str(save_to_path_df))
 
+    # Creating metadata file
+    metadata_filename= str(current_dir.joinpath('temp',metadata_filename))
+    MetadataSimulatedCell( metadata_filename,
+                            video_dir, 
+                            masks_dir, 
+                            list_gene_sequences,
+                            list_number_spots,
+                            list_target_channels_proteins,
+                            list_target_channels_mRNA, 
+                            list_diffusion_coefficients,
+                            list_label_names,
+                            list_elongation_rates,
+                            list_initiation_rates,
+                            number_cells,
+                            simulation_time_in_sec,
+                            step_size_in_sec,
+                            frame_selection_empty_video,
+                            spot_size,
+                            spot_sigma,
+                            intensity_scale_ch0,
+                            intensity_scale_ch1,
+                            intensity_scale_ch2,
+                            simulated_RNA_intensities_method,
+                            basal_intensity_in_background_video,
+                            list_files_names_outputs).write_metadata()
+    
     return list_videos, dataframe_simulated_cell, ssas_multiplexing
+
+
+
+
+
+
+
+class MetadataSimulatedCell():
+    '''
+    This class is intended to generate a metadata file containing used dependencies, user information, and parameters used to generate the simulated cell.
+    
+    Parameters
+    
+    The parameters for this class are defined in the SimultedCell class
+    '''
+    def __init__(self, 
+                metadata_filename,
+                video_dir, 
+                masks_dir, 
+                list_gene_sequences,
+                list_number_spots,
+                list_target_channels_proteins,
+                list_target_channels_mRNA, 
+                list_diffusion_coefficients,
+                list_label_names,
+                list_elongation_rates,
+                list_initiation_rates,
+                number_cells = 1,
+                simulation_time_in_sec = 100,
+                step_size_in_sec = 1,
+                frame_selection_empty_video='generate_from_gaussian',
+                spot_size = 7 ,
+                spot_sigma=1,
+                intensity_scale_ch0 = None,
+                intensity_scale_ch1 = None,
+                intensity_scale_ch2 = None,
+                simulated_RNA_intensities_method='constant',
+                basal_intensity_in_background_video= 20000,
+                list_files_names_outputs=[]):
+        
+        
+        
+        self.metadata_filename = metadata_filename
+        self.video_dir = video_dir
+        self.masks_dir = masks_dir
+        self.list_gene_sequences = list_gene_sequences
+        self.list_number_spots = list_number_spots
+        self.list_target_channels_proteins = list_target_channels_proteins
+        self.list_target_channels_mRNA =  list_target_channels_mRNA
+        self.list_diffusion_coefficients = list_diffusion_coefficients
+        self.list_label_names = list_label_names
+        self.list_elongation_rates = list_elongation_rates
+        self.list_initiation_rates = list_initiation_rates
+        self.number_cells = number_cells
+        self.simulation_time_in_sec = simulation_time_in_sec
+        self.step_size_in_sec = step_size_in_sec
+        self.frame_selection_empty_video = frame_selection_empty_video
+        self.spot_size = spot_size
+        self.spot_sigma = spot_sigma
+        self.intensity_scale_ch0 = intensity_scale_ch0
+        self.intensity_scale_ch1 = intensity_scale_ch1
+        self.intensity_scale_ch2 = intensity_scale_ch2
+        self.simulated_RNA_intensities_method = simulated_RNA_intensities_method
+        self.basal_intensity_in_background_video = basal_intensity_in_background_video
+        self.list_files_names = list_files_names_outputs
+
+
+    def write_metadata(self):
+        '''
+        This method writes the metadata file.
+        '''
+        installed_modules = [str(module).replace(" ","==") for module in pkg_resources.working_set]
+        important_modules = ['rsnapsim','rsnaped', 'cellpose','trackpy', 'scipy','pathlib','re','glob',  'cv2','imageio','tqdm', 'torch','tifffile', 'setuptools', 'scipy', 'scikit-learn', 'scikit-image', 'pysmb', 'pyfiglet', 'pip', 'Pillow', 'pandas', 'opencv-python-headless', 'numpy', 'numba', 'natsort', 'mrc', 'matplotlib', 'llvmlite', 'jupyter-core', 'jupyter-client', 'joblib', 'ipython', 'ipython-genutils', 'ipykernel']
+        def create_data_file(filename):
+            if sys.platform == 'linux' or sys.platform == 'darwin':
+                os.system('touch  ' + filename)
+            elif sys.platform == 'win32':
+                os.system('echo , > ' + filename)
+        number_spaces_pound_sign = 75
+        def write_data_in_file(filename):
+            with open(filename, 'w') as fd:
+                fd.write('#' * (number_spaces_pound_sign)) 
+                fd.write('\nAUTHOR INFORMATION  ')
+                fd.write('\n    Author: ' + getpass.getuser())
+                fd.write('\n    Created at: ' + datetime.datetime.today().strftime('%d %b %Y'))
+                fd.write('\n    Time: ' + str(datetime.datetime.now().hour) + ':' + str(datetime.datetime.now().minute) )
+                fd.write('\n    Operative System: ' + sys.platform )
+                fd.write('\n    Hostname: ' + socket.gethostname() + '\n')
+                fd.write('#' * (number_spaces_pound_sign) ) 
+                fd.write('\nPARAMETERS USED  ')
+                fd.write('\n    number_simulated_cells: '+ str(self.number_cells) )
+                fd.write('\n    simulation_time_in_sec: '+ str(self.simulation_time_in_sec ) )
+                fd.write('\n    step_size_in_sec: '+ str(self.step_size_in_sec ) )
+                fd.write('\n    frame_selection_empty_video: '+ str(self.frame_selection_empty_video ) )
+                fd.write('\n    spot_size: '+ str(self.spot_size ) )
+                fd.write('\n    spot_sigma: '+ str(self.spot_sigma ) )
+                fd.write('\n    intensity_scale_ch0: '+ str(self.intensity_scale_ch0 ) )
+                fd.write('\n    intensity_scale_ch1: '+ str(self.intensity_scale_ch1 ) )
+                fd.write('\n    intensity_scale_ch2: '+ str(self.intensity_scale_ch2 ) )
+                fd.write('\n    simulated_RNA_intensities_method: '+ str(self.simulated_RNA_intensities_method ) )
+                fd.write('\n    basal_intensity_in_background_video: '+ str(self.basal_intensity_in_background_video) )
+
+                fd.write('\n    Parameters for each gene')
+                for k in range (0,len(self.list_gene_sequences)):
+                    fd.write('\n      Gene File Name: ' + str(pathlib.Path(self.list_gene_sequences[k]).name ) )
+                    fd.write('\n        number_spots: ' + str(self.list_number_spots[k]) )
+                    fd.write('\n        target_channel_protein: ' + str(self.list_target_channels_proteins[k]) )
+                    fd.write('\n        target_channel_mrna: ' + str(self.list_target_channels_mRNA[k]) )
+                    fd.write('\n        diffusion_coefficient: ' + str(self.list_diffusion_coefficients[k]) )
+                    fd.write('\n        elongation_rate: ' + str(self.list_elongation_rates[k]) )
+                    fd.write('\n        initiation_rates: ' + str(self.list_initiation_rates[k]) )
+                    fd.write('\n        label_name: ' + str(self.list_label_names[k]) )
+                fd.write('\n') 
+                fd.write('#' * (number_spaces_pound_sign) ) 
+                fd.write('\n FILES AND DIRECTORIES USED ')
+                fd.write('\n    Original video directory: ' + str(self.video_dir) )
+                fd.write('\n    Masks directory : ' + str(self.masks_dir)  )
+
+                # for loop for all the images.
+                fd.write('\n    Images in the directory :'  )
+                counter=0
+                for indx, img_name in enumerate (self.list_files_names):
+                    fd.write('\n        '+ img_name +  '   - Image Id Number:  ' + str(indx ))
+                    counter+=1
+                fd.write('\n')  
+                fd.write('#' * (number_spaces_pound_sign)) 
+                fd.write('\nREPRODUCIBILITY ')
+                fd.write('\n    Platform: \n')
+                fd.write('        Python: ' + str(platform.python_version()) )
+                fd.write('\n    Dependencies: ')
+                # iterating for all modules
+                for module_name in installed_modules:
+                    if any(module_name[0:4] in s for s in important_modules):
+                        fd.write('\n        '+ module_name)
+                fd.write('\n') 
+                fd.write('#' * (number_spaces_pound_sign) ) 
+        create_data_file(self.metadata_filename)
+        write_data_in_file(self.metadata_filename)
+        return None
+
 
 
 # Class spot classification
