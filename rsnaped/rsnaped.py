@@ -150,9 +150,9 @@ class SSA_rsnapsim():
     t_burnin : int , optional
         time of burnin. The default is 1000
     use_Harringtonin: bool, optional
-        Flag to specify if Harringtonin is used in the experiment. The default is 0.
+        Flag to specify if Harringtonin is used in the experiment. The default is False.
     use_FRAP: bool
-        Flag to specify if FRAP is used in the experiment. The default is 0.
+        Flag to specify if FRAP is used in the experiment. The default is False.
     perturbation_time_start: int, optional.
         Time to start the inhibition. The default is 0.
     perturbation_time_stop : int, opt.
@@ -160,7 +160,7 @@ class SSA_rsnapsim():
 
     Outputs:
     '''  
-    def __init__(self,gene_file,ke=10,ki=0.03,frames=300,frame_rate=1,n_traj=20,t_burnin=1000,use_Harringtonin=0,use_FRAP=0, perturbation_time_start=0,perturbation_time_stop=None):
+    def __init__(self,gene_file,ke=10,ki=0.03,frames=300,frame_rate=1,n_traj=20,t_burnin=1000,use_Harringtonin=False,use_FRAP=False, perturbation_time_start=0,perturbation_time_stop=None):
         self.gene_file=gene_file
         self.ke=ke
         self.ki=ki
@@ -355,7 +355,7 @@ class ConvertToStandardFormat():
             video_correct_order[:, :, :, :number_channels] = video_transposed
         elif video_transposed.shape[3] == 3:
             print ('The video has been transposed to the format [T, Y, X, C]')
-            video_correct_order = video_transposed.copy()
+            video_correct_order = np.copy(video_transposed)
         return video_correct_order
     def image_to_video(self):
         '''
@@ -368,12 +368,12 @@ class ConvertToStandardFormat():
         '''
         # This section corrects the video to the dimensions. [T, Y, X, C] in case it is an image with 2D x, y.
         if len(self.video.shape) == 2:
-            video_temp = self.video.copy()
+            video_temp = np.copy(self.video)
             video_correct_order = np.zeros((1, self.video.shape[0], self.video.shape[1], 3), dtype = np.uint16)
             video_correct_order[0, :, :, 0] = video_temp
             print ('The video has been converted to the format [T, Y, X, C] from [Y, X]')
         if len(self.video.shape) == 3:
-            video_temp = self.video.copy()
+            video_temp = np.copy(self.video)
             video_correct_order = np.zeros((1, self.video.shape[0], self.video.shape[1], 3), dtype = np.uint16)
             video_correct_order[0, :, :, :] = video_temp
             print ('The video has been converted to the format [T, Y, X, C] from [Y, X, C]')
@@ -733,7 +733,7 @@ class ManualMask():
         self.image = normalized_video[time_point_selected,:,:,selected_channel]
         self.selected_points = []
         self.figure_to_draw_points , axes_in_figure = plt.subplots()
-        self.new_image = axes_in_figure.imshow(self.image.copy(),cmap='Spectral_r')
+        self.new_image = axes_in_figure.imshow(np.copy(self.image),cmap='Spectral_r')
         self.cli = self.figure_to_draw_points.canvas.mpl_connect('button_press_event', self.onclick)
     # Function to draw the polygon in the figure
     def polygon(self,new_image,points_in_polygon):
@@ -746,12 +746,12 @@ class ManualMask():
         self.selected_points.append([event.xdata,event.ydata])
         if len(self.selected_points)>=1:
             self.figure_to_draw_points
-            self.new_image.set_data(self.polygon(self.image.copy(),self.selected_points))
+            self.new_image.set_data(self.polygon(np.copy(self.image),self.selected_points))
 #***************************************************************************************/
 
 
 class MaskManual_createMask():
-    def __init__(self,video,mask_object,time_point_selected=0,selected_channel=1,show_plot=1):
+    def __init__(self,video,mask_object,time_point_selected=0,selected_channel=1,show_plot=True):
         self.video = video
         self.mask_object = mask_object
         self.time_point_selected = time_point_selected
@@ -793,7 +793,7 @@ class BeadsAlignment():
     min_intensity : float, optional
         Minimal expected intensity for the beads. The default is 400.
     show_plot : Bool, optional
-        Shows a plot with the detected beads in the image. The default is true.
+        Shows a plot with the detected beads in the image. The default is True.
     '''
     def __init__(self, first_image_beads:np.ndarray,second_image_beads:np.ndarray, spot_size:int = 5, min_intensity:float = 100,show_plot=True):
         self.first_image_beads = first_image_beads
@@ -1010,7 +1010,7 @@ class VisualizerImage():
             list_videos_normalized = []
             for index_video in range(0, self.number_videos):
                 number_time_points, _, _, number_channels = list_videos[index_video].shape
-                temp_video = list_videos[index_video].copy()
+                temp_video = np.copy(list_videos[index_video])
                 for index_channels in range (number_channels):
                     for index_time in range (number_time_points):
                         temp_video[index_time, :, :, index_channels] = RemoveExtrema(temp_video[index_time, :, :, index_channels]).remove_outliers()
@@ -1224,13 +1224,13 @@ class VisualizerVideo():
     list_mask_array : List of NumPy arrays or a single NumPy array, with Boolean values, where 1 represents the masked area, and 0 represents the area outside the mask.
         An array of images with dimensions [Y, X].
     show_time_projection_spots : int, optional
-        Allows the user to display the projection of all detected spots for all time points on the current image. The default is 0.
+        Allows the user to display the projection of all detected spots for all time points on the current image. The default is False.
     normalize : bool, optional
         Option to normalize the data by removing outliers. The code removes the 1 and 99 percentiles from the image. The default is False.
     step_size_in_sec : float, optional
         Step size in seconds. The default is 1.
     '''
-    def __init__(self, list_videos:list, dataframe_particles = None, list_mask_array:list = None, show_time_projection_spots:bool = 0, normalize:bool = False, step_size_in_sec:float = 1):
+    def __init__(self, list_videos:list, dataframe_particles = None, list_mask_array:list = None, show_time_projection_spots:bool = False, normalize:bool = False, step_size_in_sec:float = 1):
         self.particle_size = 7
         self.show_time_projection_spots = show_time_projection_spots
         # Checking if the video is a list or a single video.
@@ -1257,7 +1257,7 @@ class VisualizerVideo():
             list_videos_normalized = []
             for index_video in range(0, self.number_videos):
                 number_time_points, _, _, number_channels = list_videos[index_video].shape
-                temp_video = list_videos[index_video].copy()
+                temp_video = np.copy(list_videos[index_video])
                 for index_channels in range (number_channels):
                     for index_time in range (number_time_points):
                         temp_video[index_time, :, :, index_channels] = RemoveExtrema(temp_video[index_time, :, :, index_channels]).remove_outliers()
@@ -1300,7 +1300,7 @@ class VisualizerVideo():
                 plt.imshow(video[index_time, :, :, channel], cmap = 'gray', vmax = np.amax(video[index_time, :, :, channel])*0.95)
             else :
                 # Converting a np.uint16 array into float.
-                image = video[index_time, :, :, :].copy()
+                image = np.copy(video[index_time, :, :, :])
                 min_image, max_image = np.min(image), np.max(image)
                 image -= min_image
                 image_float = np.array(image, 'float32')
@@ -1405,7 +1405,7 @@ class VisualizerVideo3D():
                 plt.imshow(video[index_time, index_z_axis, :, :, channel], cmap = 'gray')
             elif drop_channel == 'All_Channels' :
                 # Converting a np.uint16 array into float.
-                image = video[index_time, index_z_axis:, :, 0:int(np.amin((3, self.min_num_channels)))].copy()
+                image = np.copy(video[index_time, index_z_axis:, :, 0:int(np.amin((3, self.min_num_channels)))])
                 min_image, max_image = np.min(image), np.max(image)
                 image -= min_image
                 image_float = np.array(image, 'float32')
@@ -1687,7 +1687,7 @@ class CellposeSelection():
                 number_particles = []
                 for nm in range (1, n_masks+1): # iterating for each mask in a given cell. The mask has values from 0 for the background to int n, where n is the number of detected masks.
                     # # Apply mask to a given time point
-                    mask_copy = self.mask.copy()
+                    mask_copy = np.copy(self.mask)
                     tested_mask = np.where(mask_copy == nm, 1, 0) # making zeros all elements outside each mask, and once all elements inside of each mask.
                     video_minimal_time = np.amin((int(self.num_frames/3), 5, self.num_frames))
                     _, number_detected_trajectories, _ = Trackpy(self.video[0:video_minimal_time, :, :, :], tested_mask, particle_size = self.particle_size, selected_channel = self.selected_channel , minimal_frames = self.minimal_frames, show_plot = 0).perform_tracking()                    
@@ -1728,9 +1728,9 @@ class Trackpy():
     optimization_iterations : int, optional
         Number of iterations for the optimization process to select the best filter. The default is 30.
     use_default_filter : bool, optional
-        This option allows the user to use a default filter if TRUE. Else, it uses an optimization process to select the best filter for the image. The default is = 1.
+        This option allows the user to use a default filter if TRUE. Else, it uses an optimization process to select the best filter for the image. The default is = True.
     show_plot : bool, optional
-        Allows the user to show a plot for the optimization process. The default is 1.
+        Allows the user to show a plot for the optimization process. The default is True.
     FISH_image : bool, optional.
         This parameter allows the user to use FISH images and connect spots detected along multiple z-slices. The default is 0.
     intensity_selection_threshold_int_std : float, optional. The default is None, and it uses a default value or an optimization method if use_optimization_for_tracking is set to TRUE. 
@@ -1738,7 +1738,7 @@ class Trackpy():
     intensity_threshold_tracking : float or None, optional.
         Intensity threshold value to be used during tracking. If no value is passed, the code attempts to calculate this value. The default is None.
     '''
-    def __init__(self, video:np.ndarray, mask:np.ndarray, particle_size:int = 5, selected_channel:int = 0, minimal_frames:int = 5, optimization_iterations:int = 10, use_default_filter:int = 1, FISH_image: bool = 0, show_plot:bool = 1,intensity_threshold_tracking=None):
+    def __init__(self, video:np.ndarray, mask:np.ndarray, particle_size:int = 5, selected_channel:int = 0, minimal_frames:int = 5, optimization_iterations:int = 10, use_default_filter:bool = True, FISH_image: bool = False, show_plot:bool = True,intensity_threshold_tracking=None):
         self.NUMBER_OF_CORES = multiprocessing.cpu_count()
         self.time_points = video.shape[0]
         self.selected_channel = selected_channel
@@ -1923,9 +1923,9 @@ class Intensity():
     step_size : float, optional
         Frame rate in seconds. The default is 1 frame per second.
     show_plot : bool, optional
-        Allows the user to show a plot for the optimization process. The default is 1.
+        Allows the user to show a plot for the optimization process. The default is True.
     '''
-    def __init__(self, video:np.ndarray, particle_size:int = 5, trackpy_dataframe: Union[object , None ] = None, spot_positions_movement: Union[np.ndarray, None] = None,dataframe_format:str = 'short',   method:str = 'disk_donut', step_size:float = 1, show_plot:bool = 1):
+    def __init__(self, video:np.ndarray, particle_size:int = 5, trackpy_dataframe: Union[object , None ] = None, spot_positions_movement: Union[np.ndarray, None] = None,dataframe_format:str = 'short',   method:str = 'disk_donut', step_size:float = 1, show_plot:bool = True):
         if particle_size < 3:
             particle_size = 3 # minimal size allowed for detection
         if (particle_size % 2) == 0:
@@ -2371,11 +2371,11 @@ class SimulatedCell():
     frame_selection_empty_video : str, optional
         Method to select the frames from the empty video, the options are : 'constant' , 'shuffle', 'loop', and 'linear_interpolation'. The default is 'shuffle'.
     ignore_trajectories_ch0 : bool, optional
-        A flag that ignores plotting trajectories in channel 0. The default is 0.
+        A flag that ignores plotting trajectories in channel 0. The default is False.
     ignore_trajectories_ch1 : bool, optional
-        A flag that ignores plotting trajectories in channel 1. The default is 1.
+        A flag that ignores plotting trajectories in channel 1. The default is False.
     ignore_trajectories_ch2 : bool, optional
-        A flag that ignores plotting trajectories in channel 2. The default is 1.
+        A flag that ignores plotting trajectories in channel 2. The default is False.
     intensity_scale_ch0 : float , optional
         Scaling factor for channel 0 that converts the intensity in the stochastic simulations to the intensity in the image.
     intensity_scale_ch1 : float , optional
@@ -2388,7 +2388,41 @@ class SimulatedCell():
         "short" format generates this dataframe: [cell_number, particle, frame, red_int_mean, green_int_mean, blue_int_mean, x, y].
     
     '''
-    def __init__(self, base_video:np.ndarray, video_for_mask:Union[np.ndarray, None] = None,  mask_image:Union[np.ndarray, None] = None, number_spots:int = 10, number_frames:int = 20, step_size:float = 1, diffusion_coefficient:float = 0.01, simulated_trajectories_ch0:Union[np.ndarray, None]  = None, size_spot_ch0:int = 5, spot_sigma_ch0:int = 1, simulated_trajectories_ch1:Union[np.ndarray, None] = None, size_spot_ch1:int = 5, spot_sigma_ch1:int = 1, simulated_trajectories_ch2:Union[np.ndarray, None] = None, size_spot_ch2:int = 5, spot_sigma_ch2:int = 1, ignore_ch0: bool = 0, ignore_ch1: bool = 0, ignore_ch2: bool = 0, save_as_tif_uint8: bool = 0, save_as_tif: bool = 0, save_as_gif: bool = 0, save_dataframe: bool = 0, saved_file_name :str = 'temp', create_temp_folder: bool = True, intensity_calculation_method :str = 'disk_donut', using_for_multiplexing = 0, min_int_multiplexing: bool = None, max_int_multiplexing :Union[float, None] = None, perform_video_augmentation: bool = 0, frame_selection_empty_video:str = 'shuffle',ignore_trajectories_ch0:bool =0, ignore_trajectories_ch1:bool =0, ignore_trajectories_ch2:bool =0,intensity_scale_ch0:float = 10,intensity_scale_ch1:float = 10,intensity_scale_ch2:float = 10,dataframe_format:str = 'short' ):
+    def __init__(self, base_video:np.ndarray,
+                video_for_mask:Union[np.ndarray, None] = None,  
+                mask_image:Union[np.ndarray, None] = None, 
+                number_spots:int = 10, 
+                number_frames:int = 20, 
+                step_size:float = 1, 
+                diffusion_coefficient:float = 0.01, 
+                simulated_trajectories_ch0:Union[np.ndarray, None]  = None, 
+                size_spot_ch0:int = 5, 
+                spot_sigma_ch0:int = 1, 
+                simulated_trajectories_ch1:Union[np.ndarray, None] = None, 
+                size_spot_ch1:int = 5, 
+                spot_sigma_ch1:int = 1, 
+                simulated_trajectories_ch2:Union[np.ndarray, None] = None, 
+                size_spot_ch2:int = 5, 
+                spot_sigma_ch2:int = 1, 
+                ignore_ch0: bool = False, 
+                ignore_ch1: bool = False, 
+                ignore_ch2: bool = False, 
+                save_as_tif_uint8: bool = False, 
+                save_as_tif: bool = False, 
+                save_as_gif: bool = False, 
+                save_dataframe: bool = False, 
+                saved_file_name :str = 'temp', 
+                create_temp_folder: bool = True, 
+                intensity_calculation_method :str = 'disk_donut', 
+                perform_video_augmentation: bool = 0, 
+                frame_selection_empty_video:str = 'shuffle',
+                ignore_trajectories_ch0:bool =False, 
+                ignore_trajectories_ch1:bool =False, 
+                ignore_trajectories_ch2:bool =False,
+                intensity_scale_ch0:float = 1,
+                intensity_scale_ch1:float = 1,
+                intensity_scale_ch2:float = 1,
+                dataframe_format:str = 'short' ):
         if (perform_video_augmentation == 1) and (video_for_mask is None):
             preprocessed_base_video,selected_angle = AugmentationVideo(base_video).random_rotation()
             if not(mask_image is None):
@@ -2760,6 +2794,7 @@ class SimulatedCell():
             else:
                 save_to_path = pathlib.Path().absolute()
             dataframe_particles.to_csv(str(save_to_path.joinpath(self.saved_file_name +'_df'+ '.csv')), index = True)
+            
         return tensor_video , spot_positions_movement, dataframe_particles
 
 
@@ -2836,7 +2871,38 @@ class SimulatedCellDispatcher():
     basal_intensity_in_background_video : int, optional
         if the base video is rescaled, this value indicates the maximum value to rescale the original video. The default is 20000    
     '''
-    def __init__(self, initial_video:np.ndarray, list_gene_sequences:list, list_number_spots:list, list_target_channels_proteins:list, list_target_channels_mRNA:list, list_diffusion_coefficients:list, list_label_names:list, list_elongation_rates:list, list_initiation_rates:list, simulation_time_in_sec:float, step_size_in_sec:float, save_as_tif:bool, save_dataframe:bool, saved_file_name:str = 'temp', create_temp_folder:bool = False, mask_image:Union[np.ndarray, None] = None, cell_number:int = 0, save_as_gif:bool = 0, perform_video_augmentation:bool = True, frame_selection_empty_video:str = 'shuffle',spot_size:int = 5 ,intensity_scale_ch0 = 10,intensity_scale_ch1 = 10,intensity_scale_ch2 = 10,dataframe_format='short',simulated_RNA_intensities_method='constant',spot_sigma=1,ignore_ch0: bool = False, ignore_ch1: bool = False, ignore_ch2: bool = False, scale_intensity_in_base_video: bool = False, basal_intensity_in_background_video : int = 20000):
+    def __init__(self, 
+                initial_video:np.ndarray, 
+                list_gene_sequences:list, 
+                list_number_spots:list, 
+                list_target_channels_proteins:list, 
+                list_target_channels_mRNA:list,
+                list_diffusion_coefficients:list, 
+                list_label_names:list, 
+                list_elongation_rates:list, 
+                list_initiation_rates:list, 
+                simulation_time_in_sec:float, 
+                step_size_in_sec:float, 
+                save_as_tif:bool=False, 
+                save_dataframe:bool=False, 
+                saved_file_name:str = 'temp', 
+                create_temp_folder:bool = False, 
+                mask_image:Union[np.ndarray, None] = None, 
+                cell_number:int = 0, 
+                save_as_gif:bool = False, 
+                perform_video_augmentation:bool = True, 
+                frame_selection_empty_video:str = 'shuffle', 
+                spot_size:int = 5 ,
+                intensity_scale_ch0 = 1,
+                intensity_scale_ch1 = 1,
+                intensity_scale_ch2 = 1,
+                dataframe_format='short',
+                simulated_RNA_intensities_method='constant',
+                spot_sigma=1,ignore_ch0: bool = False, 
+                ignore_ch1: bool = False, 
+                ignore_ch2: bool = False, 
+                scale_intensity_in_base_video: bool = False, 
+                basal_intensity_in_background_video : int = 20000):
         if perform_video_augmentation == True:
             preprocessed_base_video,selected_angle = AugmentationVideo(initial_video).random_rotation()
             if not(mask_image is None):
@@ -2855,10 +2921,7 @@ class SimulatedCellDispatcher():
         mean_int_in_video = [ np.median(preprocessed_base_video[1,:,:,i]) for i in range(preprocessed_base_video.shape[3]) ]
         if len(mean_int_in_video)<3:
             mean_int_in_video.append(mean_int_in_video[1])
-        self.mean_int_in_video = np.array(mean_int_in_video)
-        
-        print('mean_int__', mean_int_in_video)
-        
+        self.mean_int_in_video = np.array(mean_int_in_video)        
         self.initial_video = preprocessed_base_video
         self.list_gene_sequences = list_gene_sequences
         self.list_number_spots = list_number_spots
@@ -3011,8 +3074,6 @@ class SimulatedCellDispatcher():
             gene_obj = tagged_pois['1'][0]
             number_probes = np.amax(gene_obj.probe_vec)
             calculated_mean_int_in_ssa[g] = (gene_len * self.list_initiation_rates[g]) / (self.list_elongation_rates[g] * number_probes)
-            
-        print('calculated_mean_int_in_ssa: ', calculated_mean_int_in_ssa)
         # Calculated Scaling factors for intensity
         int_scale_to_snr = np.zeros(3)
         for i in range (len(self.list_target_channels_proteins)):
@@ -3020,7 +3081,8 @@ class SimulatedCellDispatcher():
         # Intensity scale for RNA Channel
         for i in range (len(self.list_target_channels_mRNA)):
             int_scale_to_snr[self.list_target_channels_mRNA[i]] = (vector_int_scales[self.list_target_channels_mRNA[i]] * self.mean_int_in_video[self.list_target_channels_mRNA[i]]) / RNA_INTENSITY_MAX_VALUE        
-        print('scales ', int_scale_to_snr)
+        
+        
         # Creating the videos
         list_DataFrame_particles_intensities = []
         for i in range(0, self.number_genes):
@@ -3347,7 +3409,7 @@ class Utilities():
     def __init__(self):
         pass
     
-    def convert_to_int8(self,image,rescale=True):
+    def convert_to_int8(image,rescale=True):
         '''
         This method converts images from int16 to uint8. Optionally, the image can be rescaled and stretched.
         
@@ -3359,29 +3421,32 @@ class Utilities():
             If True it rescales the image to the min and max intensity to 0 and 255. The default is True. 
         '''
         if rescale == True:
-            image_new= image.copy
-            for i in range(0, image.shape[2]):  # iterate for each channel
-                min_intensity, max_intensity = np.min(image[:,:,i]), np.max(image[:,:,i]) 
-                image_new[:,:,i] -= min_intensity
-                temp_image_float = np.array(image[:,:,i], 'float32')
-                temp_image_float *= 255./(max_intensity-min_intensity)
-                image_new = np.asarray(np.round(temp_image_float), 'uint8')
+            image_new= np.copy(image)
+            image_uint8= np.zeros_like(image,dtype='float32')
+            for i in range(0, image_new.shape[3]):  # iterate for each channel
+                min_intensity, max_intensity = np.min(image_new[:,:,:,i]), np.max(image_new[:,:,:,i])
+                image_uint8[:,:,:,i] = image_new[:,:,:,i] - min_intensity
+                image_uint8[:,:,:,i] = (image_uint8[:,:,:,i]*255)/(max_intensity-min_intensity)
+            image_uint8[image_uint8<0]=0
+            image_uint8 = np.uint8(image_uint8)
         else:
-            image_new= np.zeros_like(image)
-            for i in range(0, image.shape[2]):  # iterate for each channel
-                image_new[:,:,i]= (image[:,:,i]/ image[:,:,i].max()) *255
-                image_new = np.uint8(image_new)
+            image_new= np.copy(image)
+            image_uint8= np.zeros_like(image)
+            for i in range(0, image.shape[3]):  # iterate for each channel
+                image_new[:,:,:,i]= (image[:,:,:,i]/ image[:,:,:,i].max()) *255
+            image_uint8 = np.uint8(image_new)
         
         # padding with zeros the channel dimenssion.
-        if image_new.shape[2]<3:
+        if image_uint8.shape[3]<3:
             # padding until having 3 color channels
-            while image_new.shape[2]<3:
-                zeros_plane = np.zeros_like(image_new[:,:,0])
-                image_new = np.concatenate((image_new,zeros_plane[:,:,np.newaxis]),axis=2)
+            while image_new.shape[3]<3:
+                zeros_plane = np.zeros_like(image_new[:,:,:,0])
+                image_new = np.concatenate((image_new,zeros_plane[:,:,:,np.newaxis]),axis=3)
+        
         # If more than 3 color channels are passed. It only selects the first three color channels.
-        elif image_new.shape[2]> 3:
-            image_new = image_new[:,:,0:3]
-        return image_new
+        elif image_uint8.shape[3]> 3:
+            image_uint8 = image_uint8[:,:,:,0:3]
+        return image_uint8
     
     
     # Functions with the bandpass and gaussian filters
@@ -3430,32 +3495,128 @@ class Utilities():
         return msd, rmsd 
 
 
-def function_simulate_cell ( video_dir, 
-                            masks_dir, 
-                            list_gene_sequences,
-                            list_number_spots,
-                            list_target_channels_proteins,
-                            list_target_channels_mRNA, 
-                            list_diffusion_coefficients,
-                            list_label_names,
-                            list_elongation_rates,
-                            list_initiation_rates,
-                            number_cells = 1,
-                            simulation_time_in_sec = 100,
-                            step_size_in_sec = 1,
-                            save_as_tif = False, 
-                            save_dataframe = False, 
-                            frame_selection_empty_video='generate_from_gaussian',
-                            spot_size = 7 ,
-                            spot_sigma=1,
-                            intensity_scale_ch0 = None,
-                            intensity_scale_ch1 = None,
-                            intensity_scale_ch2 = None,
-                            dataframe_format = 'long',
-                            simulated_RNA_intensities_method='constant',
-                            store_videos_in_memory= False,
-                            scale_intensity_in_base_video =False,
-                            basal_intensity_in_background_video= 20000):
+def simulate_cell ( video_dir, 
+                    list_gene_sequences,
+                    list_number_spots,
+                    list_target_channels_proteins,
+                    list_target_channels_mRNA, 
+                    list_diffusion_coefficients,
+                    list_elongation_rates,
+                    list_initiation_rates,
+                    list_label_names=None,
+                    masks_dir = None,
+                    number_cells = 1,
+                    simulation_time_in_sec = 100,
+                    step_size_in_sec = 1,
+                    save_as_tif = False, 
+                    save_dataframe = False, 
+                    save_as_gif=False,
+                    frame_selection_empty_video='generate_from_gaussian',
+                    spot_size = 7 ,
+                    spot_sigma=1,
+                    intensity_scale_ch0 = None,
+                    intensity_scale_ch1 = None,
+                    intensity_scale_ch2 = None,
+                    dataframe_format = 'long',
+                    simulated_RNA_intensities_method='constant',
+                    store_videos_in_memory= False,
+                    scale_intensity_in_base_video =False,
+                    basal_intensity_in_background_video= 20000):
+
+    '''
+    This function is intended to simulate single-molecule translation dynamics in a cell. The result of this simultion is a .tif video and a dataframe containing the transation spot characteristics.
+
+    Parameters
+
+    video_dir :  NumPy array
+        Path to an initial video file with the following format Array of images with dimensions [T, Y, X, C].
+    masks_dir :  NumPy array
+        Path to an image with containing the mask used to segment the original video. The image has the following dimensions [Y, X]. Optional, the  default is None.
+    list_gene_sequences : List of strings
+        List where every element is a gene sequence file.
+    list_number_spots : List of int
+        List where every element represents the number of spots to simulate for each gene.
+    list_target_channels_proteins : List of int with a range from 0 to 2
+        List where every element represents the specific channel where the spots for the nascent proteins will be located.
+    list_target_channels_mRNA : List of int with a range from 0 to 2
+        List where every element represents the specific channel where the spots for the mRNA signals will be located.
+    list_diffusion_coefficients : List of floats
+        List where every element represents the diffusion coefficient for every gene.
+    list_label_names : List of str or int
+        List where every element contains the label for each gene. Optional the default is None. None will assign an integer label to each gene from 0 to n, ehere n is the number of genes-1.
+    list_elongation_rates : List of floats
+        List where every element represents the elongation rate for every gene.
+    list_initiation_rates : List of floats
+        List where every element represents the initiation rate for every gene.
+    simulation_time_in_sec : int
+        The simulation time in seconds. The default is 20.
+    step_size_in_sec : float, optional
+        Step size for the simulation. In seconds. The default is 1.
+    save_as_tif : bool, optional
+        If true, it generates and saves a uint16 (High) quality image tif file for the simulation. The default is 0.
+    save_dataframe : bool, optional
+        If true, it generates and saves a pandas dataframe with the simulation. Dataframe with fields [cell_number, particle, frame, red_int_mean, green_int_mean, blue_int_mean, red_int_std, green_int_std, blue_int_std, x, y]. The default is 0.
+    saved_file_name : str, optional
+        The file name for the simulated cell output files (tif images, gif images, data frames). The default is 'temp'.
+    create_temp_folder : bool, optional
+        Creates a folder with the simulation output. The default is True.
+    cell_number : int, optional
+        Cell number used as an index for the data frame. The default is 0.
+    save_as_gif : bool, optional
+        If true, it generates and saves a .gif with the simulation. The default is 0.
+    perform_video_augmentation : bool, optional
+        If true, it performs random rotations the initial video. The default is 1.
+    frame_selection_empty_video : str, optional
+        Method to select the frames from the empty video, the options are : 'constant' , 'shuffle' and 'loop'. The default is 'shuffle'.
+    spot_size : int, optional
+        Spot size in pixels. The default is 5.
+    spot_sigma : int, optional.
+        Sigma value used to generate a gaussian Point Spread Fucntion. The default is 1.
+    intensity_scale_ch0 : float , optional
+        Scaling factor for channel 0 that converts the intensity in the stochastic simulations to the intensity in the image.
+    intensity_scale_ch1 : float , optional
+        Scaling factor for channel 1 that converts the intensity in the stochastic simulations to the intensity in the image.
+    intensity_scale_ch2 : float , optional
+        Scaling factor for channel 2 that converts the intensity in the stochastic simulations to the intensity in the image.
+    simulated_RNA_intensities_method : str, optinal
+        Method used to simulate RNA intensities in the image. The optiions are 'constant' or 'random_values'. The default is 'constant'
+    dataframe_format : str, optional
+        Format for the dataframe the options are : 'short' , and 'long'. The default is 'short'.
+        "long" format generates this dataframe: [cell_number, particle, frame, red_int_mean, green_int_mean, blue_int_mean, red_int_std, green_int_std, blue_int_std, x, y, SNR_red,SNR_green,SNR_blue].
+        "short" format generates this dataframe: [cell_number, particle, frame, red_int_mean, green_int_mean, blue_int_mean, x, y].
+    ignore_ch0 : bool, optional
+        A flag that ignores channel 0 returning a NumPy array filled with zeros. The default is 0.
+    ignore_ch1 : bool, optional
+        A flag that ignores channel 1 returning a NumPy array filled with zeros. The default is 0.
+    ignore_ch2 : bool, optional
+        A flag that ignores channel 2 returning a NumPy array filled with zeros. The default is 0.
+    scale_intensity_in_base_video : bool, optional
+        Flag to scale intensity to a maximum value of 10000. This arbritary value is selected based on the maximum intensities obtained from the original images. The default is False.
+    basal_intensity_in_background_video : int, optional
+        if the base video is rescaled, this value indicates the maximum value to rescale the original video. The default is 20000    
+
+    Returns
+
+    dataframe_particles : pandas dataframe
+        Dataframe with fields [cell_number, particle, frame, red_int_mean, green_int_mean, blue_int_mean, red_int_std, green_int_std, blue_int_std, x, y].
+    selected_mask : Numpy array
+        Array with the selected mask. Where zeros represents the background and one represent the area in the cell.
+    array_intensities : Numpy array
+        Array with dimensions [S, T, C].
+    time_vector : Numpy array
+        1D array.
+    mean_intensities: Numpy array
+        Array with dimensions [S, T, C].
+    std_intensities : Numpy array
+        Array with dimensions [S, T, C].
+    mean_intensities_normalized : Numpy array
+        Array with dimensions [S, T, C].
+    std_intensities_normalized : Numpy array
+        Array with dimensions [S, T, C].
+    '''
+    
+    # running the simulation
+    start = timer()
     
     # Testing if the user passed parameters as lists. If not the code conver the parameters into lists
     def test_if_list(tested_list):
@@ -3468,9 +3629,13 @@ def function_simulate_cell ( video_dir,
     list_target_channels_proteins = test_if_list (list_target_channels_proteins)
     list_target_channels_mRNA = test_if_list(list_target_channels_mRNA)
     list_diffusion_coefficients = test_if_list (list_diffusion_coefficients)
-    list_label_names = test_if_list(list_label_names)
     list_elongation_rates = test_if_list(list_elongation_rates)
     list_initiation_rates = test_if_list(list_initiation_rates)
+    
+    if not (list_label_names is None):
+        list_label_names = test_if_list(list_label_names)
+    else:
+        list_label_names = [i for i in range(len(list_gene_sequences) )]
     
     # Testing if some of the intensities is None. If true, the channel is ignored during the simulation. Resulting in tensor full with zeros.
     if intensity_scale_ch0 is None:
@@ -3502,9 +3667,9 @@ def function_simulate_cell ( video_dir,
     metadata_filename = 'metadata'+ name_folder + '.txt'
     folder_dataframe = 'dataframe' + name_folder
     folder_video = 'videos' + name_folder
+    folder_video_int_8 = 'videos_int8' + name_folder
         
     # Functions to create folder to save simulated cells
-    
     current_dir = pathlib.Path().absolute()
     
     if save_dataframe == True:
@@ -3522,6 +3687,14 @@ def function_simulate_cell ( video_dir,
         else:
             shutil.rmtree(str(save_to_path_video))
             os.makedirs(str(save_to_path_video))
+    
+    if save_as_gif == True:
+        save_to_path_video_int8 =  current_dir.joinpath('temp' , folder_video_int_8 )
+        if not os.path.exists(str(save_to_path_video_int8)):
+            os.makedirs(str(save_to_path_video_int8))
+        else:
+            shutil.rmtree(str(save_to_path_video_int8))
+            os.makedirs(str(save_to_path_video_int8))
     
     # function  that simulates the multiplexing experiments    
     # Pre-alocating arrays
@@ -3551,9 +3724,6 @@ def function_simulate_cell ( video_dir,
                                                                                     list_initiation_rates,
                                                                                     simulation_time_in_sec,
                                                                                     step_size_in_sec,
-                                                                                    save_as_tif=False, 
-                                                                                    save_dataframe=False, 
-                                                                                    create_temp_folder=False,
                                                                                     mask_image=mask_image,
                                                                                     cell_number =i,
                                                                                     frame_selection_empty_video=frame_selection_empty_video,
@@ -3572,6 +3742,18 @@ def function_simulate_cell ( video_dir,
         
         if save_as_tif == True:
             tifffile.imwrite(str(save_to_path_video.joinpath(saved_file_name+'.tif')), video)
+        
+        if save_as_gif == True:
+            video_int_8 = Utilities.convert_to_int8(image=video)
+            tifffile.imwrite(str(save_to_path_video_int8.joinpath(saved_file_name+'_unit8'+'.tif')), video_int_8)
+            num_images_for_gif = video_int_8.shape[0]
+            num_channels_to_plot_in_gif = np.min((3, video_int_8.shape[3])) 
+            with imageio.get_writer(str(save_to_path_video_int8.joinpath(saved_file_name+'_unit8'+'.gif')), mode = 'I') as writer:
+                    for i in range(0, num_images_for_gif):
+                        image = video_int_8[i, :, :, 0:num_channels_to_plot_in_gif]
+                        writer.append_data(image)
+            del video_int_8, image
+            
         if store_videos_in_memory == False:
             video = []
         
@@ -3583,15 +3765,15 @@ def function_simulate_cell ( video_dir,
         # list file names
         list_files_names_outputs.append(saved_file_name+'.tif')
     
-    dataframe_simulated_cell = pd.concat(list_dataframe_simulated_cell)
-    ssas_multiplexing = np.array(list_ssa_all_cells_and_genes)
+    merged_dataframe_simulated_cells = pd.concat(list_dataframe_simulated_cell)
+    ssa_trajectories = np.array(list_ssa_all_cells_and_genes)
     
     # Saving dataframes to folder
     if save_dataframe == True:
         # saving the dataframe
-        dataframe_simulated_cell.to_csv( save_to_path_df.joinpath('multiplexing_csv.csv'), float_format="%.2f")
+        merged_dataframe_simulated_cells.to_csv( save_to_path_df.joinpath('dataframe_sim_cell.csv'), float_format="%.2f")
         # saving the ssa
-        np.save(save_to_path_df.joinpath('ssas_multiplexing.npy') , ssas_multiplexing)
+        np.save(save_to_path_df.joinpath('ssas_sim_cell.npy') , ssa_trajectories)
         # creating zip
         shutil.make_archive( base_name = save_to_path_df, format = 'zip', root_dir = save_to_path_df.parents[0], base_dir =save_to_path_df.name )
         #shutil.rmtree(save_to_path_df)
@@ -3623,13 +3805,70 @@ def function_simulate_cell ( video_dir,
                             basal_intensity_in_background_video,
                             list_files_names_outputs).write_metadata()
     
-    return list_videos, dataframe_simulated_cell, ssas_multiplexing
+    end = timer()
+    print('Time to generate simulated data:',round(end - start), ' sec')
+    
+    return list_videos, list_dataframe_simulated_cell, merged_dataframe_simulated_cells, ssa_trajectories, list_files_names_outputs, save_to_path_video, save_to_path_df.joinpath('dataframe_sim_cell.csv')
 
 
 
-
-
-
+def image_processing(files_dir_path,
+                    particle_size=14,
+                    selected_channel_tracking = 0,
+                    selected_channel_segmentation = 0,
+                    intensity_calculation_method ='disk_donut', 
+                    mask_selection_method = 'max_area',
+                    show_plot=False,
+                    use_optimization_for_tracking=True,
+                    real_positions_dataframe = None,
+                    average_cell_diameter=200,
+                    print_process_times=1,
+                    min_percentage_time_tracking=0.3,
+                    dataframe_format='long'):
+    
+    start = timer()
+    list_DataFrame_particles_intensities= []
+    list_array_intensities = []
+    list_time_vector = []
+    list_selected_mask = []
+    
+    ## Reads the folder with the results and import the simulations as lists
+    list_files_names = sorted([f for f in listdir(files_dir_path) if isfile(join(files_dir_path, f)) and ('.tif') in f], key=str.lower)  # reading all tif files in the folder
+    list_files_names.sort(key=lambda f: int(re.sub('\D', '', f)))  # sorting the index in numerical order
+    path_files = sorted([ str(files_dir_path.joinpath(f).resolve()) for f in list_files_names ] , key=str.lower)# creating the complete path for each file
+    print(path_files)
+    # # Reading the microscopy data
+    number_images = len(list_files_names)
+        
+    for i in range(0,number_images): 
+        selected_video = imread(path_files[i]) # Loading the video
+        DataFrame_particles_intensities, selected_mask, array_intensities, time_vector, _,_, _, _ = PipelineTracking(video=selected_video,
+                                                                                                                    particle_size=particle_size,
+                                                                                                                    file_name=list_files_names[i],
+                                                                                                                    selected_channel_tracking=selected_channel_tracking ,
+                                                                                                                    selected_channel_segmentation=selected_channel_segmentation ,
+                                                                                                                    intensity_calculation_method=intensity_calculation_method , 
+                                                                                                                    mask_selection_method=mask_selection_method ,
+                                                                                                                    show_plot=show_plot,
+                                                                                                                    use_optimization_for_tracking=use_optimization_for_tracking,
+                                                                                                                    real_positions_dataframe=real_positions_dataframe[i] ,
+                                                                                                                    average_cell_diameter=average_cell_diameter,
+                                                                                                                    print_process_times=print_process_times,
+                                                                                                                    min_percentage_time_tracking=min_percentage_time_tracking,
+                                                                                                                    dataframe_format=dataframe_format).run()    
+        list_DataFrame_particles_intensities.append(DataFrame_particles_intensities)
+        list_array_intensities.append(array_intensities)
+        list_time_vector.append(time_vector)
+        list_selected_mask.append(selected_mask)
+        print('Progress: ',str(i+1),'/',str(number_images))
+    # PDF
+    
+    # Metadata 
+        # 
+        
+    end = timer()
+    print('Time to process data:',round(end - start), ' sec')
+    return list_DataFrame_particles_intensities, list_array_intensities, list_time_vector, list_selected_mask
 
 class MetadataSimulatedCell():
     '''
@@ -3664,8 +3903,143 @@ class MetadataSimulatedCell():
                 basal_intensity_in_background_video= 20000,
                 list_files_names_outputs=[]):
         
+
+        self.metadata_filename = metadata_filename
+        self.video_dir = video_dir
+        self.masks_dir = masks_dir
+        self.list_gene_sequences = list_gene_sequences
+        self.list_number_spots = list_number_spots
+        self.list_target_channels_proteins = list_target_channels_proteins
+        self.list_target_channels_mRNA =  list_target_channels_mRNA
+        self.list_diffusion_coefficients = list_diffusion_coefficients
+        self.list_label_names = list_label_names
+        self.list_elongation_rates = list_elongation_rates
+        self.list_initiation_rates = list_initiation_rates
+        self.number_cells = number_cells
+        self.simulation_time_in_sec = simulation_time_in_sec
+        self.step_size_in_sec = step_size_in_sec
+        self.frame_selection_empty_video = frame_selection_empty_video
+        self.spot_size = spot_size
+        self.spot_sigma = spot_sigma
+        self.intensity_scale_ch0 = intensity_scale_ch0
+        self.intensity_scale_ch1 = intensity_scale_ch1
+        self.intensity_scale_ch2 = intensity_scale_ch2
+        self.simulated_RNA_intensities_method = simulated_RNA_intensities_method
+        self.basal_intensity_in_background_video = basal_intensity_in_background_video
+        self.list_files_names = list_files_names_outputs
+
+
+    def write_metadata(self):
+        '''
+        This method writes the metadata file.
+        '''
+        installed_modules = [str(module).replace(" ","==") for module in pkg_resources.working_set]
+        important_modules = ['rsnapsim','rsnaped', 'cellpose','trackpy', 'scipy','pathlib','re','glob',  'cv2','imageio','tqdm', 'torch','tifffile', 'setuptools', 'scipy', 'scikit-learn', 'scikit-image', 'pysmb', 'pyfiglet', 'pip', 'Pillow', 'pandas', 'opencv-python-headless', 'numpy', 'numba', 'natsort', 'mrc', 'matplotlib', 'llvmlite', 'jupyter-core', 'jupyter-client', 'joblib', 'ipython', 'ipython-genutils', 'ipykernel']
+        def create_data_file(filename):
+            if sys.platform == 'linux' or sys.platform == 'darwin':
+                os.system('touch  ' + filename)
+            elif sys.platform == 'win32':
+                os.system('echo , > ' + filename)
+        number_spaces_pound_sign = 75
+        def write_data_in_file(filename):
+            with open(filename, 'w') as fd:
+                fd.write('#' * (number_spaces_pound_sign)) 
+                fd.write('\nAUTHOR INFORMATION  ')
+                fd.write('\n    Author: ' + getpass.getuser())
+                fd.write('\n    Created at: ' + datetime.datetime.today().strftime('%d %b %Y'))
+                fd.write('\n    Time: ' + str(datetime.datetime.now().hour) + ':' + str(datetime.datetime.now().minute) )
+                fd.write('\n    Operative System: ' + sys.platform )
+                fd.write('\n    Hostname: ' + socket.gethostname() + '\n')
+                fd.write('#' * (number_spaces_pound_sign) ) 
+                fd.write('\nPARAMETERS USED  ')
+                fd.write('\n    number_simulated_cells: '+ str(self.number_cells) )
+                fd.write('\n    simulation_time_in_sec: '+ str(self.simulation_time_in_sec ) )
+                fd.write('\n    step_size_in_sec: '+ str(self.step_size_in_sec ) )
+                fd.write('\n    frame_selection_empty_video: '+ str(self.frame_selection_empty_video ) )
+                fd.write('\n    spot_size: '+ str(self.spot_size ) )
+                fd.write('\n    spot_sigma: '+ str(self.spot_sigma ) )
+                fd.write('\n    intensity_scale_ch0: '+ str(self.intensity_scale_ch0 ) )
+                fd.write('\n    intensity_scale_ch1: '+ str(self.intensity_scale_ch1 ) )
+                fd.write('\n    intensity_scale_ch2: '+ str(self.intensity_scale_ch2 ) )
+                fd.write('\n    simulated_RNA_intensities_method: '+ str(self.simulated_RNA_intensities_method ) )
+                fd.write('\n    basal_intensity_in_background_video: '+ str(self.basal_intensity_in_background_video) )
+
+                fd.write('\n    Parameters for each gene')
+                for k in range (0,len(self.list_gene_sequences)):
+                    fd.write('\n      Gene File Name: ' + str(pathlib.Path(self.list_gene_sequences[k]).name ) )
+                    fd.write('\n        number_spots: ' + str(self.list_number_spots[k]) )
+                    fd.write('\n        target_channel_protein: ' + str(self.list_target_channels_proteins[k]) )
+                    fd.write('\n        target_channel_mrna: ' + str(self.list_target_channels_mRNA[k]) )
+                    fd.write('\n        diffusion_coefficient: ' + str(self.list_diffusion_coefficients[k]) )
+                    fd.write('\n        elongation_rate: ' + str(self.list_elongation_rates[k]) )
+                    fd.write('\n        initiation_rates: ' + str(self.list_initiation_rates[k]) )
+                    fd.write('\n        label_name: ' + str(self.list_label_names[k]) )
+                fd.write('\n') 
+                fd.write('#' * (number_spaces_pound_sign) ) 
+                fd.write('\n FILES AND DIRECTORIES USED ')
+                fd.write('\n    Original video directory: ' + str(self.video_dir) )
+                fd.write('\n    Masks directory : ' + str(self.masks_dir)  )
+
+                # for loop for all the images.
+                fd.write('\n    Images in the directory :'  )
+                counter=0
+                for indx, img_name in enumerate (self.list_files_names):
+                    fd.write('\n        '+ img_name +  '   - Image Id Number:  ' + str(indx ))
+                    counter+=1
+                fd.write('\n')  
+                fd.write('#' * (number_spaces_pound_sign)) 
+                fd.write('\nREPRODUCIBILITY ')
+                fd.write('\n    Platform: \n')
+                fd.write('        Python: ' + str(platform.python_version()) )
+                fd.write('\n    Dependencies: ')
+                # iterating for all modules
+                for module_name in installed_modules:
+                    if any(module_name[0:4] in s for s in important_modules):
+                        fd.write('\n        '+ module_name)
+                fd.write('\n') 
+                fd.write('#' * (number_spaces_pound_sign) ) 
+        create_data_file(self.metadata_filename)
+        write_data_in_file(self.metadata_filename)
+        return None
+
+
+
+
+
+class MetadataImageProcessing():
+    '''
+    This class is intended to generate a metadata file containing used dependencies, user information, and parameters used to process single molecule gene expression experiments.
+    
+    Parameters
+    
+    The parameters for this class are defined in the SimultedCell class
+    '''
+    def __init__(self, 
+                metadata_filename,
+                video_dir, 
+                masks_dir, 
+                list_gene_sequences,
+                list_number_spots,
+                list_target_channels_proteins,
+                list_target_channels_mRNA, 
+                list_diffusion_coefficients,
+                list_label_names,
+                list_elongation_rates,
+                list_initiation_rates,
+                number_cells = 1,
+                simulation_time_in_sec = 100,
+                step_size_in_sec = 1,
+                frame_selection_empty_video='generate_from_gaussian',
+                spot_size = 7 ,
+                spot_sigma=1,
+                intensity_scale_ch0 = None,
+                intensity_scale_ch1 = None,
+                intensity_scale_ch2 = None,
+                simulated_RNA_intensities_method='constant',
+                basal_intensity_in_background_video= 20000,
+                list_files_names_outputs=[]):
         
-        
+
         self.metadata_filename = metadata_filename
         self.video_dir = video_dir
         self.masks_dir = masks_dir
