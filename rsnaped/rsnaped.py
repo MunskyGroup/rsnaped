@@ -3835,11 +3835,12 @@ def image_processing(files_dir_path,
     ## Reads the folder with the results and import the simulations as lists
     list_files_names = sorted([f for f in listdir(files_dir_path) if isfile(join(files_dir_path, f)) and ('.tif') in f], key=str.lower)  # reading all tif files in the folder
     list_files_names.sort(key=lambda f: int(re.sub('\D', '', f)))  # sorting the index in numerical order
-    path_files = sorted([ str(files_dir_path.joinpath(f).resolve()) for f in list_files_names ] , key=str.lower)# creating the complete path for each file
-    print(path_files)
+    path_files = sorted([ str(files_dir_path.joinpath(f).resolve()) for f in list_files_names if  '.tif' in f] , key=str.lower)# creating the complete path for each file
+
     # # Reading the microscopy data
     number_images = len(list_files_names)
-        
+    
+    list_video_paths = []
     for i in range(0,number_images): 
         selected_video = imread(path_files[i]) # Loading the video
         DataFrame_particles_intensities, selected_mask, array_intensities, time_vector, _,_, _, _ = PipelineTracking(video=selected_video,
@@ -3860,15 +3861,43 @@ def image_processing(files_dir_path,
         list_array_intensities.append(array_intensities)
         list_time_vector.append(time_vector)
         list_selected_mask.append(selected_mask)
+        list_video_paths.append(path_files[i])
         print('Progress: ',str(i+1),'/',str(number_images))
-    # PDF
     
-    # Metadata 
-        # 
+    
+    current_dir = pathlib.Path().absolute()
+    
+    save_to_path =  current_dir.joinpath('temp_processing_' , files_dir_path.name )
+    if not os.path.exists(str(save_to_path)):
+        os.makedirs(str(save_to_path))
+    else:
+        shutil.rmtree(str(save_to_path))
+        os.makedirs(str(save_to_path))
+    
+    # Creating metadata file
+    metadata_filename= str(save_to_path.joinpath('metadata_image_processing.txt'))
+    MetadataImageProcessing( metadata_filename=metadata_filename,
+                            list_video_paths=list_video_paths, 
+                            files_dir_path=files_dir_path,
+                            particle_size=particle_size,
+                            selected_channel_tracking=selected_channel_tracking ,
+                            selected_channel_segmentation=selected_channel_segmentation ,
+                            intensity_calculation_method=intensity_calculation_method , 
+                            mask_selection_method=mask_selection_method ,
+                            use_optimization_for_tracking=use_optimization_for_tracking,
+                            average_cell_diameter=average_cell_diameter,
+                            min_percentage_time_tracking=min_percentage_time_tracking,
+                            dataframe_format=dataframe_format).write_metadata()
+    
+    # Create Dataframe
+    
+    # Create PDF
         
     end = timer()
     print('Time to process data:',round(end - start), ' sec')
     return list_DataFrame_particles_intensities, list_array_intensities, list_time_vector, list_selected_mask
+
+
 
 class MetadataSimulatedCell():
     '''
@@ -4005,7 +4034,6 @@ class MetadataSimulatedCell():
 
 
 
-
 class MetadataImageProcessing():
     '''
     This class is intended to generate a metadata file containing used dependencies, user information, and parameters used to process single molecule gene expression experiments.
@@ -4016,53 +4044,30 @@ class MetadataImageProcessing():
     '''
     def __init__(self, 
                 metadata_filename,
-                video_dir, 
-                masks_dir, 
-                list_gene_sequences,
-                list_number_spots,
-                list_target_channels_proteins,
-                list_target_channels_mRNA, 
-                list_diffusion_coefficients,
-                list_label_names,
-                list_elongation_rates,
-                list_initiation_rates,
-                number_cells = 1,
-                simulation_time_in_sec = 100,
-                step_size_in_sec = 1,
-                frame_selection_empty_video='generate_from_gaussian',
-                spot_size = 7 ,
-                spot_sigma=1,
-                intensity_scale_ch0 = None,
-                intensity_scale_ch1 = None,
-                intensity_scale_ch2 = None,
-                simulated_RNA_intensities_method='constant',
-                basal_intensity_in_background_video= 20000,
-                list_files_names_outputs=[]):
-        
+                list_video_paths, 
+                files_dir_path,
+                particle_size,
+                selected_channel_tracking ,
+                selected_channel_segmentation ,
+                intensity_calculation_method , 
+                mask_selection_method ,
+                use_optimization_for_tracking,
+                average_cell_diameter,
+                min_percentage_time_tracking,
+                dataframe_format):
 
-        self.metadata_filename = metadata_filename
-        self.video_dir = video_dir
-        self.masks_dir = masks_dir
-        self.list_gene_sequences = list_gene_sequences
-        self.list_number_spots = list_number_spots
-        self.list_target_channels_proteins = list_target_channels_proteins
-        self.list_target_channels_mRNA =  list_target_channels_mRNA
-        self.list_diffusion_coefficients = list_diffusion_coefficients
-        self.list_label_names = list_label_names
-        self.list_elongation_rates = list_elongation_rates
-        self.list_initiation_rates = list_initiation_rates
-        self.number_cells = number_cells
-        self.simulation_time_in_sec = simulation_time_in_sec
-        self.step_size_in_sec = step_size_in_sec
-        self.frame_selection_empty_video = frame_selection_empty_video
-        self.spot_size = spot_size
-        self.spot_sigma = spot_sigma
-        self.intensity_scale_ch0 = intensity_scale_ch0
-        self.intensity_scale_ch1 = intensity_scale_ch1
-        self.intensity_scale_ch2 = intensity_scale_ch2
-        self.simulated_RNA_intensities_method = simulated_RNA_intensities_method
-        self.basal_intensity_in_background_video = basal_intensity_in_background_video
-        self.list_files_names = list_files_names_outputs
+        self.metadata_filename=metadata_filename
+        self.list_video_paths=list_video_paths
+        self.files_dir_path=files_dir_path
+        self.particle_size=particle_size
+        self.selected_channel_tracking=selected_channel_tracking 
+        self.selected_channel_segmentation=selected_channel_segmentation 
+        self.intensity_calculation_method=intensity_calculation_method 
+        self.mask_selection_method=mask_selection_method 
+        self.use_optimization_for_tracking=use_optimization_for_tracking
+        self.average_cell_diameter=average_cell_diameter
+        self.min_percentage_time_tracking=min_percentage_time_tracking
+        self.dataframe_format=dataframe_format
 
 
     def write_metadata(self):
@@ -4077,6 +4082,7 @@ class MetadataImageProcessing():
             elif sys.platform == 'win32':
                 os.system('echo , > ' + filename)
         number_spaces_pound_sign = 75
+        
         def write_data_in_file(filename):
             with open(filename, 'w') as fd:
                 fd.write('#' * (number_spaces_pound_sign)) 
@@ -4087,39 +4093,28 @@ class MetadataImageProcessing():
                 fd.write('\n    Operative System: ' + sys.platform )
                 fd.write('\n    Hostname: ' + socket.gethostname() + '\n')
                 fd.write('#' * (number_spaces_pound_sign) ) 
+                
+                
                 fd.write('\nPARAMETERS USED  ')
-                fd.write('\n    number_simulated_cells: '+ str(self.number_cells) )
-                fd.write('\n    simulation_time_in_sec: '+ str(self.simulation_time_in_sec ) )
-                fd.write('\n    step_size_in_sec: '+ str(self.step_size_in_sec ) )
-                fd.write('\n    frame_selection_empty_video: '+ str(self.frame_selection_empty_video ) )
-                fd.write('\n    spot_size: '+ str(self.spot_size ) )
-                fd.write('\n    spot_sigma: '+ str(self.spot_sigma ) )
-                fd.write('\n    intensity_scale_ch0: '+ str(self.intensity_scale_ch0 ) )
-                fd.write('\n    intensity_scale_ch1: '+ str(self.intensity_scale_ch1 ) )
-                fd.write('\n    intensity_scale_ch2: '+ str(self.intensity_scale_ch2 ) )
-                fd.write('\n    simulated_RNA_intensities_method: '+ str(self.simulated_RNA_intensities_method ) )
-                fd.write('\n    basal_intensity_in_background_video: '+ str(self.basal_intensity_in_background_video) )
+                fd.write('\n    number_processed_images: '+ str(len(self.list_video_paths)) )
+                fd.write('\n    particle_size: '+ str(self.particle_size ) )
+                fd.write('\n    selected_channel_tracking: '+ str(self.selected_channel_tracking ) )
+                fd.write('\n    selected_channel_segmentation: '+ str(self.selected_channel_segmentation ) )
+                fd.write('\n    intensity_calculation_method: '+ str(self.intensity_calculation_method ) )
+                fd.write('\n    mask_selection_method: '+ str(self.mask_selection_method ) )
+                fd.write('\n    use_optimization_for_tracking: '+ str(self.use_optimization_for_tracking ) )
+                fd.write('\n    average_cell_diameter: '+ str(self.average_cell_diameter) )
+                fd.write('\n    min_percentage_time_tracking: '+ str(self.min_percentage_time_tracking ) )
+                fd.write('\n    dataframe_format: '+ str(self.dataframe_format) )
 
-                fd.write('\n    Parameters for each gene')
-                for k in range (0,len(self.list_gene_sequences)):
-                    fd.write('\n      Gene File Name: ' + str(pathlib.Path(self.list_gene_sequences[k]).name ) )
-                    fd.write('\n        number_spots: ' + str(self.list_number_spots[k]) )
-                    fd.write('\n        target_channel_protein: ' + str(self.list_target_channels_proteins[k]) )
-                    fd.write('\n        target_channel_mrna: ' + str(self.list_target_channels_mRNA[k]) )
-                    fd.write('\n        diffusion_coefficient: ' + str(self.list_diffusion_coefficients[k]) )
-                    fd.write('\n        elongation_rate: ' + str(self.list_elongation_rates[k]) )
-                    fd.write('\n        initiation_rates: ' + str(self.list_initiation_rates[k]) )
-                    fd.write('\n        label_name: ' + str(self.list_label_names[k]) )
-                fd.write('\n') 
                 fd.write('#' * (number_spaces_pound_sign) ) 
                 fd.write('\n FILES AND DIRECTORIES USED ')
-                fd.write('\n    Original video directory: ' + str(self.video_dir) )
-                fd.write('\n    Masks directory : ' + str(self.masks_dir)  )
+                fd.write('\n    processed_directory: '+ str(self.files_dir_path ) )
 
                 # for loop for all the images.
                 fd.write('\n    Images in the directory :'  )
                 counter=0
-                for indx, img_name in enumerate (self.list_files_names):
+                for indx, img_name in enumerate (self.list_video_paths):
                     fd.write('\n        '+ img_name +  '   - Image Id Number:  ' + str(indx ))
                     counter+=1
                 fd.write('\n')  
