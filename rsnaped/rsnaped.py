@@ -1147,20 +1147,20 @@ class VisualizerImage():
                     title_str = 'Cell_'+str(counter)
                 # Figure with raw video
                 ax = fig.add_subplot(gs[index_video])
-                ax.imshow(self.list_videos[counter][self.selected_time_point, :, :, self.selected_channel], cmap = 'viridis', vmax = np.amax(self.list_videos[counter][self.selected_time_point, :, :, self.selected_channel])*0.95)
+                ax.imshow(self.list_videos[counter][self.selected_time_point, :, :, self.selected_channel], cmap = 'Spectral', vmax = np.amax(self.list_videos[counter][self.selected_time_point, :, :, self.selected_channel])*0.95)
                 ax.set_xticks([])
                 ax.set_yticks([])
                 ax.set(title = title_str + ' Original')
                 # Figure with filtered video
                 ax = fig.add_subplot(gs[index_video+1])
-                ax.imshow(self.list_videos_filtered[counter][self.selected_time_point, :, :, self.selected_channel], cmap = 'Greys' )
+                ax.imshow(self.list_videos_filtered[counter][self.selected_time_point, :, :, self.selected_channel], cmap = 'Spectral_r' )
                 #ax.imshow(self.list_videos_filtered[counter][self.selected_time_point, :, :, self.selected_channel], cmap = 'Greys', vmin = 0 ,vmax = np.amax(self.list_videos[counter][self.selected_time_point, :, :, self.selected_channel]))
                 ax.set_xticks([])
                 ax.set_yticks([])
                 ax.set(title = title_str + ' Filtered' )
                 # Figure with original video and marking the spots
                 ax = fig.add_subplot(gs[index_video+2])
-                ax.imshow(self.list_videos[counter][self.selected_time_point, :, :, self.selected_channel], cmap = 'viridis', vmax = np.amax(self.list_videos[counter][self.selected_time_point, :, :, self.selected_channel])*0.95)
+                ax.imshow(self.list_videos[counter][self.selected_time_point, :, :, self.selected_channel], cmap = 'Spectral', vmax = np.amax(self.list_videos[counter][self.selected_time_point, :, :, self.selected_channel])*0.95)
                 ax.set_xticks([])
                 ax.set_yticks([])
                 ax.set(title = title_str + ' Detected Spots' )
@@ -1181,7 +1181,7 @@ class VisualizerImage():
                             x_pos = int(selected_particles_dataframe.loc[selected_particles_dataframe['particle'] == selected_particles_dataframe['particle'].unique()[k]].x.values[index_val])
                             y_pos = int(selected_particles_dataframe.loc[selected_particles_dataframe['particle'] == selected_particles_dataframe['particle'].unique()[k]].y.values[index_val])
                         try:
-                            circle = plt.Circle((x_pos, y_pos), self.particle_size/2, color = 'yellow', fill = False)
+                            circle = plt.Circle((x_pos, y_pos), self.particle_size/2, color = 'magenta', fill = False)
                             ax.add_artist(circle)
                         except:
                             pass
@@ -1202,7 +1202,7 @@ class VisualizerImage():
                                 x_pos = int(selected_particles_dataframe.loc[selected_particles_dataframe['particle'] == selected_particles_dataframe['particle'].unique()[k]].x.values[index_val])
                                 y_pos = int(selected_particles_dataframe.loc[selected_particles_dataframe['particle'] == selected_particles_dataframe['particle'].unique()[k]].y.values[index_val])
                             try:
-                                circle = plt.Circle((x_pos, y_pos), 2, color = 'orangered', fill = True)
+                                circle = plt.Circle((x_pos, y_pos), 2, color = 'royalblue', fill = True)
                                 ax.add_artist(circle)
                             except:
                                 pass
@@ -3690,7 +3690,8 @@ class MetadataImageProcessing():
                 average_cell_diameter,
                 min_percentage_time_tracking,
                 dataframe_format,
-                list_segmentation_succesful):
+                list_segmentation_succesful,
+                list_frames_videos):
         self.metadata_filename_ip=metadata_filename_ip
         self.list_video_paths=list_video_paths
         self.files_dir_path_processing=files_dir_path_processing
@@ -3704,6 +3705,7 @@ class MetadataImageProcessing():
         self.min_percentage_time_tracking=min_percentage_time_tracking
         self.dataframe_format=dataframe_format
         self.list_segmentation_succesful=list_segmentation_succesful
+        self.list_frames_videos=list_frames_videos
 
     def write_metadata(self):
         '''
@@ -3748,7 +3750,7 @@ class MetadataImageProcessing():
                 fd.write('\n    Images in the directory :'  )
                 counter=0
                 for indx, img_name in enumerate (self.list_video_paths):
-                    fd.write('\n        '+ pathlib.Path(img_name).name +  '   - Image Id Number:  ' + str(indx ) +  '   - Processing Successful:  '  + str( bool(self.list_segmentation_succesful[indx])) )
+                    fd.write('\n        '+ pathlib.Path(img_name).name +  '   - Image Id :  ' + str(indx ) +  '   - Frames :  ' + str(self.list_frames_videos[indx]) +  '   - Processing Successful:  '  + str( bool(self.list_segmentation_succesful[indx])) )
                     counter+=1
                 fd.write('\n')  
                 fd.write('#' * (number_spaces_pound_sign)) 
@@ -3781,8 +3783,8 @@ def simulate_cell ( video_dir,
                     number_cells = 1,
                     simulation_time_in_sec = 100,
                     step_size_in_sec = 1,
-                    save_as_tif = False, 
-                    save_dataframe = False, 
+                    save_as_tif = True, 
+                    save_dataframe = True, 
                     save_as_gif=False,
                     frame_selection_empty_video='gaussian',
                     spot_size = 7 ,
@@ -3944,8 +3946,12 @@ def simulate_cell ( video_dir,
     # Functions to create folder to save simulated cells
     current_dir = pathlib.Path().absolute()
     
+    save_to_path_df =  current_dir.joinpath('temp_simulation' ,name_folder, folder_dataframe )
+    save_to_path_video =  current_dir.joinpath('temp_simulation',name_folder , folder_video )
+    save_to_path_video_int8 =  current_dir.joinpath('temp_simulation',name_folder , folder_video_int_8 )
+
+
     if save_dataframe == True:
-        save_to_path_df =  current_dir.joinpath('temp_simulation' ,name_folder, folder_dataframe )
         if not os.path.exists(str(save_to_path_df)):
             os.makedirs(str(save_to_path_df))
         else:
@@ -3953,7 +3959,6 @@ def simulate_cell ( video_dir,
             os.makedirs(str(save_to_path_df))
     
     if save_as_tif == True:
-        save_to_path_video =  current_dir.joinpath('temp_simulation',name_folder , folder_video )
         if not os.path.exists(str(save_to_path_video)):
             os.makedirs(str(save_to_path_video))
         else:
@@ -3961,7 +3966,6 @@ def simulate_cell ( video_dir,
             os.makedirs(str(save_to_path_video))
     
     if save_as_gif == True:
-        save_to_path_video_int8 =  current_dir.joinpath('temp_simulation',name_folder , folder_video_int_8 )
         if not os.path.exists(str(save_to_path_video_int8)):
             os.makedirs(str(save_to_path_video_int8))
         else:
@@ -3977,7 +3981,9 @@ def simulate_cell ( video_dir,
     # Reading all empty cells in directory
     list_files_names = sorted([f for f in listdir(video_dir) if isfile(join(video_dir, f)) and ('.tif') in f], key=str.lower)  # reading all tif files in the folder
     list_files_names.sort(key=lambda f: int(re.sub('\D', '', f)))  # sorting the index in numerical order
-    path_files = [ str(video_dir.joinpath(f).resolve()) for f in list_files_names ] # creating the complete path for each file
+    #path_files = [ str(video_dir.joinpath(f).resolve()) for f in list_files_names ] # creating the complete path for each file
+    path_files = sorted([ str(video_dir.joinpath(f).resolve()) for f in list_files_names if  '.tif' in f] , key=str.lower)# creating the complete path for each file
+    path_files.sort(key=lambda f: int(re.sub('\D', '', f)))  # sorting the index in numerical order
     num_cell_shapes = len(path_files)
     
     for i in range(0,number_cells): 
@@ -4106,11 +4112,15 @@ def image_processing(files_dir_path_processing,
     list_selected_mask = []
     list_segmentation_succesful=[]
     list_file_names =[]
+    list_frames_videos=[]
+    
     ## Reads the folder with the results and import the simulations as lists
     list_files_paths = sorted([f for f in listdir(files_dir_path_processing) if isfile(join(files_dir_path_processing, f)) and ('.tif') in f], key=str.lower)  # reading all tif files in the folder
     list_files_paths.sort(key=lambda f: int(re.sub('\D', '', f)))  # sorting the index in numerical order
+    
     path_files = sorted([ str(files_dir_path_processing.joinpath(f).resolve()) for f in list_files_paths if  '.tif' in f] , key=str.lower)# creating the complete path for each file
-
+    path_files.sort(key=lambda f: int(re.sub('\D', '', f)))  # sorting the index in numerical order
+    
     # # Reading the microscopy data
     number_images = len(path_files)
     
@@ -4136,6 +4146,7 @@ def image_processing(files_dir_path_processing,
     for i in range(0,number_images): 
         selected_video = imread(path_files[i]) # Loading the video
         file_name = pathlib.Path(path_files[i]).name
+        frames_in_video = selected_video.shape[0]
         DataFrame_particles_intensities, selected_mask, array_intensities, time_vector, _,_, _, _,segmentation_succesful = PipelineTracking(video=selected_video,
                                                                                                                     particle_size=particle_size,
                                                                                                                     file_name=file_name,
@@ -4160,6 +4171,7 @@ def image_processing(files_dir_path_processing,
         list_video_paths.append(path_files[i])
         list_segmentation_succesful.append(segmentation_succesful)
         list_file_names.append(file_name)
+        list_frames_videos.append(frames_in_video)
         print('Progress: ',str(i+1),'/',str(number_images))
     
 
@@ -4177,7 +4189,8 @@ def image_processing(files_dir_path_processing,
                             average_cell_diameter=average_cell_diameter,
                             min_percentage_time_tracking=min_percentage_time_tracking,
                             dataframe_format=dataframe_format,
-                            list_segmentation_succesful=list_segmentation_succesful).write_metadata()
+                            list_segmentation_succesful=list_segmentation_succesful,
+                            list_frames_videos=list_frames_videos).write_metadata()
     
     
     # Create PDF
