@@ -82,7 +82,8 @@ import scipy.stats as sps
 from scipy.signal import find_peaks #, peak_prominences, find_peaks_cwt
 from scipy.spatial import Delaunay
 from scipy.optimize import curve_fit
-from scipy import ndimage as nd
+from scipy import ndimage as nd 
+from scipy.special import erf
 from scipy.ndimage import gaussian_laplace
 # To read .tiff files
 import tifffile
@@ -192,7 +193,7 @@ class SSA_rsnapsim():
         _, _, tagged_pois,raw_seq = rss.seqmanip.open_seq_file(str(self.gene_file))
         gene_obj = tagged_pois['1'][0]
         gene_obj.ke_mu = self.ke
-        number_probes = np.amax(gene_obj.probe_vec)
+        number_probes = np.max(gene_obj.probe_vec)
         gene_length = len(raw_seq)
 
         if not ( self.perturbation_time_stop is None):
@@ -1147,20 +1148,20 @@ class VisualizerImage():
                     title_str = 'Cell_'+str(counter)
                 # Figure with raw video
                 ax = fig.add_subplot(gs[index_video])
-                ax.imshow(self.list_videos[counter][self.selected_time_point, :, :, self.selected_channel], cmap = 'Spectral', vmax = np.amax(self.list_videos[counter][self.selected_time_point, :, :, self.selected_channel])*0.95)
+                ax.imshow(self.list_videos[counter][self.selected_time_point, :, :, self.selected_channel], cmap = 'Spectral', vmax = np.max(self.list_videos[counter][self.selected_time_point, :, :, self.selected_channel])*0.95)
                 ax.set_xticks([])
                 ax.set_yticks([])
                 ax.set(title = title_str + ' Original')
                 # Figure with filtered video
                 ax = fig.add_subplot(gs[index_video+1])
                 ax.imshow(self.list_videos_filtered[counter][self.selected_time_point, :, :, self.selected_channel], cmap = 'Spectral_r' )
-                #ax.imshow(self.list_videos_filtered[counter][self.selected_time_point, :, :, self.selected_channel], cmap = 'Greys', vmin = 0 ,vmax = np.amax(self.list_videos[counter][self.selected_time_point, :, :, self.selected_channel]))
+                #ax.imshow(self.list_videos_filtered[counter][self.selected_time_point, :, :, self.selected_channel], cmap = 'Greys', vmin = 0 ,vmax = np.max(self.list_videos[counter][self.selected_time_point, :, :, self.selected_channel]))
                 ax.set_xticks([])
                 ax.set_yticks([])
                 ax.set(title = title_str + ' Filtered' )
                 # Figure with original video and marking the spots
                 ax = fig.add_subplot(gs[index_video+2])
-                ax.imshow(self.list_videos[counter][self.selected_time_point, :, :, self.selected_channel], cmap = 'Spectral', vmax = np.amax(self.list_videos[counter][self.selected_time_point, :, :, self.selected_channel])*0.95)
+                ax.imshow(self.list_videos[counter][self.selected_time_point, :, :, self.selected_channel], cmap = 'Spectral', vmax = np.max(self.list_videos[counter][self.selected_time_point, :, :, self.selected_channel])*0.95)
                 ax.set_xticks([])
                 ax.set_yticks([])
                 ax.set(title = title_str + ' Detected Spots' )
@@ -1282,7 +1283,7 @@ class VisualizerVideo():
         else:
             self.list_videos = self.list_videos
         n_channels = [self.list_videos[i].shape[3] for i in range(0, self.number_videos)][0]
-        self.min_num_channels = np.amin((n_channels))
+        self.min_num_channels = np.min((n_channels))
         self.step_size_in_sec = step_size_in_sec
     def make_video_app(self):
         '''
@@ -1304,16 +1305,16 @@ class VisualizerVideo():
             ax = plt.gca()
             if drop_channel == 'Ch_0':
                 channel = 0
-                plt.imshow(video[index_time, :, :, channel], cmap = 'gray', vmax = np.amax(video[index_time, :, :, channel])*0.95)
+                plt.imshow(video[index_time, :, :, channel], cmap = 'gray', vmax = np.max(video[index_time, :, :, channel])*0.95)
             elif drop_channel == 'Ch_1':
                 channel = 1
-                plt.imshow(video[index_time, :, :, channel], cmap = 'gray', vmax = np.amax(video[index_time, :, :, channel])*0.95)
+                plt.imshow(video[index_time, :, :, channel], cmap = 'gray', vmax = np.max(video[index_time, :, :, channel])*0.95)
             elif drop_channel == 'Ch_2':  # vmax = np.mean(video[index_time, :, :, channel])+3*np.std(video[index_time, :, :, channel])
                 channel = 2
-                plt.imshow(video[index_time, :, :, channel], cmap = 'gray', vmax = np.amax(video[index_time, :, :, channel])*0.95)
+                plt.imshow(video[index_time, :, :, channel], cmap = 'gray', vmax = np.max(video[index_time, :, :, channel])*0.95)
             elif drop_channel == 'Ch_3':
                 channel = 3
-                plt.imshow(video[index_time, :, :, channel], cmap = 'gray', vmax = np.amax(video[index_time, :, :, channel])*0.95)
+                plt.imshow(video[index_time, :, :, channel], cmap = 'gray', vmax = np.max(video[index_time, :, :, channel])*0.95)
             else :
                 # Converting a np.uint16 array into float.
                 image = np.copy(video[index_time, :, :, :])
@@ -1322,7 +1323,7 @@ class VisualizerVideo():
                 image_float = np.array(image, 'float32')
                 image_float *= 255./(max_image-min_image)
                 image = np.asarray(np.round(image_float), 'uint8')
-                plt.imshow(image, vmax = np.amax(image)*0.95)
+                plt.imshow(image, vmax = np.max(image)*0.95)
             # Plots the detected spots.
             if not ( self.dataframe_particles[0] is None):
                 n_particles = selected_particles_dataframe['particle'].nunique()
@@ -1392,7 +1393,7 @@ class VisualizerVideo3D():
         list_number_z_slices = [list_videos[i].shape[1] for i in range(0, self.number_videos)]
         self.min_z_slices = min(list_number_z_slices)
         n_channels = [list_videos[i].shape[3] for i in range(0, self.number_videos)][0]
-        self.min_num_channels = np.amin((n_channels))
+        self.min_num_channels = np.min((n_channels))
     def make_video_app(self):
         '''
         This method returns two objects (controls and output) that can be used to display a widget.
@@ -1421,7 +1422,7 @@ class VisualizerVideo3D():
                 plt.imshow(video[index_time, index_z_axis, :, :, channel], cmap = 'gray')
             elif drop_channel == 'All_Channels' :
                 # Converting a np.uint16 array into float.
-                image = np.copy(video[index_time, index_z_axis:, :, 0:int(np.amin((3, self.min_num_channels)))])
+                image = np.copy(video[index_time, index_z_axis:, :, 0:int(np.min((3, self.min_num_channels)))])
                 min_image, max_image = np.min(image), np.max(image)
                 image -= min_image
                 image_float = np.array(image, 'float32')
@@ -1594,7 +1595,7 @@ class Cellpose():
                 masks, _, _, _ = model.eval(self.video, normalize = True, cellprob_threshold = optimization_threshold, diameter = self.diameter, min_size = 1000, channels = self.channels, progress = None)
             except:
                 masks =0
-            n_masks = np.amax(masks)
+            n_masks = np.max(masks)
             if n_masks > 1: # detecting if more than 1 mask are detected per cell
                 size_mask = []
                 for nm in range (1, n_masks+1): # iterating for each mask in a given cell. The mask has values from 0 for background, to int n, where n is the number of detected masks.
@@ -1610,18 +1611,18 @@ class Cellpose():
                 masks, _, _, _ = model.eval(self.video, normalize = True, cellprob_threshold = optimization_threshold, diameter =self.diameter, min_size = 1000, channels = self.channels, progress = None)
             except:
                 masks =0
-            return np.amax(masks)
+            return np.max(masks)
         def cellpose_max_cells_and_area( optimization_threshold):
             try:
                 masks, _, _, _ = model.eval(self.video, normalize = True, cellprob_threshold = optimization_threshold, diameter = self.diameter, min_size = 1000, channels = self.channels, progress = None)
             except:
                 masks =0
-            n_masks = np.amax(masks)
+            n_masks = np.max(masks)
             if n_masks > 1: # detecting if more than 1 mask are detected per cell
                 size_mask = []
                 for nm in range (1, n_masks+1): # iterating for each mask in a given cell. The mask has values from 0 for background, to int n, where n is the number of detected masks.
                     size_mask.append(np.sum(masks == nm)) # creating a list with the size of each mask
-                number_masks= np.amax(masks)
+                number_masks= np.max(masks)
                 metric = np.sum(np.asarray(size_mask)) * number_masks
                 return metric
             if n_masks == 1: # do nothing if only a single mask is detected per image.
@@ -1637,7 +1638,7 @@ class Cellpose():
         if self.selection_method == 'max_cells_and_area':
             list_metrics_masks = [cellpose_max_cells_and_area(optimization_probability ) for i,optimization_probability in enumerate(self.optimization_parameter)]
             evaluated_metric_for_masks = np.asarray(list_metrics_masks)
-        if np.amax(evaluated_metric_for_masks) >0:
+        if np.max(evaluated_metric_for_masks) >0:
             selected_conditions = self.optimization_parameter[np.argmax(evaluated_metric_for_masks)]
             selected_masks, _, _, _ = model.eval(self.video, normalize = True, cellprob_threshold = selected_conditions, diameter = self.diameter, min_size = -1, channels = self.channels, progress = None)
             selected_masks[0:10, :] = 0;selected_masks[:, 0:10] = 0;selected_masks[selected_masks.shape[0]-10:selected_masks.shape[0]-1, :] = 0; selected_masks[:, selected_masks.shape[1]-10: selected_masks.shape[1]-1 ] = 0#This line of code ensures that the corners are zeros.
@@ -1686,7 +1687,7 @@ class CellposeSelection():
         '''
         if self.selection_method == 'max_area':
             # Iterating for each mask to select the mask with the largest area.
-            n_masks = np.amax(self.mask)
+            n_masks = np.max(self.mask)
             if n_masks > 1: # detecting if more than 1 mask are detected per cell
                 size_mask = []
                 for nm in range (1, n_masks+1): # iterating for each mask in a given cell. The mask has values from 0 for the background to int n, where n is the number of detected masks.
@@ -1698,14 +1699,14 @@ class CellposeSelection():
                 selected_mask = self.mask
         if self.selection_method == 'max_spots':
             # Iterating for each mask to select the mask with the largest area.
-            n_masks = np.amax(self.mask)
+            n_masks = np.max(self.mask)
             if n_masks > 1: # detecting if more than 1 mask are detected per cell
                 number_particles = []
                 for nm in range (1, n_masks+1): # iterating for each mask in a given cell. The mask has values from 0 for the background to int n, where n is the number of detected masks.
                     # # Apply mask to a given time point
                     mask_copy = np.copy(self.mask)
                     tested_mask = np.where(mask_copy == nm, 1, 0) # making zeros all elements outside each mask, and once all elements inside of each mask.
-                    video_minimal_time = np.amin((int(self.num_frames/3), 5, self.num_frames))
+                    video_minimal_time = np.min((int(self.num_frames/3), 5, self.num_frames))
                     _, number_detected_trajectories, _ = Trackpy(self.video[0:video_minimal_time, :, :, :], tested_mask, particle_size = self.particle_size, selected_channel = self.selected_channel , minimal_frames = self.minimal_frames, show_plot = 0).perform_tracking()                    
                     number_particles.append(number_detected_trajectories)
                 pre_selected_mask = np.argmax(number_particles)+1 # detecting the mask with the largest value
@@ -1713,7 +1714,7 @@ class CellposeSelection():
                 selected_mask = temp_mask + (self.mask == pre_selected_mask) # Selecting a single mask and making this mask equal to one and the background equal to zero.
             else:  # do nothing if only a single mask is detected per image.
                 selected_mask = self.mask
-            if np.amax(selected_mask) == 0:
+            if np.max(selected_mask) == 0:
                 selected_mask = None
                 print('No mask was selected in the image.')
                 # This section dilates the mask to connect areas that are isolated.
@@ -1869,7 +1870,7 @@ class Trackpy():
             if min_int == None:
                 f_init = tp.locate(video, self.particle_size, minmass = 0, max_iterations = 100, preprocess = False, percentile = self.percentile_intensity_selection)
                 try:
-                    min_int = np.amax( (0, np.round( np.mean(f_init.mass.values) + self.default_threshold_int_std *np.std(f_init.mass.values))))
+                    min_int = np.max( (0, np.round( np.mean(f_init.mass.values) + self.default_threshold_int_std *np.std(f_init.mass.values))))
                 except:
                     min_int = 0
             if flag_for_optimization ==1:
@@ -1919,6 +1920,76 @@ class Trackpy():
         return trackpy_dataframe, int(number_particles), video_filtered
 
 
+class ParticleMotion():
+    '''
+    This class is intended to calculate the mean square displacement in the detected spots. This class uses trackpy.motion.emsd. 
+
+    Parameters
+
+    trackpy_dataframe : pandas data frame or None (if not given).
+        Pandas data frame from trackpy with fields [x, y, mass, size, ecc, signal, raw_mass, ep, frame, particle]. The default is None
+    
+    microns_per_pixel : float
+        Factors to converts microns per pixel.
+    step_size_in_sec : float
+        Factor that sets the frames per second in the video.
+    max_lagtime : int, optional
+        Is the time interval used to compute the mean square displacement. Trackpy uses a default of 100.
+    show_plot : bool, optional
+        If True, it displays a plot of MSD vs time. The default is True.
+    remove_drift : bool, optional
+        This flags removes the drift in the dataframe.
+        
+    '''
+    def __init__(self,trackpy_dataframe,microns_per_pixel,step_size_in_sec,max_lagtime=100,show_plot=True,remove_drift=False):
+        self.trackpy_dataframe= trackpy_dataframe
+        self.microns_per_pixel = microns_per_pixel
+        self.step_size_in_sec = step_size_in_sec
+        self.max_lagtime = max_lagtime
+        self.show_plot = show_plot 
+        self.remove_drift=remove_drift
+        
+    def calculate_msd(self):
+        '''
+        This method calculates the MSD for all the spots in the dataframe.
+
+        Returns
+        calculated_diffusion_coefficient : float
+            Calculated mean square displacement for the particle ensemble.
+        MSD_series : pandas dataframe
+            Dataframe with fields [msd, time].
+
+        '''
+        # This section removes drift from the original dataframe before calculating the MSD.
+        if self.remove_drift == True:
+            temp_trackpy_df = self.trackpy_dataframe.copy()
+            drift = tp.compute_drift(temp_trackpy_df)
+            trackpy_df = tp.subtract_drift(temp_trackpy_df.copy(), drift)
+            if self.show_plot==True: 
+                drift.plot()
+                plt.show()
+        else:
+            trackpy_df = self.trackpy_dataframe.copy()
+        # This section calculates the Mean square displacement for all the particles in the system.
+        #MSD_series = tp.emsd(trackpy_df, mpp = self.microns_per_pixel, fps = self.step_size_in_sec, max_lagtime = self.max_lagtime )
+        # This section calculates the mean square displacement in the image.
+        # for this it use the formula At^n
+        # where n is approximated to 1
+        # the value of A = 4D where D is the diffusion coefficient. 4 comes from Einstein equation for particle diffusion in a 2D system.
+        em = tp.emsd(trackpy_df,mpp=self.microns_per_pixel, fps=self.step_size_in_sec,  max_lagtime = self.max_lagtime)
+        slope =  np.linalg.lstsq(em.index[:, np.newaxis],em)[0][0]
+        calculated_diffusion_coefficient = slope / 4 
+        print(r'The diffusion constant is {0:.3f} μm²/s'.format(calculated_diffusion_coefficient))
+        if self.show_plot == True:
+            plt.style.use(['default', 'fivethirtyeight'])
+            fig, ax = plt.subplots(figsize=(6,4))
+            ax = em.plot(style='o', label='MSD')
+            ax.plot(np.arange(self.max_lagtime ), slope * np.arange(self.max_lagtime ), label='linear fit')
+            ax.set(ylabel=r'$\langle \Delta r^2 \rangle$ [$\mu$m$^2$]', xlabel='lag time $t$')
+            #ax.set(xlim=(0, 100))
+            ax.legend(loc='upper left')
+        return calculated_diffusion_coefficient, em, trackpy_df
+    
 class Intensity():
     '''
     This class is intended to calculate the intensity in the detected spots.
@@ -2009,7 +2080,7 @@ class Intensity():
                 xx, yy = np.meshgrid(ax, ax)
                 kernel =  offset *(np.exp(-0.5 * (np.square(xx) + np.square(yy)) / np.square(sigma)))
                 return kernel.ravel()
-            p0 = (np.amin(image_flat) , np.std(image_flat) ) # int(size_spot/2))
+            p0 = (np.min(image_flat) , np.std(image_flat) ) # int(size_spot/2))
             optimized_parameters, _ = curve_fit(gaussian_function, size_spot, image_flat, p0 = p0)
             spot_intensity_gaussian = optimized_parameters[0] # Amplitude
             spot_intensity_gaussian_std = optimized_parameters[1]
@@ -2070,8 +2141,8 @@ class Intensity():
                         intensities_snr[j, i]  , intensities_background_mean [j, i], intensities_background_std [j, i] = signal_to_noise_ratio(crop_image,self.disk_size) # SNR
                     elif self.method == 'total_intensity':
                         crop_image = return_crop(self.video[j, :, :, i], x_pos, y_pos, self.crop_size) # NOT RE-CENTERING IMAGE
-                        intensities_mean[j, i] = np.amax((0, np.mean(crop_image)))# mean intensity in the crop
-                        intensities_std[ j, i] = np.amax((0, np.std(crop_image)))# std intensity in the crop
+                        intensities_mean[j, i] = np.max((0, np.mean(crop_image)))# mean intensity in the crop
+                        intensities_std[ j, i] = np.max((0, np.std(crop_image)))# std intensity in the crop
                         intensities_snr[j, i] , intensities_background_mean [j, i], intensities_background_std [j, i] = signal_to_noise_ratio(crop_image,self.disk_size) # SNR
                     elif self.method == 'gaussian_fit':
                         crop_image = return_crop(self.video[j, :, :, i], x_pos, y_pos, self.crop_size) # NOT RE-CENTERING IMAGE
@@ -2104,8 +2175,8 @@ class Intensity():
                             print(crop_image)
                     elif self.method == 'total_intensity':
                         crop_image = return_crop(self.video[j, :, :, i], x_pos, y_pos, self.crop_size) # NOT RECENTERING IMAGE
-                        intensities_mean[ current_frame, i] = np.amax((0, np.mean(crop_image))) # mean intensity in image
-                        intensities_std[ current_frame, i] = np.amax((0, np.std(crop_image))) # std intensity in image
+                        intensities_mean[ current_frame, i] = np.max((0, np.mean(crop_image))) # mean intensity in image
+                        intensities_std[ current_frame, i] = np.max((0, np.std(crop_image))) # std intensity in image
                         intensities_snr[current_frame, i] , intensities_background_mean [current_frame, i], intensities_background_std [current_frame, i] = signal_to_noise_ratio(crop_image,self.disk_size) # SNR
                     elif self.method == 'gaussian_fit':
                         crop_image = return_crop(self.video[j, :, :, i], x_pos, y_pos, self.crop_size) # NOT RECENTERING IMAGE
@@ -2232,7 +2303,6 @@ class Intensity():
                 temporal_frames_vector = counter_time_vector
                 temporal_x_position_vector = self.spot_positions_movement[:, id, 1]
                 temporal_y_position_vector = self.spot_positions_movement[:, id, 0]
-            
             temporal_red_vector =  array_intensities_mean[id, temporal_frames_vector, 0]  # red
             temporal_green_vector = array_intensities_mean[id, temporal_frames_vector, 1]  # green
             temporal_blue_vector =  array_intensities_mean[id, temporal_frames_vector, 2]  # blue
@@ -2284,6 +2354,139 @@ class Intensity():
         return dataframe_particles, array_intensities_mean, time_vector, mean_intensities, std_intensities, mean_intensities_normalized, std_intensities_normalized
 
 
+class Covariance():
+    '''
+    This class calculates the auto-covariance from an intensity time series.
+    
+    Parameters
+
+    dataframe_particles : pandas dataframe
+        Dataframe with fields [cell_number, particle, frame, red_int_mean, green_int_mean, blue_int_mean, red_int_std, green_int_std, blue_int_std, x, y, SNR_red,SNR_green,SNR_blue].
+    selected_field : str, optinal
+        Field in the datafre to be used to calculate autocovariance. The deafault is 'green_int_mean'
+    max_lagtime : int, optional
+        Is the time interval used to compute the mean square displacement. Trackpy uses a default of 100.
+    show_plot : bool, optional
+        If True, it displays a plot of Covariance vs time. The default is True.
+    step_size : int, optional.
+        Frame rate in seconds. The default is 1 frame per second.
+
+    '''
+    def __init__(self,dataframe_particles,selected_field='green_int_mean', max_lagtime= 100, show_plot= True,figure_size=(6,4),step_size=1):
+        self.dataframe_particles = dataframe_particles
+        self.max_lagtime = max_lagtime
+        self.show_plot = show_plot
+        self.selected_field = selected_field
+        self.figure_size=figure_size
+        self.step_size = step_size
+    
+        
+    def calculate_autocovariance(self):
+        '''
+        Method that runs the simulations for the multiplexing experiment.
+
+        Returns
+
+        mean_acf_data : NumPy array
+            2D Array with dimensions [particle, Time]
+        err_acf_data : NumPy array 
+            2D Array with dimensions [particle, Time]
+        lags : NumPy array
+            1D Array with dimensions [Time]
+        decorrelation_time : float
+            Float indicating the decorrelation time.
+        auto_correlation_matrix : Numpy array
+            2D Array with dimenssions [particle, lags].
+
+        '''
+        
+        def df_to_array(dataframe_simulated_cell,selected_field):
+            '''
+            This function takes the dataframe and extracts the information from it. 
+
+            Input
+                dataframe_simulated_cell : pandas dataframe
+                    Dataframe with fields [cell_number, particle, frame, red_int_mean, green_int_mean, blue_int_mean, red_int_std, green_int_std, blue_int_std, x, y, SNR_red,SNR_green,SNR_blue].
+                selected_field : str,
+                    selected field to extract data.
+
+            Returns
+
+                intensity_array : Intensities for each particle in the green channel. NumPy array with dimensions [number_particles, time_points]. The maximum time points are defined by the longest trajectory. Short trajectories are populated with zeros.
+            '''
+            # get the total number of particles in all cells
+            total_particles = 0
+            for cell in set(dataframe_simulated_cell['cell_number']):
+                total_particles += len(set(dataframe_simulated_cell[dataframe_simulated_cell['cell_number'] == 0]['particle'] ))
+            #preallocate numpy array sof n_particles by nframes
+            intensity_array = np.zeros([total_particles, np.max(dataframe_simulated_cell['frame'])+1] )  #intensity green
+            #intensity_array[:] = np.nan
+            k = 0
+            # For loops that iterate for each particle and stores the data in the previously pre-alocated arrays.
+            for cell in set(dataframe_simulated_cell['cell_number']):  #for every cell 
+                for particle in set(dataframe_simulated_cell[dataframe_simulated_cell['cell_number'] == 0]['particle'] ): #for every particle
+                    temporal_dataframe = dataframe_simulated_cell[(dataframe_simulated_cell['cell_number'] == cell) & (dataframe_simulated_cell['particle'] == particle)]  #slice the dataframe
+                    frame_values = temporal_dataframe['frame'].values
+                    intensity_array[k, frame_values] = temporal_dataframe[selected_field].values  #fill the arrays to return out
+                    k+=1 #iterate over k (total particles)
+            return intensity_array 
+    
+        def get_autocorrelation(data, g0='G0', norm='individual'):
+            n_traj = data.shape[0]
+            acf_vec = np.zeros(data.shape)
+            def get_acc_fft(signal):
+                N = len(signal)
+                fvi = np.fft.fft(signal, n=2*N)
+                acf = fvi*np.conjugate(fvi)
+                acf = np.fft.ifft(acf)
+                acf = np.real(acf[:N])/float(N)
+                return acf
+            global_mean = np.mean(data)
+            global_var = np.var(data)
+            for i in range(n_traj):
+                if norm == 'individual':
+                    if np.mean(data[i] == 0):
+                        signal = (data[i] - 1e-6) / 1e-6
+                    else:
+                        signal = (data[i] - np.mean(data[i])) / np.var(data[i])
+                else:
+                    signal = (data[i] - global_mean) / global_var
+                if g0 == 'G1':
+                    g1 = get_acc_fft(signal)[1]
+                    acf_vec[i] = get_acc_fft(signal)/g1
+                if g0 == 'G0':
+                    g = get_acc_fft(signal)[0]
+                    acf_vec[i] = get_acc_fft(signal)/g
+                # returns an autocorrelation matrix with the shape [particle, lags]
+            return acf_vec
+
+        intensity_array = df_to_array(self.dataframe_particles, selected_field=self.selected_field )
+        auto_correlation_matrix = get_autocorrelation(intensity_array, g0='G0', norm='individual')
+        mean_acf_data = np.mean(auto_correlation_matrix, axis=0)
+        err_acf_data = np.std(auto_correlation_matrix, axis=0) 
+        lags = np.arange(start=0, stop=len(mean_acf_data)*self.step_size, step=self.step_size)
+        number_lags= lags.shape[0]
+        print('nlags',number_lags)
+        try:
+            decorrelation_time = lags[np.where(mean_acf_data<0)[0][0]]
+            print('The dwell (decorrelation) time is ', str(decorrelation_time) , 'seconds')
+        except:
+            print('It was not possible to estimate the dwell (decorrelation) times.')
+            decorrelation_time = 0
+        # Plotting the ACF and its mean.
+        if self.show_plot == True:
+            fig, ax = plt.subplots(1,1, figsize=self.figure_size)
+            ax.fill_between(lags, mean_acf_data - err_acf_data, mean_acf_data + err_acf_data, color='grey', alpha=0.3)
+            ax.plot(lags, mean_acf_data, '-', linewidth=3, color='#1C00FE', label='mean ACF')
+            ax.set_ylim((-0.2, 1))
+            if self.max_lagtime < number_lags:
+                ax.set_xlim((0, self.max_lagtime*self.step_size))
+            ax.set_xlabel('tau')
+            ax.set_ylabel(r'G/G(0)')
+            plt.show()
+        
+        return mean_acf_data,err_acf_data,lags, decorrelation_time, auto_correlation_matrix
+
 class SimulateRNA():
     
     '''
@@ -2301,6 +2504,7 @@ class SimulateRNA():
         Value representing the maximum intensity in the output array. the default is 10.
     mean_int : float, optional.
         Value representing the mean intensity in the output array. the default is 5.
+        
     '''
 
     def __init__(self, shape_output_array, rna_intensity_method='constant',mean_int=10 ):
@@ -2343,7 +2547,7 @@ class SimulatedCell():
         The number of frames or time points to simulate. In seconds. The default is 20.
     step_size : float, optional
         Step size for the simulation. In seconds. The default is 1.
-    diffusion_coefficient : float, optional
+    diffusion_coefficient_pixel_per_second : float, optional
         The diffusion coefficient for the particles' Brownian motion. The default is 0.01.
     simulated_trajectories_ch0 : NumPy array, optional
         An array of simulated trajectories with dimensions [S, T] for channel 0. The default is None and indicates that the intensity will be generated, drawing random numbers in a range.
@@ -2401,7 +2605,7 @@ class SimulatedCell():
                 number_spots:int = 10, 
                 number_frames:int = 20, 
                 step_size:float = 1, 
-                diffusion_coefficient:float = 0.01, 
+                diffusion_coefficient_pixel_per_second:float = 0.01, 
                 simulated_trajectories_ch0:Union[np.ndarray, None]  = None, 
                 size_spot_ch0:int = 5, 
                 spot_sigma_ch0:int = 1, 
@@ -2445,7 +2649,7 @@ class SimulatedCell():
         self.number_spots = number_spots
         self.number_frames = number_frames
         self.step_size = step_size
-        self.diffusion_coefficient = diffusion_coefficient
+        self.diffusion_coefficient_pixel_per_second = diffusion_coefficient_pixel_per_second
         self.image_size = [base_video.shape[1], base_video.shape[2]]
         self.simulated_trajectories_ch0 = simulated_trajectories_ch0
         self.size_spot_ch0 = size_spot_ch0
@@ -2494,7 +2698,7 @@ class SimulatedCell():
             # section that uses cellpose to calculate the mask
             selected_image = np.max(self.video_for_mask[:, :, :, 1],axis=0) # selecting for the mask the first time point
             selected_masks = Cellpose(selected_image, num_iterations = 10, channels = [0, 0], diameter = 200, model_type = 'cyto', selection_method = 'max_area').calculate_masks() # options are 'max_area' or 'max_cells'
-            if np.amax(selected_masks) == 0:
+            if np.max(selected_masks) == 0:
                 print('Error, no masks were found on the image')
                 raise
             selected_mask  = CellposeSelection(selected_masks, selected_image, selection_method = 'max_area').select_mask()
@@ -2537,23 +2741,70 @@ class SimulatedCell():
                 raise
             # Copy the matrix_background
             pixelated_image = matrix_background.copy()
-            for point_index in range(0, len(center_positions_vector)):
-                # Section that creates the Gaussian Kernel Matrix
+            
+            # Section that creates the Gaussian Kernel Matrix
+            def pdf_pixel_resolution( size_spot=5, spot_sigma=2):
                 ax = np.linspace(-(size_spot - 1) / 2., (size_spot - 1) / 2., size_spot)
                 xx, yy = np.meshgrid(ax, ax)
                 kernel = np.exp(-0.5 * (np.square(xx) + np.square(yy)) / np.square(spot_sigma))
+                return kernel/np.max(kernel)
+            
+            # def gaussian_subpixel_erf(points, size_spot=5, spot_sigma=2):
+            #     x,y = points
+            #     pixelgrid = np.linspace(-(size_spot - 1) / 2., (size_spot - 1) / 2., size_spot) #np.array([np.linspace(0,gridsize,gridsize+1)])
+            #     xbar = pixelgrid-x
+            #     ybar = pixelgrid-y
+            #     Fx = .5*(1+erf(xbar /(spot_sigma*np.sqrt(2))) )
+            #     Fy = .5*(1+erf(ybar /(spot_sigma*np.sqrt(2))) )
+            #     dFx = Fx[:,1:] - Fx[:,:-1]
+            #     dFy = Fy[:,1:] - Fy[:,:-1]
+            #     K = dFx.T @ dFy
+            #     return K/np.max(K)
+            
+            
+            def gaussian_subpixel_erf(point, size_spot=5, spot_sigma=2):
+                '''
+                get a gaussian kernel from a point in a subpixel of the center
+
+                point: iterable of x and y e.g. [x,y]
+                size_spot: size of the kernel to generate **MUST BE ODD** to use the center pixel - consider adding check
+                spot_sigma: std of the point spread function
+
+                returns: size_spot x size_spot gaussian kernel with subpixel of frac(point) in the center
+                '''
+                x,y = point # get the point
+                x_p = x - int(x) # get the fraction value, subpixel value of center pixel
+                y_p = y - int(y) 
+                # generate the N+1 x N+1 pixel grid with N/2 x N/2 as the center pixel
+                pixelgrid = np.array([np.linspace( -(size_spot+1)/2+1, (size_spot+1)/2 , size_spot+1)])
+                xbar = pixelgrid-x_p #subtract the subpixel value
+                ybar = pixelgrid-y_p
+                # get the gaussian cdf sum of this bin
+                Fx = .5*(1+erf(xbar /(spot_sigma*np.sqrt(2))) ) 
+                Fy = .5*(1+erf(ybar /(spot_sigma*np.sqrt(2))) )
+                dFx = Fx[:,1:] - Fx[:,:-1] #subtract the differences of the cdfs in each direction
+                dFy = Fy[:,1:] - Fy[:,:-1]
+                K = dFx.T @ dFy # dot together to generate the NxN kernel
+                return (K-np.min(K))/(np.max(K)-np.min(K))
+            
+            for point_index in range(0, len(center_positions_vector)):
                 # creating a position for each spot
                 center_position = center_positions_vector[point_index]
+                kernel=gaussian_subpixel_erf(point=center_position, size_spot=size_spot, spot_sigma=spot_sigma)
+                #kernel=pdf_pixel_resolution( size_spot=size_spot, spot_sigma=spot_sigma)
                 if using_ssa == True :
                     int_ssa = simulated_trajectories_time_point[point_index] #- min_SSA_value) / (max_SSA_value-min_SSA_value) # intensity normalized to min and max values in the SSA
                     int_tp = int_ssa* intensity_scale 
-                    spot_intensity = np.amax((0, int_tp))
+                    spot_intensity = np.max((0, int_tp))
                 else:
                     spot_intensity = intensity_scale
                 kernel_value_intensity = (kernel*spot_intensity)
+                center_position = np.round(center_position).astype(int)
                 selected_area = pixelated_image[center_position[0]-int(size_spot/2): center_position[0]+int(size_spot/2)+1 , center_position[1]-int(size_spot/2): center_position[1]+int(size_spot/2)+1 ]
                 selected_area = selected_area+ kernel_value_intensity
                 pixelated_image[center_position[0]-int(size_spot/2): center_position[0]+int(size_spot/2)+1 , center_position[1]-int(size_spot/2): center_position[1]+int(size_spot/2)+1 ] = selected_area
+            
+            
             return pixelated_image # final_image
 
         def make_spots_movement(polygon_array, number_spots:int, time_vector:np.ndarray, step_size: float, image_size:np.ndarray, diffusion_coefficient:float, internal_base_video:Union[np.ndarray, None] = None):
@@ -2590,7 +2841,7 @@ class SimulatedCell():
                     print('error generating spots')
             ## Brownian motion
             # scaling factor for Brownian motion.
-            brownian_movement = math.sqrt(2*NUMBER_SPACIAL_DIMENSSIONS_IN_SIMULATION*diffusion_coefficient*step_size)
+            brownian_movement = math.sqrt(2*diffusion_coefficient*step_size)
             # Preallocating memory
             y_positions = np.array(initial_points_in_polygon[:, 0], dtype = 'int') #  x_position for selected spots inside the polygon
             x_positions = np.array(initial_points_in_polygon[:, 1], dtype = 'int') #  y_position for selected spots inside the polygon
@@ -2606,8 +2857,8 @@ class SimulatedCell():
                         temp_Position_y[i_p] = y_positions[i_p]
                         temp_Position_x[i_p] = x_positions[i_p]
                     else:
-                        temp_Position_y[i_p] = newPosition_y[i_p] + int(brownian_movement * np.random.randn(1))
-                        temp_Position_x[i_p] = newPosition_x[i_p] + int(brownian_movement * np.random.randn(1))
+                        temp_Position_y[i_p] = newPosition_y[i_p] + brownian_movement * np.random.randn(1)
+                        temp_Position_x[i_p] = newPosition_x[i_p] + brownian_movement * np.random.randn(1)
                     while path.contains_point((temp_Position_y[i_p], temp_Position_x[i_p])) == 0:
                         temp_Position_y[i_p] = newPosition_y[i_p]
                         temp_Position_x[i_p] = newPosition_x[i_p]
@@ -2663,7 +2914,7 @@ class SimulatedCell():
                     num_rep_interpolated_index_value = np.count_nonzero(interpolated_indexes == interpolated_index_value)
                     proportion_to_interpolate =  np.round( proportion_to_interpolate + (1/num_rep_interpolated_index_value) , 3)
                     if num_rep_interpolated_index_value >1:    
-                        reverse_proportion = np.amax( (0, 1-proportion_to_interpolate))
+                        reverse_proportion = np.max( (0, 1-proportion_to_interpolate))
                         interpolated_video [counter+1]= proportion_to_interpolate*(orignal_video[interpolated_index_value+1]) + reverse_proportion*orignal_video[1-interpolated_index_value]
                         proportion_to_interpolate+proportion_to_interpolate
                     else:
@@ -2715,7 +2966,7 @@ class SimulatedCell():
                     tensor_image[t_p, :, :] = make_replacement_pixelated_spots(matrix_background, spot_positions_movement[t_p, :, :], size_spot, spot_sigma, using_ssa, simulated_trajectories_tp,intensity_scale)
             return tensor_image
         # Create the spots for all channels. Return array with 3-dimensions: T, Sop, XY-Coord
-        spot_positions_movement = make_spots_movement(self.polygon_array, self.number_spots, self.time_vector, self.step_size, self.image_size, self.diffusion_coefficient, self.base_video[0, :, :, 1])
+        spot_positions_movement = make_spots_movement(self.polygon_array, self.number_spots, self.time_vector, self.step_size, self.image_size, self.diffusion_coefficient_pixel_per_second, self.base_video[0, :, :, 1])
         # This section of the code runs the for each channel
         if self.ignore_ch0 == 0:
             tensor_image_ch0 = make_simulation(self.base_video[:, :, :, 0], self.video_removed_mask[:, :, :, 0], spot_positions_movement, self.time_vector, self.polygon_array, self.image_size, self.size_spot_ch0, self.spot_sigma_ch0, self.simulated_trajectories_ch0, self.frame_selection_empty_video,self.ignore_trajectories_ch0,self.intensity_scale_ch0 )
@@ -2744,7 +2995,6 @@ class SimulatedCell():
         dataframe_particles, _, _, _, _, _, _ = Intensity(tensor_video, particle_size = self.size_spot_ch0, spot_positions_movement = spot_positions_movement, method = self.intensity_calculation_method, step_size = self.step_size, show_plot = 0,dataframe_format =self.dataframe_format ).calculate_intensity()
         
         # Adding SSA Channels
-
         if not (self.simulated_trajectories_ch0 is None):
             ssa_ch0 = self.simulated_trajectories_ch0.flatten(order='F')
         else:
@@ -2795,18 +3045,10 @@ class SimulatedCellDispatcher():
         The simulation time in seconds. The default is 20.
     step_size_in_sec : float, optional
         Step size for the simulation. In seconds. The default is 1.
-    save_as_tif : bool, optional
-        If true, it generates and saves a uint16 (High) quality image tif file for the simulation. The default is 0.
-    save_dataframe : bool, optional
-        If true, it generates and saves a pandas dataframe with the simulation. Dataframe with fields [cell_number, particle, frame, red_int_mean, green_int_mean, blue_int_mean, red_int_std, green_int_std, blue_int_std, x, y]. The default is 0.
-    saved_file_name : str, optional
-        The file name for the simulated cell output files (tif images, gif images, data frames). The default is 'temp_simulation'.
     mask_image : NumPy array, optional    
         Numpy Array with dimensions [Y, X]. This image is used as a mask for the simulated video. The mask_image has to represent the same image as the base_video and video_for_mask.
     cell_number : int, optional
         Cell number used as an index for the data frame. The default is 0.
-    save_as_gif : bool, optional
-        If true, it generates and saves a .gif with the simulation. The default is 0.
     perform_video_augmentation : bool, optional
         If true, it performs random rotations the initial video. The default is 1.
     frame_selection_empty_video : str, optional
@@ -2850,12 +3092,8 @@ class SimulatedCellDispatcher():
                 list_initiation_rates:list, 
                 simulation_time_in_sec:float, 
                 step_size_in_sec:float, 
-                save_as_tif:bool=False, 
-                save_dataframe:bool=False, 
-                saved_file_name:str = 'temp_simulation', 
                 mask_image:Union[np.ndarray, None] = None, 
                 cell_number:int = 0, 
-                save_as_gif:bool = False, 
                 perform_video_augmentation:bool = True, 
                 frame_selection_empty_video:str = 'shuffle', 
                 spot_size:int = 5 ,
@@ -2868,7 +3106,8 @@ class SimulatedCellDispatcher():
                 ignore_ch1: bool = False, 
                 ignore_ch2: bool = False, 
                 scale_intensity_in_base_video: bool = False, 
-                basal_intensity_in_background_video : int = 20000):
+                basal_intensity_in_background_video : int = 20000,
+                microns_per_pixel : float = 1.):
         if perform_video_augmentation == True:
             preprocessed_base_video,selected_angle = AugmentationVideo(initial_video).random_rotation()
             if not(mask_image is None):
@@ -2900,11 +3139,7 @@ class SimulatedCellDispatcher():
         self.simulation_time_in_sec = simulation_time_in_sec
         self.step_size_in_sec = step_size_in_sec
         self.number_genes = len(list_gene_sequences)
-        self.save_as_tif = save_as_tif
-        self.save_dataframe = save_dataframe
-        self.saved_file_name = saved_file_name
         self.cell_number = cell_number
-        self.save_as_gif = save_as_gif
         self.frame_selection_empty_video = frame_selection_empty_video
         self.spot_size = spot_size
         self.intensity_scale_ch0 = intensity_scale_ch0
@@ -2920,6 +3155,7 @@ class SimulatedCellDispatcher():
         self.ignore_ch0 = ignore_ch0
         self.ignore_ch1 = ignore_ch1
         self.ignore_ch2 = ignore_ch2
+        self.microns_per_pixel = microns_per_pixel
     def make_simulation (self):
         '''
         Method that runs the simulations for the multiplexing experiment.
@@ -2935,7 +3171,7 @@ class SimulatedCellDispatcher():
         '''
 
         # Wrapper for the simulated cell
-        def wrapper_simulated_cell (base_video, video_for_mask = None, ssa_protein = None, rna_intensity=None, target_channel_protein = 1,target_channel_mRNA =0,  diffusion_coefficient = 0.05, step_size = self.step_size_in_sec, spot_size = self.spot_size, intensity_calculation_method = 'disk_donut', save_as_gif = 0, frame_selection_empty_video = self.frame_selection_empty_video,int_scale_to_snr=np.array([100,100,100]) ):
+        def wrapper_simulated_cell (base_video, video_for_mask = None, ssa_protein = None, rna_intensity=None, target_channel_protein = 1,target_channel_mRNA =0,  diffusion_coefficient = 0.05, step_size = self.step_size_in_sec, spot_size = self.spot_size, intensity_calculation_method = 'disk_donut', frame_selection_empty_video = self.frame_selection_empty_video,int_scale_to_snr=np.array([100,100,100]),microns_per_pixel=1 ):
             if target_channel_protein == 0 and target_channel_mRNA==1:
                 ignore_trajectories_ch0 = 0; ignore_trajectories_ch1 = 0; ignore_trajectories_ch2 = 1
                 simulated_trajectories_ch0 = ssa_protein 
@@ -2968,6 +3204,11 @@ class SimulatedCellDispatcher():
                 simulated_trajectories_ch2 = ssa_protein
             number_spots_per_cell = ssa_protein.shape[0]
             
+            # converting the diffusion coefficient from micrones_per_second to pixeles_per_second
+            diffusion_coefficient_pixel_per_second =  diffusion_coefficient / (microns_per_pixel**2)
+            
+            print('diffusion_coefficient_pixel_per_second',diffusion_coefficient_pixel_per_second)
+            
             # Running simulated cell
             tensor_video, _,DataFrame_particles_intensities = SimulatedCell( base_video = base_video, 
                                                                             video_for_mask = video_for_mask, 
@@ -2975,7 +3216,7 @@ class SimulatedCellDispatcher():
                                                                             number_spots = number_spots_per_cell, 
                                                                             number_frames = ssa_protein.shape[1], 
                                                                             step_size = step_size, 
-                                                                            diffusion_coefficient = diffusion_coefficient, 
+                                                                            diffusion_coefficient_pixel_per_second = diffusion_coefficient_pixel_per_second, 
                                                                             simulated_trajectories_ch0 = simulated_trajectories_ch0, 
                                                                             size_spot_ch0 = spot_size, 
                                                                             spot_sigma_ch0 = self.spot_sigma, 
@@ -3029,7 +3270,7 @@ class SimulatedCellDispatcher():
             _, _,tagged_pois,raw_seq = rss.seqmanip.open_seq_file(str(self.list_gene_sequences[g]))
             gene_len = len(raw_seq)
             gene_obj = tagged_pois['1'][0]
-            number_probes = np.amax(gene_obj.probe_vec)
+            number_probes = np.max(gene_obj.probe_vec)
             calculated_mean_int_in_ssa[g] = (gene_len * self.list_initiation_rates[g]) / (self.list_elongation_rates[g] * number_probes)
         # Calculated Scaling factors for intensity
         int_scale_to_snr = np.zeros(3)
@@ -3050,9 +3291,9 @@ class SimulatedCellDispatcher():
                                                                                         target_channel_protein = self.list_target_channels_proteins[i],
                                                                                         target_channel_mRNA =  self.list_target_channels_mRNA[i], 
                                                                                         diffusion_coefficient = self.list_diffusion_coefficients[i], 
-                                                                                        save_as_gif = self.save_as_gif, 
                                                                                         frame_selection_empty_video = self.frame_selection_empty_video,
-                                                                                        int_scale_to_snr=int_scale_to_snr)
+                                                                                        int_scale_to_snr=int_scale_to_snr,
+                                                                                        microns_per_pixel=self.microns_per_pixel)
             else:
                 tensor_video , DataFrame_particles_intensities = wrapper_simulated_cell(tensor_video, 
                                                                                         video_for_mask = self.initial_video, 
@@ -3061,9 +3302,9 @@ class SimulatedCellDispatcher():
                                                                                         target_channel_protein = self.list_target_channels_proteins[i], 
                                                                                         target_channel_mRNA = self.list_target_channels_mRNA[i] , 
                                                                                         diffusion_coefficient = self.list_diffusion_coefficients[i], 
-                                                                                        save_as_gif = self.save_as_gif, 
                                                                                         frame_selection_empty_video = 'loop',  # notice that for the multiplexing frame_selection_empty_video has to be 'loop', because the initial video deffines the initial background image.
-                                                                                        int_scale_to_snr=int_scale_to_snr)
+                                                                                        int_scale_to_snr=int_scale_to_snr,
+                                                                                        microns_per_pixel=self.microns_per_pixel)
             list_DataFrame_particles_intensities.append(DataFrame_particles_intensities)
         # Adding a classification column to all dataframes
         for i in range(0, self.number_genes):
@@ -3077,18 +3318,18 @@ class SimulatedCellDispatcher():
         # Merging multiple dataframes in a single one.
         dataframe_simulated_cell = pd.concat(list_DataFrame_particles_intensities)        
         # saving the simulated video and data frame
-        if self.save_as_tif == True:
-            save_to_path = pathlib.Path().absolute().joinpath('temp_simulation')
-            if not os.path.exists(str(save_to_path)):
-                os.makedirs(str(save_to_path))
-            print ("The output is saved in the directory: " , str(save_to_path))
-            tifffile.imwrite(str(save_to_path.joinpath(self.saved_file_name+'.tif')), tensor_video)
-        if self.save_dataframe == True:
-            save_to_path = pathlib.Path().absolute().joinpath('temp_simulation')
-            if not os.path.exists(str(save_to_path)):
-                os.makedirs(str(save_to_path))
-            print ("The output is saved in the directory: " , str(save_to_path))
-            dataframe_simulated_cell.to_csv(str(save_to_path.joinpath(self.saved_file_name +'_df'+ '.csv')), index = True)
+        # if self.save_as_tif == True:
+        #     save_to_path = pathlib.Path().absolute().joinpath('temp_simulation')
+        #     if not os.path.exists(str(save_to_path)):
+        #         os.makedirs(str(save_to_path))
+        #     print ("The output is saved in the directory: " , str(save_to_path))
+        #     tifffile.imwrite(str(save_to_path.joinpath(self.saved_file_name+'.tif')), tensor_video)
+        # if self.save_dataframe == True:
+        #     save_to_path = pathlib.Path().absolute().joinpath('temp_simulation')
+        #     if not os.path.exists(str(save_to_path)):
+        #         os.makedirs(str(save_to_path))
+        #     print ("The output is saved in the directory: " , str(save_to_path))
+        #     dataframe_simulated_cell.to_csv(str(save_to_path.joinpath(self.saved_file_name +'_df'+ '.csv')), index = True)
         return tensor_video, dataframe_simulated_cell, list_ssa
 
 
@@ -3234,6 +3475,10 @@ class PipelineTracking():
             start = timer()
             if not ( Dataframe_trajectories is None):
                 dataframe_particles, array_intensities, time_vector, mean_intensities, std_intensities, mean_intensities_normalized, std_intensities_normalized = Intensity(self.video, self.particle_size, Dataframe_trajectories, method = self.intensity_calculation_method, show_plot = 0, dataframe_format=self.dataframe_format).calculate_intensity()
+                # This flag makes segmentation_succesful flase if less than 2 particles are detected in the dataframe_particles.
+                # This option avoids problem while calculating the next steps.
+                if array_intensities.shape[0]<2:
+                    segmentation_succesful =False
             else:
                 dataframe_particles = None
                 array_intensities = None
@@ -3796,7 +4041,8 @@ def simulate_cell ( video_dir,
                     simulated_RNA_intensities_method='constant',
                     store_videos_in_memory= False,
                     scale_intensity_in_base_video =False,
-                    basal_intensity_in_background_video= 20000):
+                    basal_intensity_in_background_video= 20000,
+                    microns_per_pixel=1):
 
     '''
     This function is intended to simulate single-molecule translation dynamics in a cell. The result of this simultion is a .tif video and a dataframe containing the transation spot characteristics.
@@ -4016,7 +4262,8 @@ def simulate_cell ( video_dir,
                                                                                     ignore_ch1 = ignore_ch1,
                                                                                     ignore_ch2 = ignore_ch2,
                                                                                     scale_intensity_in_base_video=scale_intensity_in_base_video,
-                                                                                    basal_intensity_in_background_video=basal_intensity_in_background_video).make_simulation()
+                                                                                    basal_intensity_in_background_video=basal_intensity_in_background_video,
+                                                                                    microns_per_pixel=microns_per_pixel).make_simulation()
         
         if save_as_tif == True:
             tifffile.imwrite(str(save_to_path_video.joinpath(saved_file_name+'.tif')), video)
