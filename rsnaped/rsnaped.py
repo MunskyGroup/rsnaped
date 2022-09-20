@@ -202,12 +202,22 @@ class SSA_rsnapsim():
             t_stop_perturbation = self.t_burnin+self.frames
         perturbation_list = [self.use_FRAP, self.use_Harringtonin,self.perturbation_time_start+self.t_burnin,t_stop_perturbation]
 
-        def ssa_parallel(gene_obj,t,t_burnin,ki ):
-            rss.solver.protein = gene_obj #pass the protein object
-            ssa_solution = rss.solver.solve_ssa(gene_obj.kelong,t,perturb=perturbation_list,ki=ki, low_memory=True, n_traj=1 )
-            return np.transpose( ssa_solution.intensity_vec[0,t_burnin*self.frame_rate:-1,:]) 
-        list_ssa = Parallel(n_jobs=self.NUMBER_OF_CORES)(delayed(ssa_parallel)(gene_obj,t,self.t_burnin,self.ki) for i in range(0,self.n_traj)) 
-        ssa = np.concatenate( list_ssa, axis=0 )
+        # def ssa_parallel(gene_obj,t,t_burnin,ki ):
+        rss.solver.protein = gene_obj #pass the protein object
+        #     ssa_solution = rss.solver.solve_ssa(gene_obj.kelong,t,perturb=perturbation_list,ki=ki, low_memory=True, n_traj=1 )
+        #     return np.transpose( ssa_solution.intensity_vec[0,t_burnin*self.frame_rate:-1,:]) 
+        ssa_solution = rss.solver.solve_ssa(gene_obj.kelong,t, perturb=perturbation_list, ki=self.ki, low_memory=True, n_traj=self.n_traj )
+        ssa = np.transpose( ssa_solution.intensity_vec[:,self.t_burnin*self.frame_rate:-1,:]) [:,:,0]
+        
+        #print(ssa_solution.intensity_vec.shape)
+        
+        #list_ssa = [ssa_parallel(gene_obj,t,self.t_burnin,self.ki) for _ in range(0,self.n_traj)] 
+        
+        #print(ssa.shape)
+        #list_ssa = Parallel(n_jobs=self.NUMBER_OF_CORES)(delayed(ssa_parallel)(gene_obj,t,self.t_burnin,self.ki) for i in range(0,self.n_traj)) 
+        
+        
+        #ssa = np.concatenate( list_ssa, axis=0 )
         ssa_ump = ssa/number_probes
         return ssa, ssa_ump, t,gene_length
 
@@ -2482,7 +2492,7 @@ class Covariance():
             fig, ax = plt.subplots(1,1, figsize=self.figure_size)
             ax.fill_between(lags, mean_acf_data - err_acf_data, mean_acf_data + err_acf_data, color='grey', alpha=0.3)
             ax.plot(lags, mean_acf_data, '-', linewidth=3, color='#1C00FE', label='mean ACF')
-            ax.set_ylim((-0.2, 1))
+            ax.set_ylim((-0.4, 1))
             if self.max_lagtime < number_lags:
                 ax.set_xlim((0, self.max_lagtime*self.step_size))
             ax.set_xlabel('tau')
@@ -2993,23 +3003,29 @@ class SimulatedCell():
         spot_positions_movement_int = np.round(spot_positions_movement).astype(int)
         dataframe_particles, _, _, _, _, _, _ = Intensity(tensor_video, particle_size = self.size_spot_ch0, spot_positions_movement = spot_positions_movement_int, method = self.intensity_calculation_method, step_size = self.step_size, show_plot = 0,dataframe_format =self.dataframe_format ).calculate_intensity()
         # Adding SSA Channels
+        number_elements = np.prod(self.simulated_trajectories_ch0.shape)
         if not (self.simulated_trajectories_ch0 is None):
-            ssa_ch0 = self.simulated_trajectories_ch0.flatten(order='F')
+            #ssa_ch0 = self.simulated_trajectories_ch0.flatten(order='F')
+            ssa_ch0 = np.reshape(self.simulated_trajectories_ch0,(number_elements),order='C')
         else:
             ssa_ch0=np.zeros(shape=(self.number_spots*len(self.time_vector)))
             
         if not (self.simulated_trajectories_ch1 is None):
-            ssa_ch1 = self.simulated_trajectories_ch1.flatten(order='F')
+            #ssa_ch1 = self.simulated_trajectories_ch1.flatten(order='F')
+            ssa_ch1 = np.reshape(self.simulated_trajectories_ch1,(number_elements),order='C')
         else:
             ssa_ch1=np.zeros(shape=(self.number_spots*len(self.time_vector)))
         
         if not (self.simulated_trajectories_ch2 is None):
-            ssa_ch2 = self.simulated_trajectories_ch2.flatten(order='F')
+            #ssa_ch2 = self.simulated_trajectories_ch2.flatten(order='F')
+            ssa_ch2 = np.reshape(self.simulated_trajectories_ch2,(number_elements),order='C')
         else:
             ssa_ch2=np.zeros(shape=(self.number_spots*len(self.time_vector)))
         ssa_complete_trajectories = np.stack((ssa_ch0,ssa_ch1,ssa_ch2),axis=-1)
         ssa_columns = ['SSA_Ch0_UMP','SSA_Ch1_UMP','SSA_Ch2_UMP']
         dataframe_particles[ssa_columns] = ssa_complete_trajectories
+        
+
         
         return tensor_video , spot_positions_movement_int, dataframe_particles
 
@@ -3238,7 +3254,7 @@ class SimulatedCellDispatcher():
         RNA_INTENSITY_MAX_VALUE =10 # this variable defines a value of units of RNA
         for i in range(0, self.number_genes):
             # # Simulations for intensity
-            _,ssa_ump,_,_ = SSA_rsnapsim( gene_file = self.list_gene_sequences[i], 
+            ssa,ssa_ump,_,_ = SSA_rsnapsim( gene_file = self.list_gene_sequences[i], 
                                         ke = self.list_elongation_rates[i],
                                         ki = self.list_initiation_rates[i],
                                         frames = self.simulation_time_in_sec,
