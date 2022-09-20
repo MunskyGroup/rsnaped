@@ -2025,6 +2025,7 @@ class Intensity():
         self.trackpy_dataframe = trackpy_dataframe
         self.disk_size = int(np.round(particle_size/2)) # size of the half of the crop
         self.crop_size = int(np.round(particle_size/2))*2
+        self.spots_range_to_replace = np.linspace(-(particle_size - 1) / 2, (particle_size - 1) / 2, particle_size,dtype=int)
         self.show_plot = show_plot
         self.dataframe_format = dataframe_format # options are : 'short' and 'long'
         self.method = method # options are : 'total_intensity' , 'disk_donut' and 'gaussian_fit'
@@ -2085,6 +2086,7 @@ class Intensity():
             spot_intensity_gaussian = optimized_parameters[0] # Amplitude
             spot_intensity_gaussian_std = optimized_parameters[1]
             return spot_intensity_gaussian, spot_intensity_gaussian_std
+        
         def signal_to_noise_ratio(test_im:np.ndarray, disk_size:int):
             # Function that calculates intensity using the disk and donut method
             center_coordinates = int(np.round(test_im.shape[0]/2))
@@ -2105,6 +2107,7 @@ class Intensity():
             mean_background_int = mean_intensity_donut
             std_background_int = std_intensity_donut
             return calculated_signal_to_noise_ratio, mean_background_int,std_background_int
+        
         def disk_donut(test_im:np.ndarray, disk_size:int):
             # Function that calculates intensity using the disk and donut method
             center_coordinates = int(np.round(test_im.shape[0]/2))
@@ -2120,6 +2123,7 @@ class Intensity():
             #spot_intensity_disk_donut[spot_intensity_disk_donut < 0] = 0
             spot_intensity_disk_donut[np.isnan(spot_intensity_disk_donut)] = 0 # replacing nans with zero
             return spot_intensity_disk_donut, spot_intensity_disk_donut_std
+        
         def return_crop(image:np.ndarray, x_pos:int, y_pos:int, crop_size:int):
             # function that recenter the spots
             crop_image = image[y_pos-(crop_size):y_pos+(crop_size+1), x_pos-(crop_size):x_pos+(crop_size+1)]
@@ -2638,9 +2642,7 @@ class SimulatedCell():
             preprocessed_base_video = base_video
             self.mask_image = mask_image
         self.intensity_calculation_method = intensity_calculation_method
-        
         self.base_video = preprocessed_base_video
-        
         if not (video_for_mask is None):
             video_for_mask = RemoveExtrema(video_for_mask, min_percentile = 0, max_percentile = 99.8).remove_outliers()
             self.video_for_mask = video_for_mask
@@ -2742,9 +2744,8 @@ class SimulatedCell():
                 raise
             # Copy the matrix_background
             pixelated_image = matrix_background.copy()
-            half_spot_size = int(np.round(size_spot/2))
+            #half_spot_size = int(np.round(size_spot/2))
             spots_range_to_replace = np.linspace(-(size_spot - 1) / 2, (size_spot - 1) / 2, size_spot,dtype=int)
-            print('range spots',spots_range_to_replace)
             
             # Section that creates the Gaussian Kernel Matrix
             def pdf_pixel_resolution( ax, spot_sigma=2):
@@ -2777,7 +2778,6 @@ class SimulatedCell():
                 dFy = Fy[:,1:] - Fy[:,:-1]
                 K = dFx.T @ dFy # dot together to generate the NxN kernel
                 return K*(1/np.sum(K))  #/np.max(K) # (K-np.min(K))/(np.max(K)-np.min(K))
-            
             
             for point_index in range(0, len(center_positions_vector)):
                 # creating a position for each spot
@@ -3199,7 +3199,7 @@ class SimulatedCellDispatcher():
             number_spots_per_cell = ssa_protein.shape[0]
             # converting the diffusion coefficient from micrones_per_second to pixeles_per_second
             diffusion_coefficient_pixel_per_second =  diffusion_coefficient / (microns_per_pixel**2)
-            print('diffusion_coefficient_pixel_per_second',diffusion_coefficient_pixel_per_second)
+            #print('diffusion_coefficient_pixel_per_second',diffusion_coefficient_pixel_per_second)
             # Running simulated cell
             tensor_video, _,DataFrame_particles_intensities = SimulatedCell( base_video = base_video, 
                                                                             video_for_mask = video_for_mask, 
