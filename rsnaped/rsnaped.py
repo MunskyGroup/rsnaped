@@ -2743,9 +2743,12 @@ class SimulatedCell():
             # Copy the matrix_background
             pixelated_image = matrix_background.copy()
             half_spot_size = int(np.round(size_spot/2))
+            spots_range_to_replace = np.linspace(-(size_spot - 1) / 2, (size_spot - 1) / 2, size_spot,dtype=int)
+            print('range spots',spots_range_to_replace)
+            
             # Section that creates the Gaussian Kernel Matrix
-            def pdf_pixel_resolution( size_spot=5, spot_sigma=2):
-                ax = np.linspace(-(size_spot - 1) / 2., (size_spot - 1) / 2., size_spot)
+            def pdf_pixel_resolution( ax, spot_sigma=2):
+                #ax = np.linspace(-(size_spot - 1) / 2., (size_spot - 1) / 2., size_spot)
                 xx, yy = np.meshgrid(ax, ax)
                 kernel = np.exp(-0.5 * (np.square(xx) + np.square(yy)) / np.square(spot_sigma))
                 return kernel #kernel/np.max(kernel)
@@ -2780,7 +2783,7 @@ class SimulatedCell():
                 # creating a position for each spot
                 center_position = center_positions_vector[point_index]
                 #kernel=gaussian_subpixel_erf(point=center_position, size_spot=size_spot, spot_sigma=spot_sigma)
-                kernel=pdf_pixel_resolution( size_spot=size_spot, spot_sigma=spot_sigma)
+                kernel=pdf_pixel_resolution( ax=spots_range_to_replace, spot_sigma=spot_sigma)
                 if using_ssa == True :
                     int_ssa = simulated_trajectories_time_point[point_index] #- min_SSA_value) / (max_SSA_value-min_SSA_value) # intensity normalized to min and max values in the SSA
                     int_tp = int_ssa* intensity_scale 
@@ -2789,10 +2792,12 @@ class SimulatedCell():
                     spot_intensity = intensity_scale
                 kernel_value_intensity = (kernel*spot_intensity)
                 center_position = np.round(center_position).astype(int)
-                selected_area = pixelated_image[center_position[0]-half_spot_size: center_position[0]+half_spot_size+1 , center_position[1]-half_spot_size: center_position[1]+half_spot_size+1 ]
+                #selected_area = pixelated_image[center_position[0]-half_spot_size: center_position[0]+half_spot_size+1 , center_position[1]-half_spot_size: center_position[1]+half_spot_size+1 ]
+                selected_area = pixelated_image[center_position[0]+spots_range_to_replace[0]: center_position[0]+spots_range_to_replace[-1]+1 , center_position[1]+spots_range_to_replace[0]: center_position[1]+spots_range_to_replace[-1]+1 ].copy()
                 selected_area = selected_area+ kernel_value_intensity
                 selected_area[selected_area>self.MAX_VALUE_uint16] = self.MAX_VALUE_uint16  # maxximum range for int uint16 = 65535
-                pixelated_image[center_position[0]-half_spot_size: center_position[0]+half_spot_size+1 , center_position[1]-half_spot_size: center_position[1]+half_spot_size+1 ] = selected_area
+                pixelated_image[center_position[0]+spots_range_to_replace[0]: (center_position[0]+spots_range_to_replace[-1])+1 , center_position[1]+spots_range_to_replace[0]: center_position[1]+(spots_range_to_replace[-1])+1 ] = selected_area
+                
             return pixelated_image # final_image
 
         def make_spots_movement(polygon_array, number_spots:int, time_vector:np.ndarray, step_size: float, image_size:np.ndarray, diffusion_coefficient:float, internal_base_video:Union[np.ndarray, None] = None):
@@ -2923,20 +2928,26 @@ class SimulatedCell():
                 interpolated_video = function_interpolate_video(orignal_video=base_video_selected_channel.copy(), num_requested_frames=len(time_vector))
                 index_frame_selection = range(0, len(time_vector))
                 base_video_selected_channel_copy = interpolated_video
-            if frame_selection_empty_video ==  'poisson': # selects the first time point
+            elif frame_selection_empty_video ==  'poisson': # selects the first time point
                 generated_video = generate_poisson_video(original_video=base_video_selected_channel.copy(), num_requested_frames=len(time_vector))
                 index_frame_selection = range(0, len(time_vector))
                 base_video_selected_channel_copy = generated_video
-            if frame_selection_empty_video ==  'gaussian': # selects the first time point
+            elif frame_selection_empty_video ==  'gaussian': # selects the first time point
                 generated_video = generate_gaussian_video(original_video=base_video_selected_channel.copy(), num_requested_frames=len(time_vector))
                 index_frame_selection = range(0, len(time_vector))
                 base_video_selected_channel_copy = generated_video
-            if frame_selection_empty_video ==  'constant': # selects the first time point
+            elif frame_selection_empty_video ==  'constant': # selects the first time point
                 index_frame_selection = np.zeros((len(time_vector)), dtype = np.int32)
-            if frame_selection_empty_video ==  'loop':
+            elif frame_selection_empty_video ==  'loop':
                 index_frame_selection = np.resize(empty_video_index, len(time_vector))
-            if frame_selection_empty_video ==  'shuffle':
+            elif frame_selection_empty_video ==  'shuffle':
                 index_frame_selection = np.random.randint(0, high = len_empty_video, size = len(time_vector), dtype = np.int32)
+            else:
+                # If not method to generate video is passed, the gaussian is default.
+                generated_video = generate_gaussian_video(original_video=base_video_selected_channel.copy(), num_requested_frames=len(time_vector))
+                index_frame_selection = range(0, len(time_vector))
+                base_video_selected_channel_copy = generated_video
+                
             for t_p, _ in enumerate(time_vector):
                 matrix_background = base_video_selected_channel_copy[index_frame_selection[t_p], :, :]
                 if not ( simulated_trajectories is None):
