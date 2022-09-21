@@ -2036,6 +2036,8 @@ class Intensity():
         self.disk_size = int(np.round(particle_size/2)) # size of the half of the crop
         self.crop_size = int(np.round(particle_size/2))*2
         self.spots_range_to_replace = np.linspace(-(particle_size - 1) / 2, (particle_size - 1) / 2, particle_size,dtype=int)
+        PIXELS_AROUND_SPOT = 6 # THIS HAS TO BE AN EVEN NUMBER
+        self.crop_range_to_replace = np.linspace(-(particle_size+PIXELS_AROUND_SPOT - 1) / 2, (particle_size+PIXELS_AROUND_SPOT - 1) / 2, particle_size+PIXELS_AROUND_SPOT,dtype=int)
         self.show_plot = show_plot
         self.dataframe_format = dataframe_format # options are : 'short' and 'long'
         self.method = method # options are : 'total_intensity' , 'disk_donut' and 'gaussian_fit'
@@ -2097,47 +2099,40 @@ class Intensity():
             spot_intensity_gaussian_std = optimized_parameters[1]
             return spot_intensity_gaussian, spot_intensity_gaussian_std
         
-        def signal_to_noise_ratio(test_im:np.ndarray, disk_size:int):
-            # Function that calculates intensity using the disk and donut method
-            center_coordinates = int(np.round(test_im.shape[0]/2))
-            # mean intensity in disk
-            image_in_disk = test_im[center_coordinates-disk_size:center_coordinates+disk_size+1, center_coordinates-disk_size:center_coordinates+disk_size+1]
-            mean_intensity_disk = np.mean(image_in_disk.flatten())            
-            # Calculate SD in the donut
-            recentered_image_donut = test_im.copy().astype(np.float32)
-            recentered_image_donut[center_coordinates-disk_size:center_coordinates+disk_size+1, center_coordinates-disk_size:center_coordinates+disk_size+1] = np.nan
-            mean_intensity_donut = np.nanmean(recentered_image_donut.flatten()) # mean calculation ignoring zeros
-            std_intensity_donut = np.nanstd(recentered_image_donut.flatten()) # mean calculation ignoring zeros
-            # Calculate SNR
+        def return_crop(image:np.ndarray, x:int, y:int,spot_range):
+            crop_image = image[y+spot_range[0]:y+(spot_range[-1]+1), x+spot_range[0]:x+(spot_range[-1]+1)]
+            return crop_image
+        
+        def return_donut(image, spot_size):
+            tem_img = image.copy()
+            center_coordinates = int(tem_img.shape[0]/2)
+            range_to_replace = np.linspace(-(spot_size - 1) / 2, (spot_size - 1) / 2, spot_size,dtype=int)
+            min_index = center_coordinates+range_to_replace[0]
+            max_index = (center_coordinates +range_to_replace[-1])+1
+            tem_img[min_index: max_index , min_index: max_index]*np.nan
+            donut_values = image[~np.isnan(image)]
+            return donut_values
+        
+        def signal_to_noise_ratio(values_disk,values_donut):
+            mean_intensity_disk = np.mean(values_disk.flatten())            
+            mean_intensity_donut = np.nanmean(values_donut.flatten()) # mean calculation ignoring zeros
+            std_intensity_donut = np.nanstd(values_donut.flatten()) # mean calculation ignoring zeros
             if std_intensity_donut >0:
                 calculated_signal_to_noise_ratio = (mean_intensity_disk-mean_intensity_donut) / std_intensity_donut
             else:
                 calculated_signal_to_noise_ratio = 0
-            # Calculation using a gaussian filter
             mean_background_int = mean_intensity_donut
             std_background_int = std_intensity_donut
             return calculated_signal_to_noise_ratio, mean_background_int,std_background_int
         
-        def disk_donut(test_im:np.ndarray, disk_size:int):
-            # Function that calculates intensity using the disk and donut method
-            center_coordinates = int(np.round(test_im.shape[0]/2))
-            recentered_image_donut = test_im.copy().astype(np.float32)
-            # mean intensity in disk
-            image_in_disk = test_im[center_coordinates-disk_size:center_coordinates+disk_size+1, center_coordinates-disk_size:center_coordinates+disk_size+1]
-            mean_intensity_disk = np.mean(image_in_disk)
-            spot_intensity_disk_donut_std = np.std(image_in_disk)
-            recentered_image_donut[center_coordinates-disk_size:center_coordinates+disk_size+1, center_coordinates-disk_size:center_coordinates+disk_size+1] = np.nan
-            mean_intensity_donut = np.nanmedian(recentered_image_donut.flatten()) # mean calculation ignoring zeros
-            # subtracting background minus center intensity
+        def disk_donut(values_disk, values_donut):
+            mean_intensity_disk = np.mean(values_disk)
+            spot_intensity_disk_donut_std = np.nanstd(values_disk.flatten())
+            mean_intensity_donut = np.nanmean(values_donut.flatten()) # mean calculation ignoring zeros
             spot_intensity_disk_donut = np.array( mean_intensity_disk - mean_intensity_donut, dtype = np.float32)
-            #spot_intensity_disk_donut[spot_intensity_disk_donut < 0] = 0
             spot_intensity_disk_donut[np.isnan(spot_intensity_disk_donut)] = 0 # replacing nans with zero
             return spot_intensity_disk_donut, spot_intensity_disk_donut_std
         
-        def return_crop(image:np.ndarray, x_pos:int, y_pos:int, crop_size:int):
-            # function that recenter the spots
-            crop_image = image[y_pos-(crop_size):y_pos+(crop_size+1), x_pos-(crop_size):x_pos+(crop_size+1)]
-            return crop_image
         # Section that marks particles if a numpy array with spot positions is passed.
         def intensity_from_position_movement(particle_index , frames_part ,time_points, number_channels ):
             intensities_mean = np.zeros((time_points, number_channels))
@@ -2147,23 +2142,19 @@ class Intensity():
             intensities_background_std = np.zeros((time_points, number_channels))
             for j in range(0, frames_part):
                 for i in range(0, number_channels):
-                    x_pos = self.spot_positions_movement[j,particle_index, 1]
-                    y_pos = self.spot_positions_movement[j,particle_index, 0]
+                    x_pos = int(np.round(self.spot_positions_movement[j,particle_index, 1]))
+                    y_pos = int(np.round(self.spot_positions_movement[j,particle_index, 0]))
+                    crop_with_disk_and_donut = return_crop(self.video[j, :, :, i], x_pos, y_pos,spot_range=self.crop_range_to_replace) # 
+                    values_disk = return_crop(self.video[j, :, :, i], x_pos, y_pos, spot_range=self.spots_range_to_replace) 
+                    values_donut = return_donut( crop_with_disk_and_donut,spot_size=self.particle_size )
+                    intensities_snr[j, i]  , intensities_background_mean [j, i], intensities_background_std [j, i] = signal_to_noise_ratio(values_disk,values_donut) # SNR
                     if self.method == 'disk_donut':
-                        crop_image = return_crop(self.video[j, :, :, i], x_pos, y_pos, self.crop_size) # NOT RE-CENTERING IMAGE
-                        intensities_mean[j, i], intensities_std[j, i] = disk_donut(crop_image,self.disk_size)
-                        intensities_snr[j, i]  , intensities_background_mean [j, i], intensities_background_std [j, i] = signal_to_noise_ratio(crop_image,self.disk_size) # SNR
+                        intensities_mean[j, i], intensities_std[j, i] = disk_donut(values_disk,values_donut )
                     elif self.method == 'total_intensity':
-                        crop_image = return_crop(self.video[j, :, :, i], x_pos, y_pos, self.crop_size) # NOT RE-CENTERING IMAGE
-                        intensities_mean[j, i] = np.max((0, np.mean(crop_image)))# mean intensity in the crop
-                        intensities_std[ j, i] = np.max((0, np.std(crop_image)))# std intensity in the crop
-                        intensities_snr[j, i] , intensities_background_mean [j, i], intensities_background_std [j, i] = signal_to_noise_ratio(crop_image,self.disk_size) # SNR
+                        intensities_mean[j, i] = np.max((0, np.mean(values_disk)))# mean intensity in the crop
+                        intensities_std[ j, i] = np.max((0, np.std(values_disk)))# std intensity in the crop
                     elif self.method == 'gaussian_fit':
-                        crop_image = return_crop(self.video[j, :, :, i], x_pos, y_pos, self.crop_size) # NOT RE-CENTERING IMAGE
-                        intensities_snr[j, i] , intensities_background_mean [j, i], intensities_background_std [j, i] = signal_to_noise_ratio(crop_image,self.disk_size) # SNR
-                        particle_half_size = int(np.round(self.particle_size/2))
-                        crop_image_gaussian = return_crop(self.video[j, :, :, i], x_pos, y_pos, particle_half_size) # NOT RE-CENTERING IMAGE
-                        intensities_mean[j, i], intensities_std[j, i] = gaussian_fit(crop_image_gaussian)# disk_donut(crop_image, self.disk_size
+                        intensities_mean[j, i], intensities_std[j, i] = gaussian_fit(values_disk)# disk_donut(crop_image, self.disk_size
             return intensities_mean, intensities_std, intensities_snr, intensities_background_mean, intensities_background_std
         def intensity_from_dataframe(particle_index ,time_points, number_channels ):
             frames_part = self.trackpy_dataframe.loc[self.trackpy_dataframe['particle'] == self.trackpy_dataframe['particle'].unique()[particle_index]].frame.values
@@ -2181,23 +2172,17 @@ class Intensity():
                     except:
                         x_pos = int(np.round(self.trackpy_dataframe.loc[self.trackpy_dataframe['particle'] == self.trackpy_dataframe['particle'].unique()[particle_index]].x.values[frames_part[0]]))
                         y_pos = int(np.round(self.trackpy_dataframe.loc[self.trackpy_dataframe['particle'] == self.trackpy_dataframe['particle'].unique()[particle_index]].y.values[frames_part[0]]))
+                    crop_with_disk_and_donut = return_crop(self.video[j, :, :, i], x_pos, y_pos,spot_range=self.crop_range_to_replace) # 
+                    values_disk = return_crop(self.video[j, :, :, i], x_pos, y_pos, spot_range=self.spots_range_to_replace) 
+                    values_donut = return_donut( crop_with_disk_and_donut ,spot_size=self.particle_size)
+                    intensities_snr[current_frame, i] , intensities_background_mean [current_frame, i], intensities_background_std [current_frame, i] = signal_to_noise_ratio(values_disk,values_donut) # SNR
                     if self.method == 'disk_donut':
-                        crop_image = return_crop(self.video[j, :, :, i], x_pos, y_pos, self.crop_size) # NOT RECENTERING IMAGE
-                        intensities_mean[current_frame, i], intensities_std[current_frame, i] = disk_donut(crop_image, self.disk_size)
-                        intensities_snr[current_frame, i] , intensities_background_mean [current_frame, i], intensities_background_std [current_frame, i] = signal_to_noise_ratio(crop_image,self.disk_size) # SNR
-                        if np.isnan(intensities_mean[current_frame, i]) ==1:
-                            print(crop_image)
+                        intensities_mean[current_frame, i], intensities_std[current_frame, i] = disk_donut(values_disk, values_donut )
                     elif self.method == 'total_intensity':
-                        crop_image = return_crop(self.video[j, :, :, i], x_pos, y_pos, self.crop_size) # NOT RECENTERING IMAGE
-                        intensities_mean[ current_frame, i] = np.max((0, np.mean(crop_image))) # mean intensity in image
-                        intensities_std[ current_frame, i] = np.max((0, np.std(crop_image))) # std intensity in image
-                        intensities_snr[current_frame, i] , intensities_background_mean [current_frame, i], intensities_background_std [current_frame, i] = signal_to_noise_ratio(crop_image,self.disk_size) # SNR
+                        intensities_mean[ current_frame, i] = np.max((0, np.mean(values_disk))) # mean intensity in image
+                        intensities_std[ current_frame, i] = np.max((0, np.std(values_disk))) # std intensity in image
                     elif self.method == 'gaussian_fit':
-                        crop_image = return_crop(self.video[j, :, :, i], x_pos, y_pos, self.crop_size) # NOT RECENTERING IMAGE
-                        intensities_snr[current_frame, i] , intensities_background_mean [current_frame, i], intensities_background_std [current_frame, i] = signal_to_noise_ratio(crop_image,self.disk_size) # SNR
-                        particle_half_size = int(np.round(self.particle_size/2))
-                        crop_image_gaussian = return_crop(self.video[j, :, :, i], x_pos, y_pos, particle_half_size) # NOT RECENTERING IMAGE
-                        intensities_mean[current_frame, i], intensities_std[ current_frame, i] = gaussian_fit(crop_image_gaussian)# disk_donut(crop_image, disk_size)
+                        intensities_mean[current_frame, i], intensities_std[ current_frame, i] = gaussian_fit(values_disk)# disk_donut(crop_image, disk_size)
             intensities_mean[np.isnan(intensities_mean)] = 0 # replacing nans with zeros
             intensities_std[np.isnan(intensities_std)] = 0 # replacing nans with zeros
             return intensities_mean, intensities_std, intensities_snr , intensities_background_mean, intensities_background_std
@@ -3005,27 +2990,26 @@ class SimulatedCell():
         # Adding SSA Channels
         number_elements = np.prod(self.simulated_trajectories_ch0.shape)
         if not (self.simulated_trajectories_ch0 is None):
-            #ssa_ch0 = self.simulated_trajectories_ch0.flatten(order='F')
-            ssa_ch0 = np.reshape(self.simulated_trajectories_ch0,(number_elements),order='C')
+            ssa_ch0 = self.simulated_trajectories_ch0.flatten(order='C')
+            #ssa_ch0 = np.reshape(self.simulated_trajectories_ch0,(number_elements),order='C')
         else:
             ssa_ch0=np.zeros(shape=(self.number_spots*len(self.time_vector)))
             
         if not (self.simulated_trajectories_ch1 is None):
-            #ssa_ch1 = self.simulated_trajectories_ch1.flatten(order='F')
-            ssa_ch1 = np.reshape(self.simulated_trajectories_ch1,(number_elements),order='C')
+            ssa_ch1 = self.simulated_trajectories_ch1.flatten(order='C')
+            #ssa_ch1 = np.reshape(self.simulated_trajectories_ch1,(number_elements),order='C')
         else:
             ssa_ch1=np.zeros(shape=(self.number_spots*len(self.time_vector)))
         
         if not (self.simulated_trajectories_ch2 is None):
-            #ssa_ch2 = self.simulated_trajectories_ch2.flatten(order='F')
-            ssa_ch2 = np.reshape(self.simulated_trajectories_ch2,(number_elements),order='C')
+            ssa_ch2 = self.simulated_trajectories_ch2.flatten(order='C')
+            #ssa_ch2 = np.reshape(self.simulated_trajectories_ch2,(number_elements),order='C')
         else:
             ssa_ch2=np.zeros(shape=(self.number_spots*len(self.time_vector)))
         ssa_complete_trajectories = np.stack((ssa_ch0,ssa_ch1,ssa_ch2),axis=-1)
         ssa_columns = ['SSA_Ch0_UMP','SSA_Ch1_UMP','SSA_Ch2_UMP']
         dataframe_particles[ssa_columns] = ssa_complete_trajectories
         
-
         
         return tensor_video , spot_positions_movement_int, dataframe_particles
 
