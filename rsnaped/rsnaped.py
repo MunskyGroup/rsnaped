@@ -551,7 +551,7 @@ class ScaleIntensity():
                         #scaled_video[index_time, :, :, index_channels][scaled_video[index_time, :, :, index_channels] < 0] = 0
                         scaled_video[scaled_video<0]=0
                         scaled_video[index_time, :, :, index_channels] = np.multiply( scaled_video[index_time, :, :, index_channels] , self.scale_maximum_value)                         
-        scaled_video_int = scaled_video.astype(int)
+        scaled_video_int = scaled_video.astype('uint16')
         
         return scaled_video_int
 
@@ -2016,8 +2016,8 @@ class Intensity():
         Array of images with dimensions [T, S, x_y_positions].  The default is None
     dataframe_format : str, optional
         Format for the dataframe the options are : 'short' , and 'long'. The default is 'short'.
-        "long" format generates this dataframe: [cell_number, particle, frame, red_int_mean, green_int_mean, blue_int_mean, red_int_std, green_int_std, blue_int_std, x, y, SNR_red,SNR_green,SNR_blue].
-        "short" format generates this dataframe: [cell_number, particle, frame, red_int_mean, green_int_mean, blue_int_mean, x, y].
+        "long" format generates this dataframe: [image_number, cell_number, particle, frame, red_int_mean, green_int_mean, blue_int_mean, red_int_std, green_int_std, blue_int_std, x, y, SNR_red,SNR_green,SNR_blue].
+        "short" format generates this dataframe: [image_number, cell_number, particle, frame, red_int_mean, green_int_mean, blue_int_mean, x, y].
     method : str, optional
         Method to calculate intensity the options are : 'total_intensity' , 'disk_donut' and 'gaussian_fit'. The default is 'disk_donut'.
     step_size : float, optional
@@ -2065,7 +2065,7 @@ class Intensity():
         Returns
 
         dataframe_particles : pandas dataframe
-            Dataframe with fields [cell_number, particle, frame, red_int_mean, green_int_mean, blue_int_mean, red_int_std, green_int_std, blue_int_std, x, y, SNR_red,SNR_green,SNR_blue].
+            Dataframe with fields [image_number, cell_number, particle, frame, red_int_mean, green_int_mean, blue_int_mean, red_int_std, green_int_std, blue_int_std, x, y, SNR_red,SNR_green,SNR_blue].
         array_intensities_mean : Numpy array
             Array with dimensions [S, T, C].
         time_vector : Numpy array
@@ -2100,37 +2100,43 @@ class Intensity():
             return spot_intensity_gaussian, spot_intensity_gaussian_std
         
         def return_crop(image:np.ndarray, x:int, y:int,spot_range):
-            crop_image = image[y+spot_range[0]:y+(spot_range[-1]+1), x+spot_range[0]:x+(spot_range[-1]+1)]
+            crop_image = image[y+spot_range[0]:y+(spot_range[-1]+1), x+spot_range[0]:x+(spot_range[-1]+1)].copy()
             return crop_image
         
         def return_donut(image, spot_size):
-            tem_img = image.copy()
+            tem_img = image.copy().astype('float')
             center_coordinates = int(tem_img.shape[0]/2)
             range_to_replace = np.linspace(-(spot_size - 1) / 2, (spot_size - 1) / 2, spot_size,dtype=int)
             min_index = center_coordinates+range_to_replace[0]
             max_index = (center_coordinates +range_to_replace[-1])+1
-            tem_img[min_index: max_index , min_index: max_index]*np.nan
-            donut_values = image[~np.isnan(image)]
-            return donut_values
+            tem_img[min_index: max_index , min_index: max_index] *= np.nan
+            removed_center_flat = tem_img.copy().flatten()
+            donut_values = removed_center_flat[~np.isnan(removed_center_flat)]
+            # if donut_values.shape[0] == 169:
+            #     print(donut_values)
+            #     print(image)
+            #     print('r',min_index,max_index )
+            return donut_values.astype('uint16')
         
         def signal_to_noise_ratio(values_disk,values_donut):
-            mean_intensity_disk = np.mean(values_disk.flatten())            
-            mean_intensity_donut = np.nanmean(values_donut.flatten()) # mean calculation ignoring zeros
-            std_intensity_donut = np.nanstd(values_donut.flatten()) # mean calculation ignoring zeros
+            mean_intensity_disk = np.mean(values_disk.flatten().astype('float'))            
+            mean_intensity_donut = np.mean(values_donut.flatten().astype('float')) # mean calculation ignoring zeros
+            std_intensity_donut = np.std(values_donut.flatten().astype('float')) # mean calculation ignoring zeros
+            #print('s',values_disk.shape,values_donut.shape)
             if std_intensity_donut >0:
-                calculated_signal_to_noise_ratio = (mean_intensity_disk-mean_intensity_donut) / std_intensity_donut
+                SNR = (mean_intensity_disk-mean_intensity_donut) / std_intensity_donut
             else:
-                calculated_signal_to_noise_ratio = 0
+                SNR = 0
             mean_background_int = mean_intensity_donut
             std_background_int = std_intensity_donut
-            return calculated_signal_to_noise_ratio, mean_background_int,std_background_int
+            return SNR, mean_background_int,std_background_int
         
         def disk_donut(values_disk, values_donut):
-            mean_intensity_disk = np.mean(values_disk)
-            spot_intensity_disk_donut_std = np.nanstd(values_disk.flatten())
-            mean_intensity_donut = np.nanmean(values_donut.flatten()) # mean calculation ignoring zeros
-            spot_intensity_disk_donut = np.array( mean_intensity_disk - mean_intensity_donut, dtype = np.float32)
-            spot_intensity_disk_donut[np.isnan(spot_intensity_disk_donut)] = 0 # replacing nans with zero
+            mean_intensity_disk = np.mean(values_disk.flatten().astype('float'))
+            spot_intensity_disk_donut_std = np.std(values_disk.flatten().astype('float'))
+            mean_intensity_donut = np.mean(values_donut.flatten().astype('float')) # mean calculation ignoring zeros
+            spot_intensity_disk_donut = mean_intensity_disk - mean_intensity_donut
+            #spot_intensity_disk_donut[np.isnan(spot_intensity_disk_donut)] = 0 # replacing nans with zero
             return spot_intensity_disk_donut, spot_intensity_disk_donut_std
         
         # Section that marks particles if a numpy array with spot positions is passed.
@@ -2268,7 +2274,8 @@ class Intensity():
             ax[1].set_xticks([])
             plt.show()
         # Initialize a dataframe
-        init_dataFrame = {'cell_number': [], 
+        init_dataFrame = {'image_number': [], 
+            'cell_number': [], 
             'particle': [], 
             'frame': [], 
             'red_int_mean': [], 
@@ -2309,6 +2316,7 @@ class Intensity():
             temporal_green_vector_std =  array_intensities_std[id, temporal_frames_vector, 1]  # green
             temporal_blue_vector_std =  array_intensities_std[id, temporal_frames_vector, 2]  # blue
             temporal_spot_number_vector = [counter] * len(temporal_frames_vector)
+            temporal_image_number_vector = [0] * len(temporal_frames_vector)
             temporal_cell_number_vector = [0] * len(temporal_frames_vector)
             temporal_SNR_red =  array_intensities_snr[id, temporal_frames_vector, 0] # red
             temporal_SNR_green =  array_intensities_snr[id, temporal_frames_vector, 1]  # green
@@ -2320,7 +2328,8 @@ class Intensity():
             temporal_background_int_std_green = array_intensities_background_std[id, temporal_frames_vector, 1]  # green
             temporal_background_int_std_blue = array_intensities_background_std[id, temporal_frames_vector, 2]  # blue
             # Section that append the information for each spots
-            temp_data_frame = {'cell_number': temporal_cell_number_vector, 
+            temp_data_frame = {'image_number': temporal_image_number_vector, 
+                'cell_number': temporal_cell_number_vector, 
                 'particle': temporal_spot_number_vector, 
                 'frame': temporal_frames_vector*self.step_size, 
                 'red_int_mean': np.round( temporal_red_vector ,2), 
@@ -2343,7 +2352,7 @@ class Intensity():
             counter += 1
             temp_DataFrame = pd.DataFrame(temp_data_frame)
             dataframe_particles = dataframe_particles.append(temp_DataFrame, ignore_index = True)
-            dataframe_particles = dataframe_particles.astype({"cell_number": int, "particle": int, "frame": int, "x": int, "y": int}) # specify data type as integer for some columns
+            dataframe_particles = dataframe_particles.astype({"image_number": int, "cell_number": int, "particle": int, "frame": int, "x": int, "y": int}) # specify data type as integer for some columns
         def reduce_dataframe(df):
             # This function is intended to reduce the columns that are not used in the ML process.
             return df.drop(['red_int_std', 'green_int_std','blue_int_std','SNR_red', 'SNR_green', 'SNR_blue','background_int_mean_red','background_int_mean_green','background_int_mean_blue','background_int_std_red','background_int_std_green','background_int_std_blue'], axis = 1)
@@ -2360,7 +2369,7 @@ class Covariance():
     Parameters
 
     dataframe_particles : pandas dataframe
-        Dataframe with fields [cell_number, particle, frame, red_int_mean, green_int_mean, blue_int_mean, red_int_std, green_int_std, blue_int_std, x, y, SNR_red,SNR_green,SNR_blue].
+        Dataframe with fields [image_number, cell_number, particle, frame, red_int_mean, green_int_mean, blue_int_mean, red_int_std, green_int_std, blue_int_std, x, y, SNR_red,SNR_green,SNR_blue].
     selected_field : str, optinal
         Field in the datafre to be used to calculate autocovariance. The deafault is 'green_int_mean'
     max_lagtime : int, optional
@@ -2405,7 +2414,7 @@ class Covariance():
 
             Input
                 dataframe_simulated_cell : pandas dataframe
-                    Dataframe with fields [cell_number, particle, frame, red_int_mean, green_int_mean, blue_int_mean, red_int_std, green_int_std, blue_int_std, x, y, SNR_red,SNR_green,SNR_blue].
+                    Dataframe with fields [image_number, cell_number, particle, frame, red_int_mean, green_int_mean, blue_int_mean, red_int_std, green_int_std, blue_int_std, x, y, SNR_red,SNR_green,SNR_blue].
                 selected_field : str,
                     selected field to extract data.
 
@@ -2415,16 +2424,16 @@ class Covariance():
             '''
             # get the total number of particles in all cells
             total_particles = 0
-            for cell in set(dataframe_simulated_cell['cell_number']):
-                total_particles += len(set(dataframe_simulated_cell[dataframe_simulated_cell['cell_number'] == 0]['particle'] ))
+            for cell in set(dataframe_simulated_cell['image_number']):
+                total_particles += len(set(dataframe_simulated_cell[dataframe_simulated_cell['image_number'] == 0]['particle'] ))
             #preallocate numpy array sof n_particles by nframes
             intensity_array = np.zeros([total_particles, np.max(dataframe_simulated_cell['frame'])+1] )  #intensity green
             #intensity_array[:] = np.nan
             k = 0
             # For loops that iterate for each particle and stores the data in the previously pre-alocated arrays.
-            for cell in set(dataframe_simulated_cell['cell_number']):  #for every cell 
-                for particle in set(dataframe_simulated_cell[dataframe_simulated_cell['cell_number'] == 0]['particle'] ): #for every particle
-                    temporal_dataframe = dataframe_simulated_cell[(dataframe_simulated_cell['cell_number'] == cell) & (dataframe_simulated_cell['particle'] == particle)]  #slice the dataframe
+            for cell in set(dataframe_simulated_cell['image_number']):  #for every cell 
+                for particle in set(dataframe_simulated_cell[dataframe_simulated_cell['image_number'] == 0]['particle'] ): #for every particle
+                    temporal_dataframe = dataframe_simulated_cell[(dataframe_simulated_cell['image_number'] == cell) & (dataframe_simulated_cell['particle'] == particle)]  #slice the dataframe
                     frame_values = temporal_dataframe['frame'].values
                     intensity_array[k, frame_values] = temporal_dataframe[selected_field].values  #fill the arrays to return out
                     k+=1 #iterate over k (total particles)
@@ -2594,8 +2603,8 @@ class SimulatedCell():
         Scaling factor for channel 2 that converts the intensity in the stochastic simulations to the intensity in the image.
     dataframe_format : str, optional
         Format for the dataframe the options are : 'short' , and 'long'. The default is 'short'.
-        "long" format generates this dataframe: [cell_number, particle, frame, red_int_mean, green_int_mean, blue_int_mean, red_int_std, green_int_std, blue_int_std, x, y, SNR_red,SNR_green,SNR_blue].
-        "short" format generates this dataframe: [cell_number, particle, frame, red_int_mean, green_int_mean, blue_int_mean, x, y].
+        "long" format generates this dataframe: [image_number, cell_number, particle, frame, red_int_mean, green_int_mean, blue_int_mean, red_int_std, green_int_std, blue_int_std, x, y, SNR_red,SNR_green,SNR_blue].
+        "short" format generates this dataframe: [image_number, cell_number, particle, frame, red_int_mean, green_int_mean, blue_int_mean, x, y].
     
     '''
     def __init__(self, base_video:np.ndarray,
@@ -2730,7 +2739,7 @@ class SimulatedCell():
         tensor_std_intensity_in_figure : NumPy array, np.float
             Array with dimensions [T, Spots]
         dataframe_particles : pandas dataframe
-            Dataframe with fields [cell_number, particle, frame, red_int_mean, green_int_mean, blue_int_mean, red_int_std, green_int_std, blue_int_std, x, y, SNR_red,SNR_green,SNR_blue].
+            Dataframe with fields [image_number, cell_number, particle, frame, red_int_mean, green_int_mean, blue_int_mean, red_int_std, green_int_std, blue_int_std, x, y, SNR_red,SNR_green,SNR_blue].
         '''
         def make_replacement_pixelated_spots(matrix_background:np.ndarray, center_positions_vector:np.ndarray, size_spot:int, spot_sigma:int, using_ssa:bool, simulated_trajectories_time_point:np.ndarray,intensity_scale:float):
             #This function is intended to replace a kernel gaussian matrix for each spot position. The kernel gaussian matrix is scaled with the values obtained from the SSA o with the values given in a range.
@@ -2985,7 +2994,7 @@ class SimulatedCell():
         
         # Creating dataframes.
         # converting spot position to int
-        spot_positions_movement_int = np.round(spot_positions_movement).astype(int)
+        spot_positions_movement_int = np.round(spot_positions_movement).astype('int')
         dataframe_particles, _, _, _, _, _, _ = Intensity(tensor_video, particle_size = self.size_spot_ch0, spot_positions_movement = spot_positions_movement_int, method = self.intensity_calculation_method, step_size = self.step_size, show_plot = 0,dataframe_format =self.dataframe_format ).calculate_intensity()
         # Adding SSA Channels
         number_elements = np.prod(self.simulated_trajectories_ch0.shape)
@@ -3044,10 +3053,10 @@ class SimulatedCellDispatcher():
         Step size for the simulation. In seconds. The default is 1.
     mask_image : NumPy array, optional    
         Numpy Array with dimensions [Y, X]. This image is used as a mask for the simulated video. The mask_image has to represent the same image as the base_video and video_for_mask.
-    cell_number : int, optional
+    image_number : int, optional
         Cell number used as an index for the data frame. The default is 0.
     perform_video_augmentation : bool, optional
-        If true, it performs random rotations the initial video. The default is 1.
+        If true, it performs random rotations the initial video. The default is True.
     frame_selection_empty_video : str, optional
         Method to select the frames from the empty video, the options are : 'constant' , 'shuffle' and 'loop'. The default is 'shuffle'.
     spot_size : int, optional
@@ -3064,8 +3073,8 @@ class SimulatedCellDispatcher():
         Method used to simulate RNA intensities in the image. The optiions are 'constant' or 'random'. The default is 'constant'
     dataframe_format : str, optional
         Format for the dataframe the options are : 'short' , and 'long'. The default is 'short'.
-        "long" format generates this dataframe: [cell_number, particle, frame, red_int_mean, green_int_mean, blue_int_mean, red_int_std, green_int_std, blue_int_std, x, y, SNR_red,SNR_green,SNR_blue].
-        "short" format generates this dataframe: [cell_number, particle, frame, red_int_mean, green_int_mean, blue_int_mean, x, y].
+        "long" format generates this dataframe: [image_number, cell_number, particle, frame, red_int_mean, green_int_mean, blue_int_mean, red_int_std, green_int_std, blue_int_std, x, y, SNR_red,SNR_green,SNR_blue].
+        "short" format generates this dataframe: [image_number, cell_number, particle, frame, red_int_mean, green_int_mean, blue_int_mean, x, y].
     ignore_ch0 : bool, optional
         A flag that ignores channel 0 returning a NumPy array filled with zeros. The default is 0.
     ignore_ch1 : bool, optional
@@ -3090,7 +3099,7 @@ class SimulatedCellDispatcher():
                 simulation_time_in_sec:float, 
                 step_size_in_sec:float, 
                 mask_image:Union[np.ndarray, None] = None, 
-                cell_number:int = 0, 
+                image_number:int = 0, 
                 perform_video_augmentation:bool = True, 
                 frame_selection_empty_video:str = 'shuffle', 
                 spot_size:int = 5 ,
@@ -3134,7 +3143,7 @@ class SimulatedCellDispatcher():
         self.simulation_time_in_sec = simulation_time_in_sec
         self.step_size_in_sec = step_size_in_sec
         self.number_genes = len(list_gene_sequences)
-        self.cell_number = cell_number
+        self.image_number = image_number
         self.frame_selection_empty_video = frame_selection_empty_video
         self.spot_size = spot_size
         self.intensity_scale_ch0 = intensity_scale_ch0
@@ -3229,7 +3238,9 @@ class SimulatedCellDispatcher():
                                                                             ignore_ch0 = self.ignore_ch0,
                                                                             ignore_ch1 = self.ignore_ch1,
                                                                             ignore_ch2 = self.ignore_ch2).make_simulation()
-            DataFrame_particles_intensities['cell_number'] = DataFrame_particles_intensities['cell_number'].replace([0], self.cell_number)
+            DataFrame_particles_intensities['cell_number'] = DataFrame_particles_intensities['cell_number'].replace([0], self.image_number)
+            DataFrame_particles_intensities['image_number'] = DataFrame_particles_intensities['image_number'].replace([0], self.image_number)
+
             return tensor_video, DataFrame_particles_intensities  # [cell_number, particle, frame, red_int_mean, green_int_mean, blue_int_mean, red_int_std, green_int_std, blue_int_std, x, y].
         # Runs the SSA and the simulated cell functions
         list_ssa = []
@@ -3345,8 +3356,8 @@ class PipelineTracking():
         Intensity threshold value to be used during tracking. If no value is passed, the code attempts to calculate this value. The default is None.
     dataframe_format : str, optional
         Format for the dataframe the options are : 'short' , and 'long'. The default is 'short'.
-        "long" format generates this dataframe: [cell_number, particle, frame, red_int_mean, green_int_mean, blue_int_mean, red_int_std, green_int_std, blue_int_std, x, y, SNR_red,SNR_green,SNR_blue].
-        "short" format generates this dataframe: [cell_number, particle, frame, red_int_mean, green_int_mean, blue_int_mean, x, y].
+        "long" format generates this dataframe: [image_number, cell_number, particle, frame, red_int_mean, green_int_mean, blue_int_mean, red_int_std, green_int_std, blue_int_std, x, y, SNR_red,SNR_green,SNR_blue].
+        "short" format generates this dataframe: [image_number, cell_number, particle, frame, red_int_mean, green_int_mean, blue_int_mean, x, y].
     create_pdf : bool, optional
         Flag to indicate if a pdf report is needed. The default is True.
     path_temporal_results : path or str, optional.
@@ -3389,7 +3400,7 @@ class PipelineTracking():
         Returns
 
         dataframe_particles : pandas dataframe
-            Dataframe with fields [cell_number, particle, frame, red_int_mean, green_int_mean, blue_int_mean, red_int_std, green_int_std, blue_int_std, x, y].
+            Dataframe with fields [image_number, cell_number, particle, frame, red_int_mean, green_int_mean, blue_int_mean, red_int_std, green_int_std, blue_int_std, x, y].
         selected_mask : Numpy array
             Array with the selected mask. Where zeros represents the background and one represent the area in the cell.
         array_intensities : Numpy array
@@ -3707,7 +3718,7 @@ class Utilities():
             dataframe_path: Patlibpath or str, optional.    
                 Path to the selected dataframe.
             dataframe : pandas dataframe
-                Dataframe with fields [cell_number, particle, frame, red_int_mean, green_int_mean, blue_int_mean, red_int_std, green_int_std, blue_int_std, x, y, SNR_red,SNR_green,SNR_blue].
+                Dataframe with fields [image_number, cell_number, particle, frame, red_int_mean, green_int_mean, blue_int_mean, red_int_std, green_int_std, blue_int_std, x, y, SNR_red,SNR_green,SNR_blue].
             selected_field : str,
                 selected field to extract data.
             selected_time : int, optional
@@ -3729,17 +3740,17 @@ class Utilities():
             '''
             # get the total number of particles in all cells
             total_particles = 0
-            for cell in set(dataframe['cell_number']):
-                total_particles += len(set(dataframe[dataframe['cell_number'] == 0]['particle'] ))
+            for cell in set(dataframe['image_number']):
+                total_particles += len(set(dataframe[dataframe['image_number'] == 0]['particle'] ))
             #preallocate numpy array sof n_particles by nframes
             field_as_array = np.zeros([total_particles, np.max(dataframe['frame'])+1] ) 
             if use_nan_for_padding == True:
                 field_as_array[:] = np.nan
             k = 0
             # For loops that iterate for each particle and stores the data in the previously pre-alocated arrays.
-            for cell in set(dataframe['cell_number']):  #for every cell 
-                for particle in set(dataframe[dataframe['cell_number'] == 0]['particle'] ): #for every particle
-                    temporal_dataframe = dataframe[(dataframe['cell_number'] == cell) & (dataframe['particle'] == particle)]  #slice the dataframe
+            for cell in set(dataframe['image_number']):  #for every cell 
+                for particle in set(dataframe[dataframe['image_number'] == 0]['particle'] ): #for every particle
+                    temporal_dataframe = dataframe[(dataframe['image_number'] == cell) & (dataframe['particle'] == particle)]  #slice the dataframe
                     frame_values = temporal_dataframe['frame'].values
                     field_as_array[k, frame_values] = temporal_dataframe[selected_field].values  #fill the arrays to return out
                     k+=1 #iterate over k (total particles)
@@ -4085,7 +4096,9 @@ def simulate_cell ( video_dir,
                     store_videos_in_memory= False,
                     scale_intensity_in_base_video =False,
                     basal_intensity_in_background_video= 20000,
-                    microns_per_pixel=1):
+                    microns_per_pixel=1,
+                    select_background_cell_index= None,
+                    perform_video_augmentation= True):
 
     '''
     This function is intended to simulate single-molecule translation dynamics in a cell. The result of this simultion is a .tif video and a dataframe containing the transation spot characteristics.
@@ -4119,15 +4132,9 @@ def simulate_cell ( video_dir,
     save_as_tif : bool, optional
         If true, it generates and saves a uint16 (High) quality image tif file for the simulation. The default is 0.
     save_dataframe : bool, optional
-        If true, it generates and saves a pandas dataframe with the simulation. Dataframe with fields [cell_number, particle, frame, red_int_mean, green_int_mean, blue_int_mean, red_int_std, green_int_std, blue_int_std, x, y]. The default is 0.
-    saved_file_name : str, optional
-        The file name for the simulated cell output files (tif images, gif images, data frames). The default is 'temp_simulation'.
-    cell_number : int, optional
-        Cell number used as an index for the data frame. The default is 0.
+        If true, it generates and saves a pandas dataframe with the simulation. Dataframe with fields [image_number, cell_number, particle, frame, red_int_mean, green_int_mean, blue_int_mean, red_int_std, green_int_std, blue_int_std, x, y]. The default is 0.
     save_as_gif : bool, optional
         If true, it generates and saves a .gif with the simulation. The default is 0.
-    perform_video_augmentation : bool, optional
-        If true, it performs random rotations the initial video. The default is 1.
     frame_selection_empty_video : str, optional
         Method to select the frames from the empty video, the options are : 'constant' , 'shuffle' and 'loop'. The default is 'shuffle'.
     spot_size : int, optional
@@ -4144,23 +4151,22 @@ def simulate_cell ( video_dir,
         Method used to simulate RNA intensities in the image. The optiions are 'constant' or 'random'. The default is 'constant'
     dataframe_format : str, optional
         Format for the dataframe the options are : 'short' , and 'long'. The default is 'short'.
-        "long" format generates this dataframe: [cell_number, particle, frame, red_int_mean, green_int_mean, blue_int_mean, red_int_std, green_int_std, blue_int_std, x, y, SNR_red,SNR_green,SNR_blue].
-        "short" format generates this dataframe: [cell_number, particle, frame, red_int_mean, green_int_mean, blue_int_mean, x, y].
-    ignore_ch0 : bool, optional
-        A flag that ignores channel 0 returning a NumPy array filled with zeros. The default is 0.
-    ignore_ch1 : bool, optional
-        A flag that ignores channel 1 returning a NumPy array filled with zeros. The default is 0.
-    ignore_ch2 : bool, optional
-        A flag that ignores channel 2 returning a NumPy array filled with zeros. The default is 0.
+        "long" format generates this dataframe: [image_number, cell_number, particle, frame, red_int_mean, green_int_mean, blue_int_mean, red_int_std, green_int_std, blue_int_std, x, y, SNR_red,SNR_green,SNR_blue].
+        "short" format generates this dataframe: [image_number, cell_number, particle, frame, red_int_mean, green_int_mean, blue_int_mean, x, y].
     scale_intensity_in_base_video : bool, optional
         Flag to scale intensity to a maximum value of 10000. This arbritary value is selected based on the maximum intensities obtained from the original images. The default is False.
     basal_intensity_in_background_video : int, optional
         if the base video is rescaled, this value indicates the maximum value to rescale the original video. The default is 20000    
+    select_background_cell_index : int in range 0 to 8, optional
+        Index to select an specific cell for the background. Integer in range 0 to 8, or use None to select a random value. 
+    perform_video_augmentation : bool, optional
+        If true, it performs random rotations the initial video. The default is True.
 
+    
     Returns
 
     dataframe_particles : pandas dataframe
-        Dataframe with fields [cell_number, particle, frame, red_int_mean, green_int_mean, blue_int_mean, red_int_std, green_int_std, blue_int_std, x, y].
+        Dataframe with fields [image_number, cell_number, particle, frame, red_int_mean, green_int_mean, blue_int_mean, red_int_std, green_int_std, blue_int_std, x, y].
     selected_mask : Numpy array
         Array with the selected mask. Where zeros represents the background and one represent the area in the cell.
     array_intensities : Numpy array
@@ -4261,6 +4267,7 @@ def simulate_cell ( video_dir,
             shutil.rmtree(str(save_to_path_video_int8))
             os.makedirs(str(save_to_path_video_int8))
     
+    
     # function  that simulates the multiplexing experiments    
     # Pre-alocating arrays
     list_dataframe_simulated_cell =[]
@@ -4277,7 +4284,14 @@ def simulate_cell ( video_dir,
     
     for i in range(0,number_cells): 
         saved_file_name = 'sim_cell_' + str(i)  # if the video or dataframe are save, this variable assigns the name to the files
-        selected_video = randrange(num_cell_shapes)
+        if (select_background_cell_index is None):
+            selected_video = randrange(num_cell_shapes)
+        else:
+            if select_background_cell_index < num_cell_shapes:
+                selected_video = select_background_cell_index
+            else:
+                selected_video = 0
+        
         initial_video = imread(str(path_files[selected_video])) # video with empty cell
         mask_image = imread(masks_dir.joinpath('mask_cell_shape_'+str(selected_video)+'.tif'))
         video, single_dataframe_simulated_cell, list_ssa = SimulatedCellDispatcher(initial_video,
@@ -4292,7 +4306,7 @@ def simulate_cell ( video_dir,
                                                                                     simulation_time_in_sec,
                                                                                     step_size_in_sec,
                                                                                     mask_image=mask_image,
-                                                                                    cell_number =i,
+                                                                                    image_number =i,
                                                                                     frame_selection_empty_video=frame_selection_empty_video,
                                                                                     spot_size =spot_size ,
                                                                                     spot_sigma=spot_sigma,
@@ -4324,7 +4338,6 @@ def simulate_cell ( video_dir,
             
         if store_videos_in_memory == False:
             video = []
-        
         # appending dataframes for each cell
         list_dataframe_simulated_cell.append(single_dataframe_simulated_cell)
         list_ssa_all_cells_and_genes.append(list_ssa)
