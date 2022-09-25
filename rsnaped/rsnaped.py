@@ -3085,6 +3085,14 @@ class SimulatedCellDispatcher():
         Flag to scale intensity to a maximum value of 10000. This arbritary value is selected based on the maximum intensities obtained from the original images. The default is False.
     basal_intensity_in_background_video : int, optional
         if the base video is rescaled, this value indicates the maximum value to rescale the original video. The default is 20000    
+    use_Harringtonin: bool, optional
+        Flag to specify if Harringtonin is used in the experiment. The default is False.
+    use_FRAP: bool
+        Flag to specify if FRAP is used in the experiment. The default is False.
+    perturbation_time_start: int, optional.
+        Time to start the inhibition. The default is 0.
+    perturbation_time_stop : int, opt.
+        Time to start the inhibition. The default is None.
     '''
     def __init__(self, 
                 initial_video:np.ndarray, 
@@ -3113,7 +3121,11 @@ class SimulatedCellDispatcher():
                 ignore_ch2: bool = False, 
                 scale_intensity_in_base_video: bool = False, 
                 basal_intensity_in_background_video : int = 20000,
-                microns_per_pixel : float = 1.):
+                microns_per_pixel : float = 1.,
+                use_Harringtonin= False,
+                perturbation_time_start=0,
+                perturbation_time_stop=None,
+                use_FRAP=False):
         if perform_video_augmentation == True:
             preprocessed_base_video,selected_angle = AugmentationVideo(initial_video).random_rotation()
             if not(mask_image is None):
@@ -3160,6 +3172,10 @@ class SimulatedCellDispatcher():
         self.ignore_ch1 = ignore_ch1
         self.ignore_ch2 = ignore_ch2
         self.microns_per_pixel = microns_per_pixel
+        self.use_Harringtonin = use_Harringtonin
+        self.use_FRAP=use_FRAP
+        self.perturbation_time_start = perturbation_time_start
+        self.perturbation_time_stop=perturbation_time_stop
     def make_simulation (self):
         '''
         Method that runs the simulations for the multiplexing experiment.
@@ -3254,7 +3270,11 @@ class SimulatedCellDispatcher():
                                         ki = self.list_initiation_rates[i],
                                         frames = self.simulation_time_in_sec,
                                         frame_rate = 1,
-                                        n_traj = self.list_number_spots[i]).simulate() 
+                                        n_traj = self.list_number_spots[i],
+                                        use_Harringtonin = self.use_Harringtonin,
+                                        use_FRAP =  self.use_FRAP,
+                                        perturbation_time_start = self.perturbation_time_start,
+                                        perturbation_time_stop = self.perturbation_time_stop).simulate() 
             simulated_trajectories_RNA= SimulateRNA(shape_output_array=(self.list_number_spots[i], self.simulation_time_in_sec), 
                                                                         rna_intensity_method = self.simulated_RNA_intensities_method,
                                                                         mean_int=RNA_INTENSITY_MAX_VALUE ).simulate()
@@ -4098,7 +4118,11 @@ def simulate_cell ( video_dir,
                     basal_intensity_in_background_video= 20000,
                     microns_per_pixel=1,
                     select_background_cell_index= None,
-                    perform_video_augmentation= True):
+                    perform_video_augmentation= True,
+                    use_Harringtonin = False,
+                    use_FRAP = False,
+                    perturbation_time_start = 0,
+                    perturbation_time_stop = None):
 
     '''
     This function is intended to simulate single-molecule translation dynamics in a cell. The result of this simultion is a .tif video and a dataframe containing the transation spot characteristics.
@@ -4161,6 +4185,14 @@ def simulate_cell ( video_dir,
         Index to select an specific cell for the background. Integer in range 0 to 8, or use None to select a random value. 
     perform_video_augmentation : bool, optional
         If true, it performs random rotations the initial video. The default is True.
+    use_Harringtonin: bool, optional
+        Flag to specify if Harringtonin is used in the experiment. The default is False.
+    use_FRAP: bool
+        Flag to specify if FRAP is used in the experiment. The default is False.
+    perturbation_time_start: int, optional.
+        Time to start the inhibition. The default is 0.
+    perturbation_time_stop : int, opt.
+        Time to start the inhibition. The default is None.
 
     
     Returns
@@ -4320,7 +4352,12 @@ def simulate_cell ( video_dir,
                                                                                     ignore_ch2 = ignore_ch2,
                                                                                     scale_intensity_in_base_video=scale_intensity_in_base_video,
                                                                                     basal_intensity_in_background_video=basal_intensity_in_background_video,
-                                                                                    microns_per_pixel=microns_per_pixel).make_simulation()
+                                                                                    microns_per_pixel=microns_per_pixel,
+                                                                                    perform_video_augmentation=perform_video_augmentation,
+                                                                                    use_Harringtonin = use_Harringtonin,
+                                                                                    perturbation_time_start = perturbation_time_start,
+                                                                                    use_FRAP=use_FRAP,
+                                                                                    perturbation_time_stop=perturbation_time_stop).make_simulation()
         
         if save_as_tif == True:
             tifffile.imwrite(str(save_to_path_video.joinpath(saved_file_name+'.tif')), video)
