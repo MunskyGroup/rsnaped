@@ -114,8 +114,8 @@ os.environ["CUDA_VISIBLE_DEVICES"] = "0,1"
 plt.style.use("dark_background")
 import shutil
 from fpdf import FPDF
-
-
+#import statsmodels.tsa.stattools as stattools
+#https://www.statsmodels.org/devel/generated/statsmodels.tsa.stattools.acf.html#statsmodels.tsa.stattools.acf
 
 class Banner():
     def __init__(self,show=True):
@@ -2438,6 +2438,14 @@ class Covariance():
                     intensity_array[k, frame_values] = temporal_dataframe[selected_field].values  #fill the arrays to return out
                     k+=1 #iterate over k (total particles)
             return intensity_array 
+        
+        # def get_correlation(data, vector_2,normalization='individial'):
+        #     number_trajectories = data.shape[0]
+        #     acf_vec = np.zeros(data.shape)
+            
+        #     for i in range(number_trajectories):
+        #         N = len(signal)
+        #         acf_vec[i] = stattools.acf(data, adjusted=False, nlags=None, qstat=False, fft=True, alpha=None, bartlett_confint=True, missing='conservative')[0]
     
         def get_autocorrelation(data, g0='G0', norm='individual'):
             n_traj = data.shape[0]

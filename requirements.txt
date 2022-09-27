@@ -23,3 +23,5 @@ ipympl==0.9.1
 cellpose>=2.0.5
 rsnapsim~=0.0.47
 fpdf>=1.7.2
+statsmodels>=0.13.2
+matplotlib-scalebar>=0.8.1
