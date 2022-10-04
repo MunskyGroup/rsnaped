@@ -1654,7 +1654,7 @@ class Cellpose():
             selected_masks[0:10, :] = 0;selected_masks[:, 0:10] = 0;selected_masks[selected_masks.shape[0]-10:selected_masks.shape[0]-1, :] = 0; selected_masks[:, selected_masks.shape[1]-10: selected_masks.shape[1]-1 ] = 0#This line of code ensures that the corners are zeros.
         else:
             selected_masks = None
-            print('No cells detected on the image')
+            print('No cells detected on the image \n')
         sys.stdout.close()
         sys.stdout = old_stdout
         return selected_masks
@@ -2380,7 +2380,8 @@ class Covariance():
         Frame rate in seconds. The default is 1 frame per second.
 
     '''
-    def __init__(self,dataframe_particles,selected_field='green_int_mean', max_lagtime= 100, show_plot= True,figure_size=(6,4),step_size=1):
+    def __init__(self, intensity_array =None, dataframe_particles=None,selected_field='green_int_mean', max_lagtime= 100, show_plot= True,figure_size=(6,4),step_size=1):
+        self.intensity_array = intensity_array
         self.dataframe_particles = dataframe_particles
         self.max_lagtime = max_lagtime
         self.show_plot = show_plot
@@ -2476,7 +2477,10 @@ class Covariance():
                 # returns an autocorrelation matrix with the shape [particle, lags]
             return acf_vec
 
-        intensity_array = df_to_array(self.dataframe_particles, selected_field=self.selected_field )
+        if not (self.intensity_array is None):
+            intensity_array = self.intensity_array
+        elif not (self.dataframe_particles is None):
+            intensity_array = df_to_array(self.dataframe_particles, selected_field=self.selected_field )
         auto_correlation_matrix = get_autocorrelation(intensity_array, g0='G0', norm='individual')
         mean_acf_data = np.mean(auto_correlation_matrix, axis=0)
         err_acf_data = np.std(auto_correlation_matrix, axis=0) 
