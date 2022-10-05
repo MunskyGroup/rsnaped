@@ -4469,17 +4469,16 @@ def image_processing(files_dir_path_processing,
     ## Reads the folder with the results and import the simulations as lists
     list_files_paths = sorted([f for f in listdir(files_dir_path_processing) if isfile(join(files_dir_path_processing, f)) and ('.tif') in f], key=str.lower)  # reading all tif files in the folder
     list_files_paths.sort(key=lambda f: int(re.sub('\D', '', f)))  # sorting the index in numerical order
-    
     path_files = sorted([ str(files_dir_path_processing.joinpath(f).resolve()) for f in list_files_paths if  '.tif' in f] , key=str.lower)# creating the complete path for each file
     path_files.sort(key=lambda f: int(re.sub('\D', '', f)))  # sorting the index in numerical order
-    
     # # Reading the microscopy data
     number_images = len(path_files)
-    
     # Creating directory to store tracking images.
     current_dir = pathlib.Path().absolute()
-    
     save_to_path_ip =  current_dir.joinpath('temp_processing',files_dir_path_processing.name )
+    
+    
+    
     if not os.path.exists(str(save_to_path_ip)):
         os.makedirs(str(save_to_path_ip))
     else:
@@ -4559,7 +4558,25 @@ def image_processing(files_dir_path_processing,
 
 
 
+# funciton to convert a directory of videos to standrd format
 
+def convert_directory_to_standard_format(directory, new_directory_name, format_tuple_original_dim = (0,1,2,3) ):
+    # Test if passed directory is a pathlib object
+    if isinstance(directory, pathlib.PurePath) == False:
+        directory = pathlib.Path(directory)
+    # Reads the folder with the results and import the simulations as lists
+    list_files_names = sorted([f for f in listdir(directory) if isfile(join(directory, f)) and ('.tif') in f], key=str.lower)  # reading all tif files in the folder
+    list_files_names.sort(key=lambda f: int(re.sub('\D', '', f)))  # sorting the index in numerical order
+    path_files = [ str(directory.joinpath(f).resolve()) for f in list_files_names ] # creating the complete path for each file
+    path_files.sort(key=lambda f: int(re.sub('\D', '', f)))  # sorting the index in numerical order
+    # # Reading the microscopy data
+    number_images = len(path_files)
+    new_videos_path = directory.joinpath('standard_format').mkdir(parents=True, exist_ok=True)
+    # Showing the simulated images
+    for i in range (number_images):
+        list_videos_real = [imread(f)[:,:,:,:] for f in  path_files] # List with all the videos
+        real_video = ConvertToStandardFormat(video=list_videos_real[i], time_position = 0, height_position = 2,  width_position = 3, channel_position = 1 ).transpose_video()
+        tifffile.imwrite(str(new_videos_path.joinpath(pathlib.Path(path_files[i]).stem+'tif')), real_video)
 
 
 # Class spot classification
