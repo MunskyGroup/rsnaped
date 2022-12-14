@@ -823,55 +823,69 @@ class BeadsAlignment():
             The homography matrix is a 3x3 matrix. This transformation matrix maps the points between two planes (images).
         '''
         # Applying a log filter to the image
+        MIN_DISTANCE_TO_MATCH_BEADS = 4
+        
+        
         filtered_first_image_beads= Utilities.log_filter(self.first_image_beads, sigma=1.5)
         filtered_first_image_beads= Utilities.bandpass_filter(filtered_first_image_beads, lowfilter=0.5, highpass=10)
         filtered_second_image_beads = Utilities.log_filter(self.second_image_beads, sigma=1.5)
         filtered_second_image_beads = Utilities.bandpass_filter(filtered_second_image_beads, lowfilter=0.5, highpass=10)
         # Locating beads in the image using "tp.locate" function from trackpy.
-        dataframe_spots_in_first_image = tp.locate(filtered_first_image_beads, diameter = self.spot_size, minmass=self.min_intensity, maxsize=self.spot_size*2, preprocess=False,max_iterations=100) # data frame for the first channel
-        dataframe_spots_in_second_image = tp.locate(filtered_second_image_beads, diameter= self.spot_size, minmass=self.min_intensity, maxsize=self.spot_size*2, preprocess=False,max_iterations=100)  # data frame for the second channel
-        # Converting coordinates to float32 array for the first channel
-        x_coord_in_first_image= np.array(dataframe_spots_in_first_image.x.values, np.float32)
-        y_coord_in_first_image = np.array(dataframe_spots_in_first_image.y.values, np.float32)
-        positions_in_first_image = np.column_stack((x_coord_in_first_image, y_coord_in_first_image ))
-        # Converting coordinates to float32 array for the second channel
-        x_coord_in_second_image = np.array(dataframe_spots_in_second_image.x.values, np.float32)
-        y_coord_in_second_image = np.array(dataframe_spots_in_second_image.y.values, np.float32)
-        positions_in_second_image = np.column_stack(( x_coord_in_second_image, y_coord_in_second_image ))
-        # First step to remove of unmatched spots. Comparing first versus second image.
-        comparison_fist_image = np.zeros((positions_in_first_image.shape[0]))
-        comparison_second_image = np.zeros((positions_in_second_image.shape[0]))
-        MIN_DISTANCE_TO_MATCH_BEADS = 5
-        for i in range (0, positions_in_first_image.shape[0]):
-            idx = np.argmin(abs((positions_in_second_image[:, 0] - positions_in_first_image[i, 0])))
-            comparison_fist_image[i] = (abs(positions_in_second_image[idx, 0] - positions_in_first_image[i, 0]) < MIN_DISTANCE_TO_MATCH_BEADS) or (abs(positions_in_second_image [idx, 1] - positions_in_first_image[i, 1]) < MIN_DISTANCE_TO_MATCH_BEADS)
-        for i in range (0, positions_in_second_image.shape[0]):
-            idx = np.argmin(abs((positions_in_first_image[:, 0] - positions_in_second_image[i, 0])))
-            comparison_second_image[i] = (abs(positions_in_first_image[idx, 0] - positions_in_second_image[i, 0]) < MIN_DISTANCE_TO_MATCH_BEADS) or (abs(positions_in_first_image [idx, 1] - positions_in_second_image[i, 1]) < MIN_DISTANCE_TO_MATCH_BEADS)
-        positions_in_first_image = np.delete(positions_in_first_image, np.where( comparison_fist_image == 0)[0], 0)
-        positions_in_second_image = np.delete(positions_in_second_image, np.where(comparison_second_image == 0)[0], 0)
-        # Second step to remove of unmatched spots. Comparing second versus first image.
-        comparison_fist_image = np.zeros((positions_in_first_image.shape[0]))
-        comparison_second_image = np.zeros((positions_in_second_image.shape[0]))
-        for i in range (0, positions_in_second_image.shape[0]):
-            idx = np.argmin(abs((positions_in_first_image[:, 0] - positions_in_second_image[i, 0])))
-            comparison_second_image[i] = (abs(positions_in_first_image[idx, 0] - positions_in_second_image[i, 0]) < MIN_DISTANCE_TO_MATCH_BEADS) or (abs(positions_in_first_image [idx, 1] - positions_in_second_image[i, 1]) < MIN_DISTANCE_TO_MATCH_BEADS)
-        for i in range (0, positions_in_first_image.shape[0]):
-            idx = np.argmin(abs((positions_in_second_image[:, 0] - positions_in_first_image[i, 0])))
-            comparison_fist_image[i] = (abs(positions_in_second_image[idx, 0] - positions_in_first_image[i, 0]) < MIN_DISTANCE_TO_MATCH_BEADS) or (abs(positions_in_second_image [idx, 1] - positions_in_first_image[i, 1]) < MIN_DISTANCE_TO_MATCH_BEADS)
-        positions_in_first_image = np.delete(positions_in_first_image, np.where( comparison_fist_image == 0)[0], 0)
-        positions_in_second_image = np.delete(positions_in_second_image, np.where(comparison_second_image == 0)[0], 0)
+        df0 = tp.locate(filtered_first_image_beads, diameter = self.spot_size, minmass=self.min_intensity, maxsize=self.spot_size*2, preprocess=False,max_iterations=100) # data frame for the first channel
+        df1 = tp.locate(filtered_second_image_beads, diameter= self.spot_size, minmass=self.min_intensity, maxsize=self.spot_size*2, preprocess=False,max_iterations=100)  # data frame for the second channel
         
+        # retrieving the coordinates for spots type 0 and 1 for each cell 
+        array_spots_0 = np.asarray( df0[['y','x']]) # coordinates for spot_type_0 with shape [num_spots_type_0, 3]
+        array_spots_1 = np.asarray( df1[['y','x']]) # coordinates for spot_type_1 with shape [num_spots_type_1, 3]
+        total_spots0 = array_spots_0.shape[0]
+        #total_spots1 = array_spots_1.shape[0]
+        # Concatenating arrays from spots 0 and 1
+        array_all_spots = np.concatenate((array_spots_0,array_spots_1), axis=0) 
+        # Calculating a distance matrix. 
+        distance_matrix = np.zeros( (array_all_spots.shape[0], array_all_spots.shape[0])) #  the distance matrix is an square matrix resulting from the concatenation of both spot  types.
+        for i in range(len(array_all_spots)):
+            for j in range(len(array_all_spots)):
+                if j<i:
+                    distance_matrix[i,j] = np.linalg.norm( ( array_all_spots[i,:]-array_all_spots[j,:] )  )
+        # masking the distance matrix. Ones indicate the distance is less or equal than threshold_distance
+        mask_distance_matrix = (distance_matrix <= MIN_DISTANCE_TO_MATCH_BEADS) 
+        # Selecting the right-lower quadrant as a subsection of the distance matrix that compares one spot type versus the other. 
+        subsection_mask_distance_matrix = mask_distance_matrix[total_spots0:, 0:total_spots0].copy()
+        # Calculating each type of spots in cell
+        indices = np.where(subsection_mask_distance_matrix)
+        number_colocalized_spots = indices[0].shape[0]
+        
+        positions_in_first_image =  np.zeros((number_colocalized_spots, 2))
+        positions_in_second_image = np.zeros((number_colocalized_spots, 2))
+        for i in range (number_colocalized_spots):
+            positions_in_first_image [i,:] = array_spots_0[indices[1][i],:] # indices[1] represents the columns in the right-lower quadrant as a subsection of the distance matrix that compares one spot type versus the other. 
+            positions_in_second_image [i,:] = array_spots_1[indices[0][i],:] # indices[0] represents the rows in the right-lower quadrant as a subsection of the distance matrix that compares one spot type versus the other. 
+        
+        # this step changes the order of the spots form [n_spots, [Y,X]] to  [n_spots, [X,Y]]
+        positions_in_first_image = positions_in_first_image[:, [1,0]]
+        positions_in_second_image = positions_in_second_image[:, [1,0]]
+        
+
         number_spots_first_image = positions_in_first_image.shape[0]
         number_spots_second_image = positions_in_second_image.shape[0]
+        
+        distance_matrix_after = np.zeros( (number_spots_first_image)) #  the distance matrix is an square matrix resulting from the concatenation of both spot  types.
+
+        for i in range(number_spots_first_image):
+            for j in range(number_spots_first_image):
+                if j==i:
+                    distance_matrix_after[i] = np.linalg.norm( ( positions_in_first_image[i,:]-positions_in_second_image[j,:] )  )
+        
+        print('sum of dist ',np.mean(distance_matrix_after))
+        
         print('Calculating the homography matrix between the two images.')
         print('_______ ')
         print(' # Spots in first image : ', number_spots_first_image, '  # Spots in second image : ',number_spots_second_image, '\n')
         print('Spots detected in the first image: ')
-        print(np.round(positions_in_first_image[0:np.min( (3, number_spots_first_image)), :] ,1))
+        print(np.round(positions_in_first_image[0:np.min( (5, number_spots_first_image)), :] ,1))
         #print('The number of spots detected for the second image are: ', number_spots_second_image, '\n')
         print('Spots detected in the second image:')
-        print(np.round(positions_in_second_image[0:np.min((3, number_spots_second_image)),:],1))
+        print(np.round(positions_in_second_image[0:np.min((5, number_spots_second_image)),:],1))
         print('_______ ')
         
         if self.show_plot == True:
@@ -899,10 +913,16 @@ class BeadsAlignment():
         # Calculating the minimum value of rows for the alignment
         no_spots_for_alignment = min(positions_in_first_image.shape[0], positions_in_second_image.shape[0])
         homography = transform.ProjectiveTransform()
-        src = positions_in_first_image[:no_spots_for_alignment, :2]
-        dst = positions_in_second_image[:no_spots_for_alignment, :2]
-        homography.estimate(src, dst)
-        homography_matrix = homography
+        
+                
+        src = positions_in_first_image[:no_spots_for_alignment, :2].reshape((no_spots_for_alignment, 2))
+        dst = positions_in_second_image[:no_spots_for_alignment, :2].reshape((no_spots_for_alignment, 2))
+        
+        homography_matrix = transform.estimate_transform('similarity', src, dst)
+        #tf_img = transform.warp(chess, tform.inverse)
+
+        #homography.estimate(src, dst)
+        #homography_matrix = homography
         print('')
         print('Calculated homography matrix: ')
         print (homography_matrix)
@@ -925,6 +945,8 @@ class CamerasAlignment():
     def __init__(self, video:np.ndarray, homography_matrix, target_channels: list = [1]):
         self.video = video
         self.homography_matrix = homography_matrix
+        if not isinstance(target_channels, list):
+            target_channels =[target_channels]
         self.target_channels = target_channels
     def make_video_alignment(self):
         '''
@@ -941,9 +963,11 @@ class CamerasAlignment():
         for index_channels in range(0, number_channels): # green and blue channels
             for index_time in range(0, number_time_points):
                 if index_channels in self.target_channels:
-                    transformed_video[index_time, :, :, index_channels] = warp(self.video[index_time, :, :, index_channels], self.homography_matrix.params, output_shape = (height, width), preserve_range = True)
+                    #transformed_video[index_time, :, :, index_channels] = warp(self.video[index_time, :, :, index_channels], inverse_map=self.homography_matrix.inverse)
+                    #transformed_video[index_time, :, :, index_channels] = warp(self.video[index_time, :, :, index_channels], inverse_map=self.homography_matrix.inverse, output_shape = (height, width), preserve_range = True).astype(np.uint16)
+                    transformed_video[index_time, :, :, index_channels] = warp(self.video[index_time, :, :, index_channels], self.homography_matrix.params, output_shape = (height, width), preserve_range = True).astype(np.uint16)
                 else:
-                    transformed_video[index_time, :, :, index_channels] = self.video[index_time, :, :, index_channels]
+                    transformed_video[index_time, :, :, index_channels] = self.video[index_time, :, :, index_channels].astype(np.uint16)
         return transformed_video
 
 
@@ -1707,6 +1731,9 @@ class CellposeSelection():
                 selected_mask = temp_mask + (self.mask == largest_mask) # Selecting a single mask and making this mask equal to one and the background equal to zero.
             else: # do nothing if only a single mask is detected per image.
                 selected_mask = self.mask
+        if self.selection_method == 'all_cells_in_image':
+            # Returning all masks in the image
+            selected_mask = self.mask
         if self.selection_method == 'max_spots':
             # Iterating for each mask to select the mask with the largest area.
             n_masks = np.max(self.mask)
@@ -1728,10 +1755,12 @@ class CellposeSelection():
                 selected_mask = None
                 print('No mask was selected in the image.')
                 # This section dilates the mask to connect areas that are isolated.
-        
-        mask_int = np.where(selected_mask > 0.5, 1, 0).astype(np.int)
-        dilated_image = dilation(mask_int, square(20))
-        mask_final = np.where(dilated_image > 0.5, 1, 0).astype(np.int)
+        if np.max(selected_mask) == 1:
+            mask_int = np.where(selected_mask > 0.5, 1, 0).astype(np.int)
+            dilated_image = dilation(mask_int, square(20))
+            mask_final = np.where(dilated_image > 0.5, 1, 0).astype(np.int)
+        else:
+            mask_final = selected_mask
         mask_final[0:10, :] = 0;mask_final[:, 0:10] = 0;mask_final[mask_final.shape[0]-10:mask_final.shape[0]-1, :] = 0; mask_final[:, mask_final.shape[1]-10: mask_final.shape[1]-1 ] = 0#This line of code ensures that the corners are zeros.
         return mask_final
 
@@ -1807,7 +1836,6 @@ class Trackpy():
             return video_filtered
         
         self.image_name=image_name
-        
         self.intensity_threshold_tracking = intensity_threshold_tracking   
         self.mask = mask
         if (particle_size % 2) == 0:
@@ -1989,16 +2017,18 @@ class ParticleMotion():
         em = tp.emsd(trackpy_df,mpp=self.microns_per_pixel, fps=self.step_size_in_sec,  max_lagtime = self.max_lagtime)
         slope =  np.linalg.lstsq(em.index[:, np.newaxis],em)[0][0]
         calculated_diffusion_coefficient = slope / 4 
-        print(r'The diffusion constant is {0:.3f} μm²/s'.format(calculated_diffusion_coefficient))
+        print(r'The diffusion constant is {0:.5f} μm²/s'.format(calculated_diffusion_coefficient))
         if self.show_plot == True:
             plt.style.use(['default', 'fivethirtyeight'])
             fig, ax = plt.subplots(figsize=(6,4))
             ax = em.plot(style='o', label='MSD')
-            ax.plot(np.arange(self.max_lagtime ), slope * np.arange(self.max_lagtime ), label='linear fit')
+            time_range = np.arange(start=0, stop= self.max_lagtime/self.step_size_in_sec, step = 1 ) 
+            model_fit = slope * time_range
+            ax.plot(time_range       , slope * time_range , label='linear fit')
             ax.set(ylabel=r'$\langle \Delta r^2 \rangle$ [$\mu$m$^2$]', xlabel='lag time $t$')
             #ax.set(xlim=(0, 100))
             ax.legend(loc='upper left')
-        return calculated_diffusion_coefficient, em, trackpy_df
+        return calculated_diffusion_coefficient, em, time_range, model_fit, trackpy_df
     
 class Intensity():
     '''
@@ -2013,7 +2043,7 @@ class Intensity():
     trackpy_dataframe : pandas data frame or None (if not given).
         Pandas data frame from trackpy with fields [x, y, mass, size, ecc, signal, raw_mass, ep, frame, particle]. The default is None
     spot_positions_movement : NumPy array  or None (if not given).
-        Array of images with dimensions [T, S, x_y_positions].  The default is None
+        Array of images with dimensions [T, S, y_x_positions].  The default is None
     dataframe_format : str, optional
         Format for the dataframe the options are : 'short' , and 'long'. The default is 'short'.
         "long" format generates this dataframe: [image_number, cell_number, particle, frame, red_int_mean, green_int_mean, blue_int_mean, red_int_std, green_int_std, blue_int_std, x, y, SNR_red,SNR_green,SNR_blue].
@@ -2875,7 +2905,7 @@ class SimulatedCell():
                     newPosition_y[i_p] = temp_Position_y[i_p]
                     newPosition_x[i_p] = temp_Position_x[i_p]
                 spot_positions_movement [t_p, :, :] = np.vstack((newPosition_y, newPosition_x)).T
-            return np.round(spot_positions_movement,3) # vector with dimensions (time, spot, y, x )
+            return np.round(spot_positions_movement,3) # vector with dimensions (time, spot, y_x )
             
         def make_simulation(base_video_selected_channel:np.ndarray, masked_video_selected_channel:np.ndarray, spot_positions_movement:np.ndarray, time_vector:np.ndarray, polygon_array, image_size:np.ndarray, size_spot:int, spot_sigma:int, simulated_trajectories, frame_selection_empty_video,ignore_trajectories,intensity_scale):
             
@@ -3804,6 +3834,31 @@ class Utilities():
         return img_removed_spots
 
 
+    def save_video_as_tif(video, saved_file_name ='temp', save_to_path=None):
+        if save_to_path == None:
+            save_to_path = pathlib.Path().absolute()
+        if isinstance(save_to_path, pathlib.PurePath) == False:
+            save_to_path = pathlib.Path(save_to_path)
+        tifffile.imwrite(str(save_to_path.joinpath(saved_file_name+'.tif')), video)
+        print('the video is save in dir:' , str(save_to_path.joinpath(saved_file_name+'.tif')) )
+        
+
+    def save_as_gif (video, saved_file_name ='temp', save_to_path=None, max_frames = None ):
+        if save_to_path == None:
+            save_to_path = pathlib.Path().absolute()
+        if isinstance(save_to_path, pathlib.PurePath) == False:
+            save_to_path = pathlib.Path(save_to_path)
+        video = Utilities.convert_to_int8(image=video)
+        if not (max_frames is None):
+            num_images_for_gif = max_frames
+        else:
+            num_images_for_gif = video.shape[0]
+        num_channels_to_plot_in_gif = np.min((3, video.shape[3])) 
+        with imageio.get_writer(str(save_to_path.joinpath(saved_file_name+'_unit8'+'.gif')), mode = 'I') as writer:
+                for i in range(0, num_images_for_gif):
+                    image = video[i, :, :, 0:num_channels_to_plot_in_gif]
+                    writer.append_data(image)
+        print('the video is save in dir:' ,str(save_to_path.joinpath(saved_file_name+'_unit8'+'.gif')) )
 
 
 class ReportPDF():
@@ -4498,6 +4553,10 @@ def image_processing(files_dir_path_processing,
         selected_video = imread(path_files[i]) # Loading the video
         file_name = pathlib.Path(path_files[i]).name
         frames_in_video = selected_video.shape[0]
+        if not (real_positions_dataframe is None):
+            image_real_positions_dataframe = real_positions_dataframe[i]
+        else:
+            image_real_positions_dataframe = None
         DataFrame_particles_intensities, selected_mask, array_intensities, time_vector, _,_, _, _,segmentation_succesful = PipelineTracking(video=selected_video,
                                                                                                                     particle_size=particle_size,
                                                                                                                     file_name=file_name,
@@ -4507,7 +4566,7 @@ def image_processing(files_dir_path_processing,
                                                                                                                     mask_selection_method=mask_selection_method ,
                                                                                                                     show_plot=show_plot,
                                                                                                                     use_optimization_for_tracking=use_optimization_for_tracking,
-                                                                                                                    real_positions_dataframe=real_positions_dataframe[i] ,
+                                                                                                                    real_positions_dataframe=image_real_positions_dataframe ,
                                                                                                                     average_cell_diameter=average_cell_diameter,
                                                                                                                     print_process_times=print_process_times,
                                                                                                                     min_percentage_time_tracking=min_percentage_time_tracking,
@@ -4560,7 +4619,7 @@ def image_processing(files_dir_path_processing,
 
 # funciton to convert a directory of videos to standrd format
 
-def convert_directory_to_standard_format(directory, new_directory_name, format_tuple_original_dim = (0,1,2,3) ):
+def convert_directory_to_standard_format(directory, time_position = 0, height_position = 1,  width_position = 2, channel_position = 3):
     # Test if passed directory is a pathlib object
     if isinstance(directory, pathlib.PurePath) == False:
         directory = pathlib.Path(directory)
@@ -4569,14 +4628,17 @@ def convert_directory_to_standard_format(directory, new_directory_name, format_t
     list_files_names.sort(key=lambda f: int(re.sub('\D', '', f)))  # sorting the index in numerical order
     path_files = [ str(directory.joinpath(f).resolve()) for f in list_files_names ] # creating the complete path for each file
     path_files.sort(key=lambda f: int(re.sub('\D', '', f)))  # sorting the index in numerical order
+    print(path_files)
     # # Reading the microscopy data
     number_images = len(path_files)
-    new_videos_path = directory.joinpath('standard_format').mkdir(parents=True, exist_ok=True)
+    directory.joinpath('standard_format').mkdir(parents=True, exist_ok=True)
+    new_videos_path = directory.joinpath('standard_format')
     # Showing the simulated images
     for i in range (number_images):
-        list_videos_real = [imread(f)[:,:,:,:] for f in  path_files] # List with all the videos
-        real_video = ConvertToStandardFormat(video=list_videos_real[i], time_position = 0, height_position = 2,  width_position = 3, channel_position = 1 ).transpose_video()
-        tifffile.imwrite(str(new_videos_path.joinpath(pathlib.Path(path_files[i]).stem+'tif')), real_video)
+        real_video = ConvertToStandardFormat(video=imread (path_files[i]), time_position = time_position, height_position = height_position,  width_position = width_position, channel_position = channel_position ).transpose_video()
+        tifffile.imwrite(str(new_videos_path.joinpath(pathlib.Path(path_files[i]).stem+'.tif')), real_video)
+    print('The videos converted to standard format are stored in this directory: ', new_videos_path )
+    return new_videos_path
 
 
 # Class spot classification
