@@ -918,7 +918,8 @@ class BeadsAlignment():
         src = positions_in_first_image[:no_spots_for_alignment, :2].reshape((no_spots_for_alignment, 2))
         dst = positions_in_second_image[:no_spots_for_alignment, :2].reshape((no_spots_for_alignment, 2))
         
-        homography_matrix = transform.estimate_transform('similarity', src, dst)
+        homography_matrix = transform.estimate_transform('projective', src, dst)
+        #homography_matrix = transform.estimate_transform('similarity', src, dst)
         #tf_img = transform.warp(chess, tform.inverse)
 
         #homography.estimate(src, dst)
@@ -2836,7 +2837,7 @@ class SimulatedCell():
                     spot_intensity = np.max((0, int_tp))
                 else:
                     spot_intensity = intensity_scale
-                kernel_value_intensity = (kernel*spot_intensity)
+                kernel_value_intensity = (kernel*spot_intensity).astype(int)
                 center_position = np.round(center_position).astype(int)
                 #selected_area = pixelated_image[center_position[0]-half_spot_size: center_position[0]+half_spot_size+1 , center_position[1]-half_spot_size: center_position[1]+half_spot_size+1 ]
                 selected_area = pixelated_image[center_position[0]+spots_range_to_replace[0]: center_position[0]+spots_range_to_replace[-1]+1 , center_position[1]+spots_range_to_replace[0]: center_position[1]+spots_range_to_replace[-1]+1 ].copy()
