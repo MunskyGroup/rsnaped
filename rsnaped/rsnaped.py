@@ -195,33 +195,17 @@ class SSA_rsnapsim():
         gene_obj.ke_mu = self.ke
         number_probes = np.max(gene_obj.probe_vec)
         gene_length = len(raw_seq)
-
         if not ( self.perturbation_time_stop is None):
             t_stop_perturbation = self.perturbation_time_stop+self.t_burnin
         else:
             t_stop_perturbation = self.t_burnin+self.frames
         perturbation_list = [self.use_FRAP, self.use_Harringtonin,self.perturbation_time_start+self.t_burnin,t_stop_perturbation]
-
-        # def ssa_parallel(gene_obj,t,t_burnin,ki ):
         rss.solver.protein = gene_obj #pass the protein object
-        #     ssa_solution = rss.solver.solve_ssa(gene_obj.kelong,t,perturb=perturbation_list,ki=ki, low_memory=True, n_traj=1 )
-        #     return np.transpose( ssa_solution.intensity_vec[0,t_burnin*self.frame_rate:-1,:]) 
         ssa_solution = rss.solver.solve_ssa(gene_obj.kelong,t, perturb=perturbation_list, ki=self.ki, low_memory=True, n_traj=self.n_traj )
         ssa = np.transpose( ssa_solution.intensity_vec[:,self.t_burnin*self.frame_rate:-1,:]) [:,:,0]
-        
-        #print(ssa_solution.intensity_vec.shape)
-        
-        #list_ssa = [ssa_parallel(gene_obj,t,self.t_burnin,self.ki) for _ in range(0,self.n_traj)] 
-        
-        #print(ssa.shape)
-        #list_ssa = Parallel(n_jobs=self.NUMBER_OF_CORES)(delayed(ssa_parallel)(gene_obj,t,self.t_burnin,self.ki) for i in range(0,self.n_traj)) 
-        
-        
-        #ssa = np.concatenate( list_ssa, axis=0 )
         ssa_ump = ssa/number_probes
         return ssa, ssa_ump, t,gene_length
 
-        
 
 class ReadImages():
     '''
@@ -234,10 +218,7 @@ class ReadImages():
     '''
 
     def __init__(self, directory:str ):
-        if type(directory)== pathlib.PosixPath:
-            self.directory = directory
-        else:
-            self.directory = Path(directory)
+        self.directory = Path(directory)
     def read(self):
         '''
         Method takes all the videos in the folder and merge those with similar names.
@@ -251,13 +232,8 @@ class ReadImages():
         number_files : int. 
             Number of images in the folder.
         '''
-
-        list_files_names = sorted([f for f in listdir(self.directory) if isfile(join(self.directory, f)) and ('.tif') in f], key=str.lower)  # reading all tif files in the folder
-        list_files_names.sort(key=lambda f: int(re.sub('\D', '', f)))  # sorting the index in numerical order
-        path_files = [ str(self.directory.joinpath(f).resolve()) for f in list_files_names ] # creating the complete path for each file
-        number_files = len(path_files)
-        list_images = [imread(f) for f in path_files]
-        return list_images, path_files, list_files_names, number_files
+        path_files, list_files_names, list_images, number_images = Utilities.read_files_in_directory(directory= self.directory, extension_of_files_to_look_for = 'tif')
+        return list_images, path_files, list_files_names, number_images
 
 
 class MergeChannels():
@@ -466,9 +442,8 @@ class RemoveExtrema():
         normalized_video : np.uint16
             Normalized video. Array with dimensions [T, Y, X, C] or image with format [Y, X].
         '''
-
+        
         normalized_video = np.copy(self.video)
-        #normalized_video = np.array(normalized_video, 'float32')
         # Normalization code for image with format [Y, X]
         if len(self.video.shape) == 2:
             number_time_points = 1
@@ -548,7 +523,6 @@ class ScaleIntensity():
                 for index_time in range (number_time_points):
                     if max_val != 0: # this section detect that the channel is not empty to perform the normalization.
                         scaled_video[index_time, :, :, index_channels] = ((scaled_video[index_time, :, :, index_channels])-min_val) / (max_val-min_val)
-                        #scaled_video[index_time, :, :, index_channels][scaled_video[index_time, :, :, index_channels] < 0] = 0
                         scaled_video[scaled_video<0]=0
                         scaled_video[index_time, :, :, index_channels] = np.multiply( scaled_video[index_time, :, :, index_channels] , self.scale_maximum_value)                         
         scaled_video_int = scaled_video.astype('uint16')
@@ -824,8 +798,6 @@ class BeadsAlignment():
         '''
         # Applying a log filter to the image
         MIN_DISTANCE_TO_MATCH_BEADS = 4
-        
-        
         filtered_first_image_beads= Utilities.log_filter(self.first_image_beads, sigma=1.5)
         filtered_first_image_beads= Utilities.bandpass_filter(filtered_first_image_beads, lowfilter=0.5, highpass=10)
         filtered_second_image_beads = Utilities.log_filter(self.second_image_beads, sigma=1.5)
@@ -833,7 +805,6 @@ class BeadsAlignment():
         # Locating beads in the image using "tp.locate" function from trackpy.
         df0 = tp.locate(filtered_first_image_beads, diameter = self.spot_size, minmass=self.min_intensity, maxsize=self.spot_size*2, preprocess=False,max_iterations=100) # data frame for the first channel
         df1 = tp.locate(filtered_second_image_beads, diameter= self.spot_size, minmass=self.min_intensity, maxsize=self.spot_size*2, preprocess=False,max_iterations=100)  # data frame for the second channel
-        
         # retrieving the coordinates for spots type 0 and 1 for each cell 
         array_spots_0 = np.asarray( df0[['y','x']]) # coordinates for spot_type_0 with shape [num_spots_type_0, 3]
         array_spots_1 = np.asarray( df1[['y','x']]) # coordinates for spot_type_1 with shape [num_spots_type_1, 3]
@@ -854,30 +825,23 @@ class BeadsAlignment():
         # Calculating each type of spots in cell
         indices = np.where(subsection_mask_distance_matrix)
         number_colocalized_spots = indices[0].shape[0]
-        
         positions_in_first_image =  np.zeros((number_colocalized_spots, 2))
         positions_in_second_image = np.zeros((number_colocalized_spots, 2))
         for i in range (number_colocalized_spots):
             positions_in_first_image [i,:] = array_spots_0[indices[1][i],:] # indices[1] represents the columns in the right-lower quadrant as a subsection of the distance matrix that compares one spot type versus the other. 
             positions_in_second_image [i,:] = array_spots_1[indices[0][i],:] # indices[0] represents the rows in the right-lower quadrant as a subsection of the distance matrix that compares one spot type versus the other. 
-        
         # this step changes the order of the spots form [n_spots, [Y,X]] to  [n_spots, [X,Y]]
         positions_in_first_image = positions_in_first_image[:, [1,0]]
         positions_in_second_image = positions_in_second_image[:, [1,0]]
-        
-
         number_spots_first_image = positions_in_first_image.shape[0]
         number_spots_second_image = positions_in_second_image.shape[0]
-        
         distance_matrix_after = np.zeros( (number_spots_first_image)) #  the distance matrix is an square matrix resulting from the concatenation of both spot  types.
-
+        # This code claculates the distance matrix between the spots detected in the two images
         for i in range(number_spots_first_image):
             for j in range(number_spots_first_image):
                 if j==i:
                     distance_matrix_after[i] = np.linalg.norm( ( positions_in_first_image[i,:]-positions_in_second_image[j,:] )  )
-        
         print('sum of dist ',np.mean(distance_matrix_after))
-        
         print('Calculating the homography matrix between the two images.')
         print('_______ ')
         print(' # Spots in first image : ', number_spots_first_image, '  # Spots in second image : ',number_spots_second_image, '\n')
@@ -887,10 +851,9 @@ class BeadsAlignment():
         print('Spots detected in the second image:')
         print(np.round(positions_in_second_image[0:np.min((5, number_spots_second_image)),:],1))
         print('_______ ')
-        
-        if self.show_plot == True:
         # Plotting the detected spots.
-            fig, ax = plt.subplots(2,2, figsize=(10, 10))
+        if self.show_plot == True:
+            _, ax = plt.subplots(2,2, figsize=(10, 10))
             ax[0,0].imshow(self.first_image_beads,cmap='Greys_r')
             ax[0,0].set_xticks([]); ax[0,0].set_yticks([])
             ax[0,0].set_title('Original first image')
@@ -909,21 +872,11 @@ class BeadsAlignment():
             for i in range(0, positions_in_second_image.shape[0]):
                 circle2=plt.Circle((positions_in_second_image[i,0], positions_in_second_image[i,1]), self.spot_size, color = 'yellow', fill = False)
                 ax[1,1].add_artist(circle2)
-        
         # Calculating the minimum value of rows for the alignment
         no_spots_for_alignment = min(positions_in_first_image.shape[0], positions_in_second_image.shape[0])
-        homography = transform.ProjectiveTransform()
-        
-                
         src = positions_in_first_image[:no_spots_for_alignment, :2].reshape((no_spots_for_alignment, 2))
         dst = positions_in_second_image[:no_spots_for_alignment, :2].reshape((no_spots_for_alignment, 2))
-        
         homography_matrix = transform.estimate_transform('projective', src, dst)
-        #homography_matrix = transform.estimate_transform('similarity', src, dst)
-        #tf_img = transform.warp(chess, tform.inverse)
-
-        #homography.estimate(src, dst)
-        #homography_matrix = homography
         print('')
         print('Calculated homography matrix: ')
         print (homography_matrix)
@@ -964,8 +917,6 @@ class CamerasAlignment():
         for index_channels in range(0, number_channels): # green and blue channels
             for index_time in range(0, number_time_points):
                 if index_channels in self.target_channels:
-                    #transformed_video[index_time, :, :, index_channels] = warp(self.video[index_time, :, :, index_channels], inverse_map=self.homography_matrix.inverse)
-                    #transformed_video[index_time, :, :, index_channels] = warp(self.video[index_time, :, :, index_channels], inverse_map=self.homography_matrix.inverse, output_shape = (height, width), preserve_range = True).astype(np.uint16)
                     transformed_video[index_time, :, :, index_channels] = warp(self.video[index_time, :, :, index_channels], self.homography_matrix.params, output_shape = (height, width), preserve_range = True).astype(np.uint16)
                 else:
                     transformed_video[index_time, :, :, index_channels] = self.video[index_time, :, :, index_channels].astype(np.uint16)
@@ -1797,7 +1748,7 @@ class Trackpy():
     image_name : str , optional
         Name for the image for tracking. The default is 'temp_tracking.png'.
     '''
-    def __init__(self, video:np.ndarray, mask:np.ndarray, particle_size:int = 5, selected_channel:int = 0, minimal_frames:int = 5, optimization_iterations:int = 10, use_default_filter:bool = True, FISH_image: bool = False, show_plot:bool = True,intensity_threshold_tracking=None,image_name:str='temp_tracking.png'):
+    def __init__(self, video:np.ndarray, mask:np.ndarray, particle_size:int = 5, selected_channel:int = 0, minimal_frames:int = 5, optimization_iterations:int = 1000, use_default_filter:bool = True, FISH_image: bool = False, show_plot:bool = True,intensity_threshold_tracking=None,image_name:str='temp_tracking.png'):
         self.NUMBER_OF_CORES = multiprocessing.cpu_count()
         self.time_points = video.shape[0]
         self.selected_channel = selected_channel
@@ -1814,7 +1765,6 @@ class Trackpy():
             temp_vid = gaussian_laplace(temp_image, sigma=sigma)
             temp_vid = np.clip(-temp_vid, a_min=0, a_max=None)
             return img_as_uint(temp_vid)
-        
         # Function to convert the video to uint
         def img_uint(image):
             temp_vid = img_as_uint(image)
@@ -1835,7 +1785,6 @@ class Trackpy():
                 temp_vid_dif_filter = Parallel(n_jobs = self.NUMBER_OF_CORES)(delayed(log_filter)(temp_vid[i, :, :], sigma=1.5) for i in range(0, frames_to_track))
             video_filtered = np.asarray(temp_vid_dif_filter)
             return video_filtered
-        
         self.image_name=image_name
         self.intensity_threshold_tracking = intensity_threshold_tracking   
         self.mask = mask
@@ -1938,9 +1887,9 @@ class Trackpy():
             num_detected_particles = np.asarray(num_particles)
             smooth_vector_detected_spots = gaussian_filter1d(num_detected_particles, self.sigma_for_1d_gaussian_filter)
             log_num_spots =  np.log(smooth_vector_detected_spots +1)
-            ignored_edges = 40
-            derivative_vector_detected_spots = np.gradient(log_num_spots[ignored_edges:])      #  derivative
-            index_max_second_derivative = derivative_vector_detected_spots.argmax()+ignored_edges #+ self.ADDED_INDEX_TO_OPTIMIZED_SELECTION 
+            NUMBER_OF_LEFT_BINS_IGNORED_FOR_OPTIMIZATION  = 40
+            derivative_vector_detected_spots = np.gradient(log_num_spots[NUMBER_OF_LEFT_BINS_IGNORED_FOR_OPTIMIZATION:])      #  derivative
+            index_max_second_derivative = derivative_vector_detected_spots.argmax()+NUMBER_OF_LEFT_BINS_IGNORED_FOR_OPTIMIZATION #+ self.ADDED_INDEX_TO_OPTIMIZED_SELECTION 
             selected_int_optimized = min_int_vector[index_max_second_derivative]  # + self.ADDED_INTENSITY_TO_OPTIMIZED_SELECTION
             trackpy_dataframe, number_particles = video_tracking(video=self.video_filtered, mask=self.mask, min_int= selected_int_optimized)
             plt.figure(figsize =(5,5))
@@ -2389,7 +2338,6 @@ class Intensity():
             return df.drop(['red_int_std', 'green_int_std','blue_int_std','SNR_red', 'SNR_green', 'SNR_blue','background_int_mean_red','background_int_mean_green','background_int_mean_blue','background_int_std_red','background_int_std_green','background_int_std_blue'], axis = 1)
         if self.dataframe_format == 'short':
             dataframe_particles = reduce_dataframe(dataframe_particles)
-            #dataframe_particles = dataframe_particles.astype({"red_int_mean": int, "green_int_mean": int, "blue_int_mean": int, "x": int, "y": int}) 
         return dataframe_particles, array_intensities_mean, time_vector, mean_intensities, std_intensities, mean_intensities_normalized, std_intensities_normalized
 
 
@@ -2460,7 +2408,6 @@ class Covariance():
                 total_particles += len(set(dataframe_simulated_cell[dataframe_simulated_cell['image_number'] == 0]['particle'] ))
             #preallocate numpy array sof n_particles by nframes
             intensity_array = np.zeros([total_particles, np.max(dataframe_simulated_cell['frame'])+1] )  #intensity green
-            #intensity_array[:] = np.nan
             k = 0
             # For loops that iterate for each particle and stores the data in the previously pre-alocated arrays.
             for cell in set(dataframe_simulated_cell['image_number']):  #for every cell 
@@ -2471,14 +2418,6 @@ class Covariance():
                     k+=1 #iterate over k (total particles)
             return intensity_array 
         
-        # def get_correlation(data, vector_2,normalization='individial'):
-        #     number_trajectories = data.shape[0]
-        #     acf_vec = np.zeros(data.shape)
-            
-        #     for i in range(number_trajectories):
-        #         N = len(signal)
-        #         acf_vec[i] = stattools.acf(data, adjusted=False, nlags=None, qstat=False, fft=True, alpha=None, bartlett_confint=True, missing='conservative')[0]
-    
         def get_autocorrelation(data, g0='G0', norm='individual'):
             n_traj = data.shape[0]
             acf_vec = np.zeros(data.shape)
@@ -2796,7 +2735,6 @@ class SimulatedCell():
             
             # Section that creates the Gaussian Kernel Matrix
             def pdf_pixel_resolution( ax, spot_sigma=2):
-                #ax = np.linspace(-(size_spot - 1) / 2., (size_spot - 1) / 2., size_spot)
                 xx, yy = np.meshgrid(ax, ax)
                 kernel = np.exp(-0.5 * (np.square(xx) + np.square(yy)) / np.square(spot_sigma))
                 return kernel #kernel/np.max(kernel)
@@ -2937,7 +2875,6 @@ class SimulatedCell():
                     for k in range(y_dim):
                         generated_video[:,j,k] = np.random.poisson(lam= video_means[j,k], size=(num_requested_frames,))
                 return generated_video
-            
             def function_interpolate_video(orignal_video,num_requested_frames):
                 frames_in_orginal_video = orignal_video.shape[0]
                 x_dim = orignal_video.shape[2]
@@ -2994,7 +2931,6 @@ class SimulatedCell():
                 generated_video = generate_gaussian_video(original_video=base_video_selected_channel.copy(), num_requested_frames=len(time_vector))
                 index_frame_selection = range(0, len(time_vector))
                 base_video_selected_channel_copy = generated_video
-                
             for t_p, _ in enumerate(time_vector):
                 matrix_background = base_video_selected_channel_copy[index_frame_selection[t_p], :, :]
                 if not ( simulated_trajectories is None):
@@ -3043,26 +2979,21 @@ class SimulatedCell():
         number_elements = np.prod(self.simulated_trajectories_ch0.shape)
         if not (self.simulated_trajectories_ch0 is None):
             ssa_ch0 = self.simulated_trajectories_ch0.flatten(order='C')
-            #ssa_ch0 = np.reshape(self.simulated_trajectories_ch0,(number_elements),order='C')
         else:
             ssa_ch0=np.zeros(shape=(self.number_spots*len(self.time_vector)))
             
         if not (self.simulated_trajectories_ch1 is None):
             ssa_ch1 = self.simulated_trajectories_ch1.flatten(order='C')
-            #ssa_ch1 = np.reshape(self.simulated_trajectories_ch1,(number_elements),order='C')
         else:
             ssa_ch1=np.zeros(shape=(self.number_spots*len(self.time_vector)))
         
         if not (self.simulated_trajectories_ch2 is None):
             ssa_ch2 = self.simulated_trajectories_ch2.flatten(order='C')
-            #ssa_ch2 = np.reshape(self.simulated_trajectories_ch2,(number_elements),order='C')
         else:
             ssa_ch2=np.zeros(shape=(self.number_spots*len(self.time_vector)))
         ssa_complete_trajectories = np.stack((ssa_ch0,ssa_ch1,ssa_ch2),axis=-1)
         ssa_columns = ['SSA_Ch0_UMP','SSA_Ch1_UMP','SSA_Ch2_UMP']
-        dataframe_particles[ssa_columns] = ssa_complete_trajectories
-        
-        
+        dataframe_particles[ssa_columns] = ssa_complete_trajectories        
         return tensor_video , spot_positions_movement_int, dataframe_particles
 
 
@@ -3267,7 +3198,6 @@ class SimulatedCellDispatcher():
             number_spots_per_cell = ssa_protein.shape[0]
             # converting the diffusion coefficient from micrones_per_second to pixeles_per_second
             diffusion_coefficient_pixel_per_second =  diffusion_coefficient / (microns_per_pixel**2)
-            #print('diffusion_coefficient_pixel_per_second',diffusion_coefficient_pixel_per_second)
             # Running simulated cell
             tensor_video, _,DataFrame_particles_intensities = SimulatedCell( base_video = base_video, 
                                                                             video_for_mask = video_for_mask, 
@@ -3482,7 +3412,6 @@ class PipelineTracking():
         
         image_name_tracking = self.path_temporal_results.joinpath('tracking_'+str(self.image_index) +'.png')
         image_name_visualization = self.path_temporal_results.joinpath('visualization_'+str(self.image_index) +'.png')
-                
         start = timer()
         selected_masks = Cellpose(self.image, num_iterations = self.NUM_ITERATIONS_CELLPOSE, selection_method = 'max_cells_and_area', diameter = self.average_cell_diameter ).calculate_masks() # options are 'max_area' or 'max_cells'
         if not ( selected_masks is None):
@@ -3490,7 +3419,6 @@ class PipelineTracking():
         else:
             selected_mask = None
         end = timer()
-        
         # test if segmentation was succcesful
         MINIMAL_NUMBER_OF_PIXELS_IN_MASK = 10000
         if not(selected_mask is None):
@@ -3504,7 +3432,6 @@ class PipelineTracking():
         else:
             segmentation_succesful = False
             tracking_succesful = False
-        
         if self.print_process_times == True:
             print('mask time:', round(end - start), ' sec')
         if not ( selected_mask is None) and (segmentation_succesful == True):
@@ -3655,6 +3582,7 @@ class PhotobleachingCalculation():
         return selected_parameters, mean_cell_intensity[self.selected_channel,:], t_p
 
 
+
 class PhotobleachingCorrection():
     def __init__(self, video:np.ndarray,mask:np.ndarray,step_size:int=1, selected_channel:int=1,show_plot:bool=1):
         self.video = video
@@ -3678,6 +3606,309 @@ class PhotobleachingCorrection():
         video_photobleached_corrected = 0
         return video_photobleached_corrected
 
+class ReportPDF():
+    '''
+    This class intended to create a PDF report including the images generated during the pipeline for segmentation and tracking.
+    
+    Parameters
+    
+    directory_results: str or PosixPath
+        Directory containing the images to include in the report.
+    pdf_report_name  : str
+        Name of the pdf repot.
+    list_segmentation_succesful : list
+        List indicating if the segmentation was sucessful for the image.
+    list_file_names : list,
+        List with the file names.
+    This PDF file is generated, and it contains the processing steps for each image in the folder.
+    
+    '''    
+    def __init__(self, directory, pdf_report_name,list_file_names,list_segmentation_succesful):
+        self.directory = directory
+        self.pdf_report_name=pdf_report_name
+        self.list_segmentation_succesful =list_segmentation_succesful
+        self.list_file_names=list_file_names
+        self.num_images = len(list_file_names)
+    def create_report(self):
+        
+        '''
+        This method creates a PDF with the original images, images for cell segmentation and images for the spot detection.
+        '''
+        pdf = FPDF()
+        WIDTH = 210
+        HEIGHT = 297
+        pdf.add_page()
+        pdf.set_font('Courier', 'B', 12)
+        for i,temp_file_name in enumerate(self.list_file_names):
+            pdf.cell(w=0, h=10, txt='Original image: ' + temp_file_name,ln =2,align = 'L')
+            # code that returns the path of the original image
+            temp_original_img_name = self.directory.joinpath( 'visualization_' + str(i) +'.png' )
+            pdf.image(str(temp_original_img_name), x=10, y=20, w=WIDTH-30)
+            # creating some space
+            for text_idx in range(0, 12):
+                pdf.cell(w=0, h=10, txt='',ln =1,align = 'L')
+            pdf.cell(w=0, h=10, txt='Tracking: ' + temp_file_name,ln =1,align = 'L')
+            # code that returns the path of the segmented image
+            if self.list_segmentation_succesful[i]==True:
+                temp_tracking_img_name = self.directory.joinpath( 'tracking_' + str(i) +'.png' )
+                pdf.image(str(temp_tracking_img_name), x=10, y=HEIGHT/2, w=WIDTH-150)
+                if i< self.num_images-1:
+                    pdf.add_page()
+            else:
+                pdf.cell(w=0, h=20, txt='Segmentation was not possible for image: ' + temp_file_name,ln =1,align = 'L')
+                if i< self.num_images-1:
+                    pdf.add_page()
+        pdf.output(self.pdf_report_name, 'F')
+        return None
+
+
+
+class MetadataSimulatedCell():
+    '''
+    This class is intended to generate a metadata file containing used dependencies, user information, and parameters used to generate the simulated cell.
+    
+    Parameters
+    
+    The parameters for this class are defined in the SimultedCell class
+    '''
+    def __init__(self, 
+                metadata_filename,
+                video_dir, 
+                masks_dir, 
+                list_gene_sequences,
+                list_number_spots,
+                list_target_channels_proteins,
+                list_target_channels_mRNA, 
+                list_diffusion_coefficients,
+                list_label_names,
+                list_elongation_rates,
+                list_initiation_rates,
+                number_cells = 1,
+                simulation_time_in_sec = 100,
+                step_size_in_sec = 1,
+                frame_selection_empty_video='gaussian',
+                spot_size = 7 ,
+                spot_sigma=1,
+                intensity_scale_ch0 = None,
+                intensity_scale_ch1 = None,
+                intensity_scale_ch2 = None,
+                simulated_RNA_intensities_method='constant',
+                basal_intensity_in_background_video= 20000,
+                list_files_names_outputs=[]):
+        self.metadata_filename = metadata_filename
+        self.video_dir = video_dir
+        self.masks_dir = masks_dir
+        self.list_gene_sequences = list_gene_sequences
+        self.list_number_spots = list_number_spots
+        self.list_target_channels_proteins = list_target_channels_proteins
+        self.list_target_channels_mRNA =  list_target_channels_mRNA
+        self.list_diffusion_coefficients = list_diffusion_coefficients
+        self.list_label_names = list_label_names
+        self.list_elongation_rates = list_elongation_rates
+        self.list_initiation_rates = list_initiation_rates
+        self.number_cells = number_cells
+        self.simulation_time_in_sec = simulation_time_in_sec
+        self.step_size_in_sec = step_size_in_sec
+        self.frame_selection_empty_video = frame_selection_empty_video
+        self.spot_size = spot_size
+        self.spot_sigma = spot_sigma
+        self.intensity_scale_ch0 = intensity_scale_ch0
+        self.intensity_scale_ch1 = intensity_scale_ch1
+        self.intensity_scale_ch2 = intensity_scale_ch2
+        self.simulated_RNA_intensities_method = simulated_RNA_intensities_method
+        self.basal_intensity_in_background_video = basal_intensity_in_background_video
+        self.list_files_names = list_files_names_outputs
+
+    def write_metadata(self):
+        '''
+        This method writes the metadata file.
+        '''
+        installed_modules = [str(module).replace(" ","==") for module in pkg_resources.working_set]
+        important_modules = ['rsnapsim','rsnaped', 'cellpose','trackpy', 'scipy','pathlib','re','glob',  'cv2','imageio','tqdm', 'torch','tifffile', 'setuptools', 'scipy', 'scikit-learn', 'scikit-image', 'pysmb', 'pyfiglet', 'pip', 'Pillow', 'pandas', 'opencv-python-headless', 'numpy', 'numba', 'natsort', 'mrc', 'matplotlib', 'llvmlite', 'jupyter-core', 'jupyter-client', 'joblib', 'ipython', 'ipython-genutils', 'ipykernel']
+        def create_data_file(filename):
+            if sys.platform == 'linux' or sys.platform == 'darwin':
+                os.system('touch  ' + filename)
+            elif sys.platform == 'win32':
+                os.system('echo , > ' + filename)
+        number_spaces_pound_sign = 75
+        def write_data_in_file(filename):
+            with open(filename, 'w') as fd:
+                fd.write('#' * (number_spaces_pound_sign)) 
+                fd.write('\nAUTHOR INFORMATION  ')
+                fd.write('\n    Author: ' + getpass.getuser())
+                fd.write('\n    Created at: ' + datetime.datetime.today().strftime('%d %b %Y'))
+                fd.write('\n    Time: ' + str(datetime.datetime.now().hour) + ':' + str(datetime.datetime.now().minute) )
+                fd.write('\n    Operative System: ' + sys.platform )
+                fd.write('\n    Hostname: ' + socket.gethostname() + '\n')
+                fd.write('#' * (number_spaces_pound_sign) ) 
+                fd.write('\nPARAMETERS USED  ')
+                fd.write('\n    number_simulated_cells: '+ str(self.number_cells) )
+                fd.write('\n    simulation_time_in_sec: '+ str(self.simulation_time_in_sec ) )
+                fd.write('\n    step_size_in_sec: '+ str(self.step_size_in_sec ) )
+                fd.write('\n    frame_selection_empty_video: '+ str(self.frame_selection_empty_video ) )
+                fd.write('\n    spot_size: '+ str(self.spot_size ) )
+                fd.write('\n    spot_sigma: '+ str(self.spot_sigma ) )
+                fd.write('\n    intensity_scale_ch0: '+ str(self.intensity_scale_ch0 ) )
+                fd.write('\n    intensity_scale_ch1: '+ str(self.intensity_scale_ch1 ) )
+                fd.write('\n    intensity_scale_ch2: '+ str(self.intensity_scale_ch2 ) )
+                fd.write('\n    simulated_RNA_intensities_method: '+ str(self.simulated_RNA_intensities_method ) )
+                fd.write('\n    basal_intensity_in_background_video: '+ str(self.basal_intensity_in_background_video) )
+                fd.write('\n    Parameters for each gene')
+                for k in range (0,len(self.list_gene_sequences)):
+                    fd.write('\n      Gene File Name: ' + str(pathlib.Path(self.list_gene_sequences[k]).name ) )
+                    fd.write('\n        number_spots: ' + str(self.list_number_spots[k]) )
+                    fd.write('\n        target_channel_protein: ' + str(self.list_target_channels_proteins[k]) )
+                    fd.write('\n        target_channel_mRNA: ' + str(self.list_target_channels_mRNA[k]) )
+                    fd.write('\n        diffusion_coefficient: ' + str(self.list_diffusion_coefficients[k]) )
+                    fd.write('\n        elongation_rate: ' + str(self.list_elongation_rates[k]) )
+                    fd.write('\n        initiation_rates: ' + str(self.list_initiation_rates[k]) )
+                    fd.write('\n        label_name: ' + str(self.list_label_names[k]) )
+                fd.write('\n') 
+                fd.write('#' * (number_spaces_pound_sign) ) 
+                fd.write('\n FILES AND DIRECTORIES USED ')
+                fd.write('\n    Original video directory: ' + str(self.video_dir) )
+                fd.write('\n    Masks directory : ' + str(self.masks_dir)  )
+                # for loop for all the images.
+                fd.write('\n    Images in the directory :'  )
+                counter=0
+                for indx, img_name in enumerate (self.list_files_names):
+                    fd.write('\n        '+ img_name +  '   - Image Id Number:  ' + str(indx ))
+                    counter+=1
+                fd.write('\n')  
+                fd.write('#' * (number_spaces_pound_sign)) 
+                fd.write('\nREPRODUCIBILITY ')
+                fd.write('\n    Platform: \n')
+                fd.write('        Python: ' + str(platform.python_version()) )
+                fd.write('\n    Dependencies: ')
+                # iterating for all modules
+                for module_name in installed_modules:
+                    if any(module_name[0:4] in s for s in important_modules):
+                        fd.write('\n        '+ module_name)
+                fd.write('\n') 
+                fd.write('#' * (number_spaces_pound_sign) ) 
+        create_data_file(self.metadata_filename)
+        write_data_in_file(self.metadata_filename)
+        return None
+
+
+class MetadataImageProcessing():
+    '''
+    This class is intended to generate a metadata file containing used dependencies, user information, and parameters used to process single molecule gene expression experiments.
+    
+    Parameters
+    
+    The parameters for this class are defined in the SimultedCell class
+    '''
+    def __init__(self, 
+                metadata_filename_ip,
+                list_video_paths, 
+                files_dir_path_processing,
+                particle_size,
+                selected_channel_tracking ,
+                selected_channel_segmentation ,
+                intensity_calculation_method , 
+                mask_selection_method ,
+                use_optimization_for_tracking,
+                average_cell_diameter,
+                min_percentage_time_tracking,
+                dataframe_format,
+                list_segmentation_succesful,
+                list_frames_videos):
+        self.metadata_filename_ip=metadata_filename_ip
+        self.list_video_paths=list_video_paths
+        self.files_dir_path_processing=files_dir_path_processing
+        self.particle_size=particle_size
+        self.selected_channel_tracking=selected_channel_tracking 
+        self.selected_channel_segmentation=selected_channel_segmentation 
+        self.intensity_calculation_method=intensity_calculation_method 
+        self.mask_selection_method=mask_selection_method 
+        self.use_optimization_for_tracking=use_optimization_for_tracking
+        self.average_cell_diameter=average_cell_diameter
+        self.min_percentage_time_tracking=min_percentage_time_tracking
+        self.dataframe_format=dataframe_format
+        self.list_segmentation_succesful=list_segmentation_succesful
+        self.list_frames_videos=list_frames_videos
+
+    def write_metadata(self):
+        '''
+        This method writes the metadata file.
+        '''
+        installed_modules = [str(module).replace(" ","==") for module in pkg_resources.working_set]
+        important_modules = ['rsnapsim','rsnaped', 'cellpose','trackpy', 'scipy','pathlib','re','glob',  'cv2','imageio','tqdm', 'torch','tifffile', 'setuptools', 'scipy', 'scikit-learn', 'scikit-image', 'pysmb', 'pyfiglet', 'pip', 'Pillow', 'pandas', 'opencv-python-headless', 'numpy', 'numba', 'natsort', 'mrc', 'matplotlib', 'llvmlite', 'jupyter-core', 'jupyter-client', 'joblib', 'ipython', 'ipython-genutils', 'ipykernel']
+        def create_data_file(filename):
+            if sys.platform == 'linux' or sys.platform == 'darwin':
+                os.system('touch  ' + filename)
+            elif sys.platform == 'win32':
+                os.system('echo , > ' + filename)
+        number_spaces_pound_sign = 75
+        def write_data_in_file(filename):
+            with open(filename, 'w') as fd:
+                fd.write('#' * (number_spaces_pound_sign)) 
+                fd.write('\nAUTHOR INFORMATION  ')
+                fd.write('\n    Author: ' + getpass.getuser())
+                fd.write('\n    Created at: ' + datetime.datetime.today().strftime('%d %b %Y'))
+                fd.write('\n    Time: ' + str(datetime.datetime.now().hour) + ':' + str(datetime.datetime.now().minute) )
+                fd.write('\n    Operative System: ' + sys.platform )
+                fd.write('\n    Hostname: ' + socket.gethostname() + '\n')
+                fd.write('#' * (number_spaces_pound_sign) ) 
+                fd.write('\nPARAMETERS USED  ')
+                fd.write('\n    number_processed_images: '+ str(len(self.list_video_paths)) )
+                fd.write('\n    particle_size: '+ str(self.particle_size ) )
+                fd.write('\n    selected_channel_tracking: '+ str(self.selected_channel_tracking ) )
+                fd.write('\n    selected_channel_segmentation: '+ str(self.selected_channel_segmentation ) )
+                fd.write('\n    intensity_calculation_method: '+ str(self.intensity_calculation_method ) )
+                fd.write('\n    mask_selection_method: '+ str(self.mask_selection_method ) )
+                fd.write('\n    use_optimization_for_tracking: '+ str(self.use_optimization_for_tracking ) )
+                fd.write('\n    average_cell_diameter: '+ str(self.average_cell_diameter) )
+                fd.write('\n    min_percentage_time_tracking: '+ str(self.min_percentage_time_tracking ) )
+                fd.write('\n    dataframe_format: '+ str(self.dataframe_format) )
+                fd.write('#' * (number_spaces_pound_sign) ) 
+                fd.write('\n FILES AND DIRECTORIES USED ')
+                fd.write('\n    processed_directory: '+ str(self.files_dir_path_processing ) )
+                # for loop for all the images.
+                fd.write('\n    Images in the directory :'  )
+                counter=0
+                for indx, img_name in enumerate (self.list_video_paths):
+                    fd.write('\n        '+ pathlib.Path(img_name).name +  '   - Image Id :  ' + str(indx ) +  '   - Frames :  ' + str(self.list_frames_videos[indx]) +  '   - Processing Successful:  '  + str( bool(self.list_segmentation_succesful[indx])) )
+                    counter+=1
+                fd.write('\n')  
+                fd.write('#' * (number_spaces_pound_sign)) 
+                fd.write('\nREPRODUCIBILITY ')
+                fd.write('\n    Platform: \n')
+                fd.write('        Python: ' + str(platform.python_version()) )
+                fd.write('\n    Dependencies: ')
+                # iterating for all modules
+                for module_name in installed_modules:
+                    if any(module_name[0:4] in s for s in important_modules):
+                        fd.write('\n        '+ module_name)
+                fd.write('\n') 
+                fd.write('#' * (number_spaces_pound_sign) ) 
+        create_data_file(self.metadata_filename_ip)
+        write_data_in_file(self.metadata_filename_ip)
+        return None
+    
+    
+class Plots():
+    '''
+    This class contains miscellaneous plots that are constantly used during the generation of the simulated data.
+    '''
+    def __init__(self):
+        pass
+    def plot_image_channels(image, selected_time_point = 0):
+        '''
+        This function plots all the channels for the original image.
+        '''
+        
+        if len(image.shape)<4:
+            image = np.expand_dims(image, axis = 0)
+        number_channels = image.shape[3]
+        _ , axes = plt.subplots(nrows=1, ncols=number_channels, figsize=(15, 5))
+        for i in range (0,number_channels ):
+            img_2d = image[selected_time_point,:,:,i]
+            img_2d_rescaled = RemoveExtrema(img_2d, min_percentile = 0.1, max_percentile= 99.5).remove_outliers()
+            axes[i].imshow(img_2d_rescaled, cmap='viridis') 
+            axes[i].set_title('Channel_'+str(i))
+        plt.show()
 
 
 
@@ -3687,6 +3918,77 @@ class Utilities():
     '''
     def __init__(self):
         pass
+    
+    def variable_to_list(tested_variable):
+        if (isinstance(tested_variable, tuple)==False) and (isinstance(tested_variable, list)==False):
+            tested_variable = [tested_variable]
+        return tested_variable
+    
+    def convert_str_to_path(path_to_test):
+        if not isinstance(path_to_test, pathlib.PurePath):
+            path_to_test = pathlib.Path(path_to_test)
+        return path_to_test
+    
+    def test_if_file_exist(path_to_test):
+        path_to_test=Utilities.convert_str_to_path(path_to_test)
+        if path_to_test.is_file()== True:
+            is_a_file = True
+        else:
+            is_a_file = False
+        return is_a_file
+    
+    def test_if_directory_exist_if_not_create(path_to_test, remove_if_already_exist = False):
+        # making sure the path is a pathlib object
+        path_to_test=Utilities.convert_str_to_path(path_to_test)
+        # Test if the file or folder exist exist
+        if Path.exists(path_to_test):
+            if remove_if_already_exist == True:
+                # removing existing dir
+                shutil.rmtree(str(path_to_test))
+                # creating new directory
+                path_to_test.mkdir()
+        else:
+            path_to_test.mkdir()
+        return None
+    
+    def remove_folder(path_to_test):
+        # making sure the path is a pathlib object
+        path_to_test=Utilities.convert_str_to_path(path_to_test)
+        if Path.exists(path_to_test):
+            # removing existing dir
+            shutil.rmtree(str(path_to_test))
+        return None
+    
+    def variable_is_None(tested_variable):
+        if tested_variable in (None, 'None', 'none',['None'],['none'],[None]):
+            return True
+        else:
+            return False
+    
+    def read_files_in_directory(directory, extension_of_files_to_look_for = 'tif',return_images_in_list=True):
+        directory = Utilities.convert_str_to_path(directory)
+        ## Reads the folder and returns the files inside of the folder as lists
+        list_files_names = sorted([f for f in listdir(directory) if isfile(join(directory, f)) and ('.'+extension_of_files_to_look_for) in f], key=str.lower)  # reading all files in the folder
+        list_files_names.sort(key=lambda f: int(re.sub('\D', '', f)))  # sorting the index in numerical order
+        path_files = sorted([ str(directory.joinpath(f).resolve()) for f in list_files_names if '.'+extension_of_files_to_look_for in f] , key=str.lower)# creating the complete path for each file
+        path_files.sort(key=lambda f: int(re.sub('\D', '', f)))  # sorting the index in numerical order
+        number_images = len(path_files)
+        if return_images_in_list == True:
+            list_images = [imread(f) for f in path_files]
+        else:
+            list_images = None
+        return path_files, list_files_names, list_images, number_images
+    
+    def convert_directory_to_standard_format(directory, time_position = 0, height_position = 1,  width_position = 2, channel_position = 3):
+        path_files, _,list_images, number_images = Utilities.read_files_in_directory(directory= directory, extension_of_files_to_look_for = 'tif',return_images_in_list=True)
+        directory.joinpath('standard_format').mkdir(parents=True, exist_ok=True)
+        path_to_images_in_standard_format = directory.joinpath('standard_format')
+        # Showing the simulated images
+        for i in range (number_images):
+            real_video = ConvertToStandardFormat(video=list_images[i], time_position = time_position, height_position = height_position,  width_position = width_position, channel_position = channel_position ).transpose_video()
+            tifffile.imwrite(str(path_to_images_in_standard_format.joinpath(pathlib.Path(path_files[i]).stem+'.tif')), real_video)
+        print('The videos converted to standard format are stored in this directory: ', path_to_images_in_standard_format )
+        return path_to_images_in_standard_format
     
     def convert_to_int8(image,rescale=True):
         '''
@@ -3714,19 +4016,16 @@ class Utilities():
             for i in range(0, image.shape[3]):  # iterate for each channel
                 image_new[:,:,:,i]= (image[:,:,:,i]/ image[:,:,:,i].max()) *255
             image_uint8 = np.uint8(image_new)
-        
         # padding with zeros the channel dimenssion.
         if image_uint8.shape[3]<3:
             # padding until having 3 color channels
             while image_new.shape[3]<3:
                 zeros_plane = np.zeros_like(image_new[:,:,:,0])
                 image_new = np.concatenate((image_new,zeros_plane[:,:,:,np.newaxis]),axis=3)
-        
         # If more than 3 color channels are passed. It only selects the first three color channels.
         elif image_uint8.shape[3]> 3:
             image_uint8 = image_uint8[:,:,:,0:3]
         return image_uint8
-    
     
     # Functions with the bandpass and gaussian filters
     def bandpass_filter (image: np.ndarray, lowfilter, highpass):
@@ -3747,30 +4046,6 @@ class Utilities():
     def img_uint(image):
         temp_vid = img_as_uint(image)
         return temp_vid
-
-    # def compute_msd(trajectory):
-    #     '''
-    #     This function is intended to calculate the mean square displacement of a given trajectory.
-    #     msd(τ)  = <[r(t+τ) - r(t)]^2>
-        
-    #     Parameters:
-    #         trajectory: list of temporal evolution of a centers of mass .  [Y_val_particle_i_tp_0, X_val_particle_i_tp_0]   , ... , [Y_val_particle_i_tp_n, X_val_particle_i_tp_n] ]
-
-    #     Returns:
-    #         msd: mean square displacement
-    #         rmsd: root mean square displacement
-    #     '''
-    #     total_length_trajectory=len(trajectory)
-    #     msd=[]
-    #     for i in range(total_length_trajectory-1):
-    #         tau=i+1
-    #         # Distance that a particle moves for each time point (tau) divided by time
-    #         # msd(τ)                 = <[r(t+τ)  -    r(t)]^2>
-    #         msd.append(np.sum((trajectory[0:-tau]-trajectory[tau::])**2)/(total_length_trajectory-tau)) # Reverse Indexing 
-    #     # Converting list to np.array
-    #     msd=np.array(msd)   # array with shape Nspots vs time_points
-    #     rmsd = np.sqrt(msd)
-    #     return msd, rmsd 
     
     def extract_field_from_dataframe(dataframe_path=None, dataframe=None,selected_time=None,selected_field='green_int_mean',use_nan_for_padding=False):
         '''
@@ -3827,14 +4102,11 @@ class Utilities():
         else:
             extracted_data = df_to_array(temporal_dataframe,selected_field,use_nan_for_padding)
         return extracted_data
-    
     def remove_spots_from_image(image, x_values, y_values,spot_size):
         img_removed_spots = image.copy()
         for i in range(len(x_values)):
             img_removed_spots[ y_values[i]-spot_size//2:y_values[i]+(spot_size//2)+1,  x_values[i]-spot_size//2:x_values[i]+(spot_size//2)+1 ] = 0
         return img_removed_spots
-
-
     def save_video_as_tif(video, saved_file_name ='temp', save_to_path=None):
         if save_to_path == None:
             save_to_path = pathlib.Path().absolute()
@@ -3842,8 +4114,6 @@ class Utilities():
             save_to_path = pathlib.Path(save_to_path)
         tifffile.imwrite(str(save_to_path.joinpath(saved_file_name+'.tif')), video)
         print('the video is save in dir:' , str(save_to_path.joinpath(saved_file_name+'.tif')) )
-        
-
     def save_as_gif (video, saved_file_name ='temp', save_to_path=None, max_frames = None ):
         if save_to_path == None:
             save_to_path = pathlib.Path().absolute()
@@ -3862,300 +4132,10 @@ class Utilities():
         print('the video is save in dir:' ,str(save_to_path.joinpath(saved_file_name+'_unit8'+'.gif')) )
 
 
-class ReportPDF():
-    '''
-    This class intended to create a PDF report including the images generated during the pipeline for segmentation and tracking.
-    
-    Parameters
-    
-    directory_results: str or PosixPath
-        Directory containing the images to include in the report.
-    pdf_report_name  : str
-        Name of the pdf repot.
-    list_segmentation_succesful : list
-        List indicating if the segmentation was sucessful for the image.
-    list_file_names : list,
-        List with the file names.
-    This PDF file is generated, and it contains the processing steps for each image in the folder.
-    
-    '''    
-    def __init__(self, directory, pdf_report_name,list_file_names,list_segmentation_succesful):
-        self.directory = directory
-        self.pdf_report_name=pdf_report_name
-        self.list_segmentation_succesful =list_segmentation_succesful
-        self.list_file_names=list_file_names
-        self.num_images = len(list_file_names)
-    def create_report(self):
-        
-        '''
-        This method creates a PDF with the original images, images for cell segmentation and images for the spot detection.
-        '''
-        pdf = FPDF()
-        WIDTH = 210
-        HEIGHT = 297
-        pdf.add_page()
-        pdf.set_font('Courier', 'B', 12)
-        
-        for i,temp_file_name in enumerate(self.list_file_names):
-            pdf.cell(w=0, h=10, txt='Original image: ' + temp_file_name,ln =2,align = 'L')
-            # code that returns the path of the original image
-            temp_original_img_name = self.directory.joinpath( 'visualization_' + str(i) +'.png' )
-            pdf.image(str(temp_original_img_name), x=10, y=20, w=WIDTH-30)
-            # creating some space
-            for text_idx in range(0, 12):
-                pdf.cell(w=0, h=10, txt='',ln =1,align = 'L')
-            pdf.cell(w=0, h=10, txt='Tracking: ' + temp_file_name,ln =1,align = 'L')
-            # code that returns the path of the segmented image
-            if self.list_segmentation_succesful[i]==True:
-                temp_tracking_img_name = self.directory.joinpath( 'tracking_' + str(i) +'.png' )
-                pdf.image(str(temp_tracking_img_name), x=10, y=HEIGHT/2, w=WIDTH-150)
-                if i< self.num_images-1:
-                    pdf.add_page()
-            else:
-                pdf.cell(w=0, h=20, txt='Segmentation was not possible for image: ' + temp_file_name,ln =1,align = 'L')
-                if i< self.num_images-1:
-                    pdf.add_page()
 
-        pdf.output(self.pdf_report_name, 'F')
-        return None
-
-
-
-class MetadataSimulatedCell():
-    '''
-    This class is intended to generate a metadata file containing used dependencies, user information, and parameters used to generate the simulated cell.
-    
-    Parameters
-    
-    The parameters for this class are defined in the SimultedCell class
-    '''
-    def __init__(self, 
-                metadata_filename,
-                video_dir, 
-                masks_dir, 
-                list_gene_sequences,
-                list_number_spots,
-                list_target_channels_proteins,
-                list_target_channels_mRNA, 
-                list_diffusion_coefficients,
-                list_label_names,
-                list_elongation_rates,
-                list_initiation_rates,
-                number_cells = 1,
-                simulation_time_in_sec = 100,
-                step_size_in_sec = 1,
-                frame_selection_empty_video='gaussian',
-                spot_size = 7 ,
-                spot_sigma=1,
-                intensity_scale_ch0 = None,
-                intensity_scale_ch1 = None,
-                intensity_scale_ch2 = None,
-                simulated_RNA_intensities_method='constant',
-                basal_intensity_in_background_video= 20000,
-                list_files_names_outputs=[]):
-        
-
-        self.metadata_filename = metadata_filename
-        self.video_dir = video_dir
-        self.masks_dir = masks_dir
-        self.list_gene_sequences = list_gene_sequences
-        self.list_number_spots = list_number_spots
-        self.list_target_channels_proteins = list_target_channels_proteins
-        self.list_target_channels_mRNA =  list_target_channels_mRNA
-        self.list_diffusion_coefficients = list_diffusion_coefficients
-        self.list_label_names = list_label_names
-        self.list_elongation_rates = list_elongation_rates
-        self.list_initiation_rates = list_initiation_rates
-        self.number_cells = number_cells
-        self.simulation_time_in_sec = simulation_time_in_sec
-        self.step_size_in_sec = step_size_in_sec
-        self.frame_selection_empty_video = frame_selection_empty_video
-        self.spot_size = spot_size
-        self.spot_sigma = spot_sigma
-        self.intensity_scale_ch0 = intensity_scale_ch0
-        self.intensity_scale_ch1 = intensity_scale_ch1
-        self.intensity_scale_ch2 = intensity_scale_ch2
-        self.simulated_RNA_intensities_method = simulated_RNA_intensities_method
-        self.basal_intensity_in_background_video = basal_intensity_in_background_video
-        self.list_files_names = list_files_names_outputs
-
-
-    def write_metadata(self):
-        '''
-        This method writes the metadata file.
-        '''
-        installed_modules = [str(module).replace(" ","==") for module in pkg_resources.working_set]
-        important_modules = ['rsnapsim','rsnaped', 'cellpose','trackpy', 'scipy','pathlib','re','glob',  'cv2','imageio','tqdm', 'torch','tifffile', 'setuptools', 'scipy', 'scikit-learn', 'scikit-image', 'pysmb', 'pyfiglet', 'pip', 'Pillow', 'pandas', 'opencv-python-headless', 'numpy', 'numba', 'natsort', 'mrc', 'matplotlib', 'llvmlite', 'jupyter-core', 'jupyter-client', 'joblib', 'ipython', 'ipython-genutils', 'ipykernel']
-        def create_data_file(filename):
-            if sys.platform == 'linux' or sys.platform == 'darwin':
-                os.system('touch  ' + filename)
-            elif sys.platform == 'win32':
-                os.system('echo , > ' + filename)
-        number_spaces_pound_sign = 75
-        def write_data_in_file(filename):
-            with open(filename, 'w') as fd:
-                fd.write('#' * (number_spaces_pound_sign)) 
-                fd.write('\nAUTHOR INFORMATION  ')
-                fd.write('\n    Author: ' + getpass.getuser())
-                fd.write('\n    Created at: ' + datetime.datetime.today().strftime('%d %b %Y'))
-                fd.write('\n    Time: ' + str(datetime.datetime.now().hour) + ':' + str(datetime.datetime.now().minute) )
-                fd.write('\n    Operative System: ' + sys.platform )
-                fd.write('\n    Hostname: ' + socket.gethostname() + '\n')
-                fd.write('#' * (number_spaces_pound_sign) ) 
-                fd.write('\nPARAMETERS USED  ')
-                fd.write('\n    number_simulated_cells: '+ str(self.number_cells) )
-                fd.write('\n    simulation_time_in_sec: '+ str(self.simulation_time_in_sec ) )
-                fd.write('\n    step_size_in_sec: '+ str(self.step_size_in_sec ) )
-                fd.write('\n    frame_selection_empty_video: '+ str(self.frame_selection_empty_video ) )
-                fd.write('\n    spot_size: '+ str(self.spot_size ) )
-                fd.write('\n    spot_sigma: '+ str(self.spot_sigma ) )
-                fd.write('\n    intensity_scale_ch0: '+ str(self.intensity_scale_ch0 ) )
-                fd.write('\n    intensity_scale_ch1: '+ str(self.intensity_scale_ch1 ) )
-                fd.write('\n    intensity_scale_ch2: '+ str(self.intensity_scale_ch2 ) )
-                fd.write('\n    simulated_RNA_intensities_method: '+ str(self.simulated_RNA_intensities_method ) )
-                fd.write('\n    basal_intensity_in_background_video: '+ str(self.basal_intensity_in_background_video) )
-
-                fd.write('\n    Parameters for each gene')
-                for k in range (0,len(self.list_gene_sequences)):
-                    fd.write('\n      Gene File Name: ' + str(pathlib.Path(self.list_gene_sequences[k]).name ) )
-                    fd.write('\n        number_spots: ' + str(self.list_number_spots[k]) )
-                    fd.write('\n        target_channel_protein: ' + str(self.list_target_channels_proteins[k]) )
-                    fd.write('\n        target_channel_mRNA: ' + str(self.list_target_channels_mRNA[k]) )
-                    fd.write('\n        diffusion_coefficient: ' + str(self.list_diffusion_coefficients[k]) )
-                    fd.write('\n        elongation_rate: ' + str(self.list_elongation_rates[k]) )
-                    fd.write('\n        initiation_rates: ' + str(self.list_initiation_rates[k]) )
-                    fd.write('\n        label_name: ' + str(self.list_label_names[k]) )
-                fd.write('\n') 
-                fd.write('#' * (number_spaces_pound_sign) ) 
-                fd.write('\n FILES AND DIRECTORIES USED ')
-                fd.write('\n    Original video directory: ' + str(self.video_dir) )
-                fd.write('\n    Masks directory : ' + str(self.masks_dir)  )
-
-                # for loop for all the images.
-                fd.write('\n    Images in the directory :'  )
-                counter=0
-                for indx, img_name in enumerate (self.list_files_names):
-                    fd.write('\n        '+ img_name +  '   - Image Id Number:  ' + str(indx ))
-                    counter+=1
-                fd.write('\n')  
-                fd.write('#' * (number_spaces_pound_sign)) 
-                fd.write('\nREPRODUCIBILITY ')
-                fd.write('\n    Platform: \n')
-                fd.write('        Python: ' + str(platform.python_version()) )
-                fd.write('\n    Dependencies: ')
-                # iterating for all modules
-                for module_name in installed_modules:
-                    if any(module_name[0:4] in s for s in important_modules):
-                        fd.write('\n        '+ module_name)
-                fd.write('\n') 
-                fd.write('#' * (number_spaces_pound_sign) ) 
-        create_data_file(self.metadata_filename)
-        write_data_in_file(self.metadata_filename)
-        return None
-
-
-
-
-class MetadataImageProcessing():
-    '''
-    This class is intended to generate a metadata file containing used dependencies, user information, and parameters used to process single molecule gene expression experiments.
-    
-    Parameters
-    
-    The parameters for this class are defined in the SimultedCell class
-    '''
-    def __init__(self, 
-                metadata_filename_ip,
-                list_video_paths, 
-                files_dir_path_processing,
-                particle_size,
-                selected_channel_tracking ,
-                selected_channel_segmentation ,
-                intensity_calculation_method , 
-                mask_selection_method ,
-                use_optimization_for_tracking,
-                average_cell_diameter,
-                min_percentage_time_tracking,
-                dataframe_format,
-                list_segmentation_succesful,
-                list_frames_videos):
-        self.metadata_filename_ip=metadata_filename_ip
-        self.list_video_paths=list_video_paths
-        self.files_dir_path_processing=files_dir_path_processing
-        self.particle_size=particle_size
-        self.selected_channel_tracking=selected_channel_tracking 
-        self.selected_channel_segmentation=selected_channel_segmentation 
-        self.intensity_calculation_method=intensity_calculation_method 
-        self.mask_selection_method=mask_selection_method 
-        self.use_optimization_for_tracking=use_optimization_for_tracking
-        self.average_cell_diameter=average_cell_diameter
-        self.min_percentage_time_tracking=min_percentage_time_tracking
-        self.dataframe_format=dataframe_format
-        self.list_segmentation_succesful=list_segmentation_succesful
-        self.list_frames_videos=list_frames_videos
-
-    def write_metadata(self):
-        '''
-        This method writes the metadata file.
-        '''
-        installed_modules = [str(module).replace(" ","==") for module in pkg_resources.working_set]
-        important_modules = ['rsnapsim','rsnaped', 'cellpose','trackpy', 'scipy','pathlib','re','glob',  'cv2','imageio','tqdm', 'torch','tifffile', 'setuptools', 'scipy', 'scikit-learn', 'scikit-image', 'pysmb', 'pyfiglet', 'pip', 'Pillow', 'pandas', 'opencv-python-headless', 'numpy', 'numba', 'natsort', 'mrc', 'matplotlib', 'llvmlite', 'jupyter-core', 'jupyter-client', 'joblib', 'ipython', 'ipython-genutils', 'ipykernel']
-        def create_data_file(filename):
-            if sys.platform == 'linux' or sys.platform == 'darwin':
-                os.system('touch  ' + filename)
-            elif sys.platform == 'win32':
-                os.system('echo , > ' + filename)
-        number_spaces_pound_sign = 75
-        
-        def write_data_in_file(filename):
-            with open(filename, 'w') as fd:
-                fd.write('#' * (number_spaces_pound_sign)) 
-                fd.write('\nAUTHOR INFORMATION  ')
-                fd.write('\n    Author: ' + getpass.getuser())
-                fd.write('\n    Created at: ' + datetime.datetime.today().strftime('%d %b %Y'))
-                fd.write('\n    Time: ' + str(datetime.datetime.now().hour) + ':' + str(datetime.datetime.now().minute) )
-                fd.write('\n    Operative System: ' + sys.platform )
-                fd.write('\n    Hostname: ' + socket.gethostname() + '\n')
-                fd.write('#' * (number_spaces_pound_sign) ) 
-                
-                
-                fd.write('\nPARAMETERS USED  ')
-                fd.write('\n    number_processed_images: '+ str(len(self.list_video_paths)) )
-                fd.write('\n    particle_size: '+ str(self.particle_size ) )
-                fd.write('\n    selected_channel_tracking: '+ str(self.selected_channel_tracking ) )
-                fd.write('\n    selected_channel_segmentation: '+ str(self.selected_channel_segmentation ) )
-                fd.write('\n    intensity_calculation_method: '+ str(self.intensity_calculation_method ) )
-                fd.write('\n    mask_selection_method: '+ str(self.mask_selection_method ) )
-                fd.write('\n    use_optimization_for_tracking: '+ str(self.use_optimization_for_tracking ) )
-                fd.write('\n    average_cell_diameter: '+ str(self.average_cell_diameter) )
-                fd.write('\n    min_percentage_time_tracking: '+ str(self.min_percentage_time_tracking ) )
-                fd.write('\n    dataframe_format: '+ str(self.dataframe_format) )
-                fd.write('#' * (number_spaces_pound_sign) ) 
-                fd.write('\n FILES AND DIRECTORIES USED ')
-                fd.write('\n    processed_directory: '+ str(self.files_dir_path_processing ) )
-                # for loop for all the images.
-                fd.write('\n    Images in the directory :'  )
-                counter=0
-                for indx, img_name in enumerate (self.list_video_paths):
-                    fd.write('\n        '+ pathlib.Path(img_name).name +  '   - Image Id :  ' + str(indx ) +  '   - Frames :  ' + str(self.list_frames_videos[indx]) +  '   - Processing Successful:  '  + str( bool(self.list_segmentation_succesful[indx])) )
-                    counter+=1
-                fd.write('\n')  
-                fd.write('#' * (number_spaces_pound_sign)) 
-                fd.write('\nREPRODUCIBILITY ')
-                fd.write('\n    Platform: \n')
-                fd.write('        Python: ' + str(platform.python_version()) )
-                fd.write('\n    Dependencies: ')
-                # iterating for all modules
-                for module_name in installed_modules:
-                    if any(module_name[0:4] in s for s in important_modules):
-                        fd.write('\n        '+ module_name)
-                fd.write('\n') 
-                fd.write('#' * (number_spaces_pound_sign) ) 
-        create_data_file(self.metadata_filename_ip)
-        write_data_in_file(self.metadata_filename_ip)
-        return None
-    
-
+#########################################################
+###### LARGE FUNCTIONS TO PERFORM COMPLEX TASKS #########
+#########################################################
 
 def simulate_cell ( video_dir, 
                     list_gene_sequences,
@@ -4285,26 +4265,19 @@ def simulate_cell ( video_dir,
     
     # running the simulation
     start = timer()
-    
     # Testing if the user passed parameters as lists. If not the code conver the parameters into lists
-    def test_if_list(tested_list):
-        if isinstance(tested_list, list):
-            return tested_list
-        else:
-            return [tested_list]
-    list_gene_sequences = test_if_list (list_gene_sequences)
-    list_number_spots = test_if_list (list_number_spots)
-    list_target_channels_proteins = test_if_list (list_target_channels_proteins)
-    list_target_channels_mRNA = test_if_list(list_target_channels_mRNA)
-    list_diffusion_coefficients = test_if_list (list_diffusion_coefficients)
-    list_elongation_rates = test_if_list(list_elongation_rates)
-    list_initiation_rates = test_if_list(list_initiation_rates)
-    
+    list_gene_sequences = Utilities.variable_to_list(list_gene_sequences)
+    list_number_spots = Utilities.variable_to_list (list_number_spots)
+    list_target_channels_proteins = Utilities.variable_to_list (list_target_channels_proteins)
+    list_target_channels_mRNA = Utilities.variable_to_list(list_target_channels_mRNA)
+    list_diffusion_coefficients = Utilities.variable_to_list (list_diffusion_coefficients)
+    list_elongation_rates = Utilities.variable_to_list(list_elongation_rates)
+    list_initiation_rates = Utilities.variable_to_list(list_initiation_rates)
+    # Creating a list of labels
     if not (list_label_names is None):
-        list_label_names = test_if_list(list_label_names)
+        list_label_names = Utilities.variable_to_list(list_label_names)
     else:
         list_label_names = [i for i in range(len(list_gene_sequences) )]
-    
     # Testing if some of the intensities is None. If true, the channel is ignored during the simulation. Resulting in tensor full with zeros.
     if intensity_scale_ch0 is None:
         ignore_ch0 = True
@@ -4318,7 +4291,6 @@ def simulate_cell ( video_dir,
         ignore_ch2 = True
     else:
         ignore_ch2 = False        
-    
     # creating the folder name
     name_folder = 'bg_' + frame_selection_empty_video 
     name_folder+='_rna_' + simulated_RNA_intensities_method
@@ -4337,36 +4309,18 @@ def simulate_cell ( video_dir,
     folder_dataframe = 'dataframe_' + name_folder
     folder_video = 'videos_'  + name_folder
     folder_video_int_8 = 'videos_int8' 
-        
     # Functions to create folder to save simulated cells
     current_dir = pathlib.Path().absolute()
-    
     save_to_path_df =  current_dir.joinpath('temp_simulation' ,name_folder, folder_dataframe )
     save_to_path_video =  current_dir.joinpath('temp_simulation',name_folder , folder_video )
     save_to_path_video_int8 =  current_dir.joinpath('temp_simulation',name_folder , folder_video_int_8 )
-
-
+    # Creating directories
     if save_dataframe == True:
-        if not os.path.exists(str(save_to_path_df)):
-            os.makedirs(str(save_to_path_df))
-        else:
-            shutil.rmtree(str(save_to_path_df))
-            os.makedirs(str(save_to_path_df))
-    
+        Utilities.test_if_directory_exist_if_not_create(save_to_path_df,remove_if_already_exist=True)
     if save_as_tif == True:
-        if not os.path.exists(str(save_to_path_video)):
-            os.makedirs(str(save_to_path_video))
-        else:
-            shutil.rmtree(str(save_to_path_video))
-            os.makedirs(str(save_to_path_video))
-    
+        Utilities.test_if_directory_exist_if_not_create(save_to_path_video,remove_if_already_exist=True)
     if save_as_gif == True:
-        if not os.path.exists(str(save_to_path_video_int8)):
-            os.makedirs(str(save_to_path_video_int8))
-        else:
-            shutil.rmtree(str(save_to_path_video_int8))
-            os.makedirs(str(save_to_path_video_int8))
-    
+        Utilities.test_if_directory_exist_if_not_create(save_to_path_video_int8,remove_if_already_exist=True)
     
     # function  that simulates the multiplexing experiments    
     # Pre-alocating arrays
@@ -4375,13 +4329,7 @@ def simulate_cell ( video_dir,
     list_videos = []
     list_files_names_outputs = []
     # Reading all empty cells in directory
-    list_files_names = sorted([f for f in listdir(video_dir) if isfile(join(video_dir, f)) and ('.tif') in f], key=str.lower)  # reading all tif files in the folder
-    list_files_names.sort(key=lambda f: int(re.sub('\D', '', f)))  # sorting the index in numerical order
-    #path_files = [ str(video_dir.joinpath(f).resolve()) for f in list_files_names ] # creating the complete path for each file
-    path_files = sorted([ str(video_dir.joinpath(f).resolve()) for f in list_files_names if  '.tif' in f] , key=str.lower)# creating the complete path for each file
-    path_files.sort(key=lambda f: int(re.sub('\D', '', f)))  # sorting the index in numerical order
-    num_cell_shapes = len(path_files)
-    
+    path_files, list_files_names, list_images, num_cell_shapes = Utilities.read_files_in_directory(directory=video_dir, extension_of_files_to_look_for = 'tif',return_images_in_list=True)
     for i in range(0,number_cells): 
         saved_file_name = 'sim_cell_' + str(i)  # if the video or dataframe are save, this variable assigns the name to the files
         if (select_background_cell_index is None):
@@ -4391,8 +4339,7 @@ def simulate_cell ( video_dir,
                 selected_video = select_background_cell_index
             else:
                 selected_video = 0
-        
-        initial_video = imread(str(path_files[selected_video])) # video with empty cell
+        initial_video = list_images[selected_video] #imread(str(path_files[selected_video])) # video with empty cell
         mask_image = imread(masks_dir.joinpath('mask_cell_shape_'+str(selected_video)+'.tif'))
         video, single_dataframe_simulated_cell, list_ssa = SimulatedCellDispatcher(initial_video,
                                                                                     list_gene_sequences,
@@ -4426,10 +4373,8 @@ def simulate_cell ( video_dir,
                                                                                     perturbation_time_start = perturbation_time_start,
                                                                                     use_FRAP=use_FRAP,
                                                                                     perturbation_time_stop=perturbation_time_stop).make_simulation()
-        
         if save_as_tif == True:
             tifffile.imwrite(str(save_to_path_video.joinpath(saved_file_name+'.tif')), video)
-        
         if save_as_gif == True:
             video_int_8 = Utilities.convert_to_int8(image=video)
             tifffile.imwrite(str(save_to_path_video_int8.joinpath(saved_file_name+'_unit8'+'.tif')), video_int_8)
@@ -4440,20 +4385,17 @@ def simulate_cell ( video_dir,
                         image = video_int_8[i, :, :, 0:num_channels_to_plot_in_gif]
                         writer.append_data(image)
             del video_int_8, image
-            
         if store_videos_in_memory == False:
             video = []
         # appending dataframes for each cell
         list_dataframe_simulated_cell.append(single_dataframe_simulated_cell)
         list_ssa_all_cells_and_genes.append(list_ssa)
         list_videos.append(video)
-        
         # list file names
         list_files_names_outputs.append(saved_file_name+'.tif')
-    
+    # Concatenating results
     merged_dataframe_simulated_cells = pd.concat(list_dataframe_simulated_cell)
     ssa_trajectories = np.array(list_ssa_all_cells_and_genes)
-    
     # Saving dataframes to folder
     if save_dataframe == True:
         # saving the dataframe
@@ -4464,7 +4406,6 @@ def simulate_cell ( video_dir,
         shutil.make_archive( base_name = save_to_path_df, format = 'zip', root_dir = save_to_path_df.parents[0], base_dir =save_to_path_df.name )
         #shutil.rmtree(save_to_path_df)
         print('The simulation dataframes are stored here:', str(save_to_path_df))
-
     # Creating metadata file
     metadata_filename= str(current_dir.joinpath('temp_simulation',name_folder,metadata_name))
     MetadataSimulatedCell( metadata_filename,
@@ -4490,12 +4431,9 @@ def simulate_cell ( video_dir,
                             simulated_RNA_intensities_method,
                             basal_intensity_in_background_video,
                             list_files_names_outputs).write_metadata()
-    
     end = timer()
     print('Time to generate simulated data:',round(end - start), ' sec')
-    
     return list_videos, list_dataframe_simulated_cell, merged_dataframe_simulated_cells, ssa_trajectories, list_files_names_outputs, save_to_path_video, save_to_path_df.joinpath('dataframe_sim_cell.csv')
-
 
 
 def image_processing(files_dir_path_processing,
@@ -4512,7 +4450,6 @@ def image_processing(files_dir_path_processing,
                     min_percentage_time_tracking=0.3,
                     dataframe_format='long',
                     create_pdf=True):
-    
     start = timer()
     list_DataFrame_particles_intensities= []
     list_array_intensities = []
@@ -4521,41 +4458,28 @@ def image_processing(files_dir_path_processing,
     list_segmentation_succesful=[]
     list_file_names =[]
     list_frames_videos=[]
-    
     ## Reads the folder with the results and import the simulations as lists
-    list_files_paths = sorted([f for f in listdir(files_dir_path_processing) if isfile(join(files_dir_path_processing, f)) and ('.tif') in f], key=str.lower)  # reading all tif files in the folder
-    list_files_paths.sort(key=lambda f: int(re.sub('\D', '', f)))  # sorting the index in numerical order
-    path_files = sorted([ str(files_dir_path_processing.joinpath(f).resolve()) for f in list_files_paths if  '.tif' in f] , key=str.lower)# creating the complete path for each file
-    path_files.sort(key=lambda f: int(re.sub('\D', '', f)))  # sorting the index in numerical order
-    # # Reading the microscopy data
-    number_images = len(path_files)
+    is_a_file = Utilities.test_if_file_exist(files_dir_path_processing)
+    if is_a_file == False:
+        path_files, _, _, number_images = Utilities.read_files_in_directory(directory= files_dir_path_processing, extension_of_files_to_look_for = 'tif',return_images_in_list=False)
+    else:
+        path_files = [Utilities.convert_str_to_path(files_dir_path_processing)]
+        number_images = 1
     # Creating directory to store tracking images.
     current_dir = pathlib.Path().absolute()
     save_to_path_ip =  current_dir.joinpath('temp_processing',files_dir_path_processing.name )
-    
-    
-    
-    if not os.path.exists(str(save_to_path_ip)):
-        os.makedirs(str(save_to_path_ip))
-    else:
-        shutil.rmtree(str(save_to_path_ip))
-        os.makedirs(str(save_to_path_ip))
-    
+    Utilities.test_if_directory_exist_if_not_create(save_to_path_ip,remove_if_already_exist=True)
     if create_pdf == True:
         path_temporal_results =  save_to_path_ip.joinpath('temp_results')
-        if not os.path.exists(str(path_temporal_results)):
-            os.makedirs(str(path_temporal_results))
-        else:
-            shutil.rmtree(str(path_temporal_results))
-            os.makedirs(str(path_temporal_results))
-    
+        Utilities.test_if_directory_exist_if_not_create(path_temporal_results,remove_if_already_exist=True)
     list_video_paths = []
     for i in range(0,number_images): 
         selected_video = imread(path_files[i]) # Loading the video
         file_name = pathlib.Path(path_files[i]).name
         frames_in_video = selected_video.shape[0]
         if not (real_positions_dataframe is None):
-            image_real_positions_dataframe = real_positions_dataframe[i]
+            image_real_positions_dataframe= Utilities.variable_to_list(real_positions_dataframe)
+            image_real_positions_dataframe = image_real_positions_dataframe[i]
         else:
             image_real_positions_dataframe = None
         DataFrame_particles_intensities, selected_mask, array_intensities, time_vector, _,_, _, _,segmentation_succesful = PipelineTracking(video=selected_video,
@@ -4584,8 +4508,6 @@ def image_processing(files_dir_path_processing,
         list_file_names.append(file_name)
         list_frames_videos.append(frames_in_video)
         print('Progress: ',str(i+1),'/',str(number_images))
-    
-
     # Creating metadata file
     metadata_filename_ip= str(save_to_path_ip.joinpath('metadata_image_processing.txt'))
     MetadataImageProcessing( metadata_filename_ip=metadata_filename_ip,
@@ -4602,15 +4524,10 @@ def image_processing(files_dir_path_processing,
                             dataframe_format=dataframe_format,
                             list_segmentation_succesful=list_segmentation_succesful,
                             list_frames_videos=list_frames_videos).write_metadata()
-    
-    
     # Create PDF
     if create_pdf == True:
         pdf_report_name = save_to_path_ip.joinpath('processing_report.pdf')
         ReportPDF(directory=path_temporal_results , pdf_report_name=pdf_report_name,list_file_names=list_file_names,list_segmentation_succesful=list_segmentation_succesful ).create_report()
-
-    #path_temporal_results
-        
     end = timer()
     print('Time to process data:',round(end - start), ' sec')
     return list_DataFrame_particles_intensities, list_array_intensities, list_time_vector, list_selected_mask
@@ -4618,28 +4535,6 @@ def image_processing(files_dir_path_processing,
 
 
 
-# funciton to convert a directory of videos to standrd format
-
-def convert_directory_to_standard_format(directory, time_position = 0, height_position = 1,  width_position = 2, channel_position = 3):
-    # Test if passed directory is a pathlib object
-    if isinstance(directory, pathlib.PurePath) == False:
-        directory = pathlib.Path(directory)
-    # Reads the folder with the results and import the simulations as lists
-    list_files_names = sorted([f for f in listdir(directory) if isfile(join(directory, f)) and ('.tif') in f], key=str.lower)  # reading all tif files in the folder
-    list_files_names.sort(key=lambda f: int(re.sub('\D', '', f)))  # sorting the index in numerical order
-    path_files = [ str(directory.joinpath(f).resolve()) for f in list_files_names ] # creating the complete path for each file
-    path_files.sort(key=lambda f: int(re.sub('\D', '', f)))  # sorting the index in numerical order
-    print(path_files)
-    # # Reading the microscopy data
-    number_images = len(path_files)
-    directory.joinpath('standard_format').mkdir(parents=True, exist_ok=True)
-    new_videos_path = directory.joinpath('standard_format')
-    # Showing the simulated images
-    for i in range (number_images):
-        real_video = ConvertToStandardFormat(video=imread (path_files[i]), time_position = time_position, height_position = height_position,  width_position = width_position, channel_position = channel_position ).transpose_video()
-        tifffile.imwrite(str(new_videos_path.joinpath(pathlib.Path(path_files[i]).stem+'.tif')), real_video)
-    print('The videos converted to standard format are stored in this directory: ', new_videos_path )
-    return new_videos_path
 
 
 # Class spot classification
