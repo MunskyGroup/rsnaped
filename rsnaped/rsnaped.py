@@ -114,6 +114,11 @@ os.environ["CUDA_VISIBLE_DEVICES"] = "0,1"
 plt.style.use("dark_background")
 import shutil
 from fpdf import FPDF
+
+from matplotlib_scalebar.scalebar import ScaleBar
+from matplotlib.patches import Rectangle
+from matplotlib.patches import ConnectionPatch
+
 #import statsmodels.tsa.stattools as stattools
 #https://www.statsmodels.org/devel/generated/statsmodels.tsa.stattools.acf.html#statsmodels.tsa.stattools.acf
 
@@ -956,7 +961,7 @@ class VisualizerImage():
     save_image_as_file : bool, optional,
         Flag to save image as png. The default is False.
     '''
-    def __init__(self, list_videos: list, list_videos_filtered: Union[list, None] = None, list_selected_particles_dataframe: Union[list, None] = None, list_files_names: Union[list, None] = None, list_mask_array: Union[list, None] = None, list_real_particle_positions: Union[list, None] = None, selected_channel:int = 0, selected_time_point:int = 0, normalize:bool = False, individual_figure_size:float = 5,image_name:str='temp_image.png',show_plot:bool=True,save_image_as_file:bool=False):
+    def __init__(self, list_videos: list, list_videos_filtered: Union[list, None] = None, list_selected_particles_dataframe: Union[list, None] = None, list_files_names: Union[list, None] = None, list_mask_array: Union[list, None] = None, list_real_particle_positions: Union[list, None] = None, selected_channel:int = 0, selected_time_point:int = 0, normalize:bool = False, individual_figure_size:float = 5,image_name:str='temp_image.png',show_plot:bool=True,save_image_as_file:bool=False,colormap='plasma'):
         self.particle_size = 7
         self.selected_time_point = selected_time_point
         self.selected_channel = selected_channel
@@ -964,6 +969,7 @@ class VisualizerImage():
         self.image_name =image_name
         self.show_plot=show_plot
         self.save_image_as_file=save_image_as_file
+        self.colormap= colormap
         # Checking if the video is a list or a single video.
         if not (type(list_videos) is list):
             list_videos = [list_videos]
@@ -1134,20 +1140,20 @@ class VisualizerImage():
                     title_str = 'Cell_'+str(counter)
                 # Figure with raw video
                 ax = fig.add_subplot(gs[index_video])
-                ax.imshow(self.list_videos[counter][self.selected_time_point, :, :, self.selected_channel], cmap = 'Spectral', vmax = np.max(self.list_videos[counter][self.selected_time_point, :, :, self.selected_channel])*0.95)
+                ax.imshow(self.list_videos[counter][self.selected_time_point, :, :, self.selected_channel], cmap = self.colormap, vmax = np.max(self.list_videos[counter][self.selected_time_point, :, :, self.selected_channel])*0.95)
                 ax.set_xticks([])
                 ax.set_yticks([])
                 ax.set(title = title_str + ' Original')
                 # Figure with filtered video
                 ax = fig.add_subplot(gs[index_video+1])
-                ax.imshow(self.list_videos_filtered[counter][self.selected_time_point, :, :, self.selected_channel], cmap = 'Spectral_r' )
+                ax.imshow(self.list_videos_filtered[counter][self.selected_time_point, :, :, self.selected_channel], cmap = self.colormap )
                 #ax.imshow(self.list_videos_filtered[counter][self.selected_time_point, :, :, self.selected_channel], cmap = 'Greys', vmin = 0 ,vmax = np.max(self.list_videos[counter][self.selected_time_point, :, :, self.selected_channel]))
                 ax.set_xticks([])
                 ax.set_yticks([])
                 ax.set(title = title_str + ' Filtered' )
                 # Figure with original video and marking the spots
                 ax = fig.add_subplot(gs[index_video+2])
-                ax.imshow(self.list_videos[counter][self.selected_time_point, :, :, self.selected_channel], cmap = 'Spectral', vmax = np.max(self.list_videos[counter][self.selected_time_point, :, :, self.selected_channel])*0.95)
+                ax.imshow(self.list_videos[counter][self.selected_time_point, :, :, self.selected_channel], cmap = self.colormap, vmax = np.max(self.list_videos[counter][self.selected_time_point, :, :, self.selected_channel])*0.95)
                 ax.set_xticks([])
                 ax.set_yticks([])
                 ax.set(title = title_str + ' Detected Spots' )
@@ -1168,7 +1174,7 @@ class VisualizerImage():
                             x_pos = int(selected_particles_dataframe.loc[selected_particles_dataframe['particle'] == selected_particles_dataframe['particle'].unique()[k]].x.values[index_val])
                             y_pos = int(selected_particles_dataframe.loc[selected_particles_dataframe['particle'] == selected_particles_dataframe['particle'].unique()[k]].y.values[index_val])
                         try:
-                            circle = plt.Circle((x_pos, y_pos), self.particle_size/2, color = 'magenta', fill = False)
+                            circle = plt.Circle((x_pos, y_pos), self.particle_size/2, color = 'w', fill = False)
                             ax.add_artist(circle)
                         except:
                             pass
@@ -1189,7 +1195,7 @@ class VisualizerImage():
                                 x_pos = int(selected_particles_dataframe.loc[selected_particles_dataframe['particle'] == selected_particles_dataframe['particle'].unique()[k]].x.values[index_val])
                                 y_pos = int(selected_particles_dataframe.loc[selected_particles_dataframe['particle'] == selected_particles_dataframe['particle'].unique()[k]].y.values[index_val])
                             try:
-                                circle = plt.Circle((x_pos, y_pos), 2, color = 'royalblue', fill = True)
+                                circle = plt.Circle((x_pos, y_pos), 2, color = 'yellow', fill = True)
                                 ax.add_artist(circle)
                             except:
                                 pass
@@ -1493,9 +1499,9 @@ class VisualizerCrops():
                 return crop_image
             number_channels  = video.shape[3]
             size_cropped_image = (100+(self.crop_size+1)) - (100-(self.crop_size)) # true size of crop in image
-            red_image  = np.zeros((size_cropped_image, size_cropped_image))
-            green_image  = np.zeros((size_cropped_image, size_cropped_image))
-            blue_image  = np.zeros((size_cropped_image, size_cropped_image))
+            ch0_image  = np.zeros((size_cropped_image, size_cropped_image))
+            ch1_image  = np.zeros((size_cropped_image, size_cropped_image))
+            ch2_image  = np.zeros((size_cropped_image, size_cropped_image))
             frames_part = selected_particles_dataframe.loc[selected_particles_dataframe['particle'] == selected_particles_dataframe['particle'].unique()[track]].frame.values
             if index_time in frames_part: # detecting the position for the crop
                 index_val = np.where(frames_part == index_time)
@@ -1505,21 +1511,21 @@ class VisualizerCrops():
                 index_closest = np.abs(frames_part - index_time).argmin()
                 x_pos = int(selected_particles_dataframe.loc[selected_particles_dataframe['particle'] == selected_particles_dataframe['particle'].unique()[track]].x.values[index_closest])
                 y_pos = int(selected_particles_dataframe.loc[selected_particles_dataframe['particle'] == selected_particles_dataframe['particle'].unique()[track]].y.values[index_closest])
-            red_image[:, :] = return_crop(video[index_time, :, :, 0], x_pos, y_pos, self.crop_size)
-            green_image[:, :] = return_crop(video[index_time, :, :, 1], x_pos, y_pos, self.crop_size)
-            blue_image[:, :] = return_crop(video[index_time, :, :, 2], x_pos, y_pos, self.crop_size)
+            ch0_image[:, :] = return_crop(video[index_time, :, :, 0], x_pos, y_pos, self.crop_size)
+            ch1_image[:, :] = return_crop(video[index_time, :, :, 1], x_pos, y_pos, self.crop_size)
+            ch2_image[:, :] = return_crop(video[index_time, :, :, 2], x_pos, y_pos, self.crop_size)
             _, ax = plt.subplots(1, number_channels, figsize = (10, 5))
             for index_channels in range(0, number_channels):
                 if index_channels == 0:
-                    ax[index_channels].imshow(red_image[index_time, :, :], origin = 'bottom', cmap = 'gray')
+                    ax[index_channels].imshow(ch0_image[index_time, :, :], origin = 'bottom', cmap = 'gray')
                     ax[index_channels].set_axis_off()
                     ax[index_channels].set(title = 'Channel_0 (Red)')
                 elif index_channels == 1:
-                    ax[index_channels].imshow(green_image[index_time, :, :], origin = 'bottom', cmap = 'gray')
+                    ax[index_channels].imshow(ch1_image[index_time, :, :], origin = 'bottom', cmap = 'gray')
                     ax[index_channels].set_axis_off()
                     ax[index_channels].set(title = 'Channel_1 (Green)')
                 else:
-                    ax[index_channels].imshow(blue_image[index_time, :, :], origin = 'bottom', cmap = 'gray')
+                    ax[index_channels].imshow(ch2_image[index_time, :, :], origin = 'bottom', cmap = 'gray')
                     ax[index_channels].set_axis_off()
                     ax[index_channels].set(title = 'Channel_2 (Blue)')
             print('For track '+ str(track) + ' a spot is detected between time points : '+ str(int(frames_vector[track, 0])) + ' and ' + str(int(frames_vector[track, 1])) )
@@ -1996,8 +2002,8 @@ class Intensity():
         Array of images with dimensions [T, S, y_x_positions].  The default is None
     dataframe_format : str, optional
         Format for the dataframe the options are : 'short' , and 'long'. The default is 'short'.
-        "long" format generates this dataframe: [image_number, cell_number, particle, frame, red_int_mean, green_int_mean, blue_int_mean, red_int_std, green_int_std, blue_int_std, x, y, SNR_red,SNR_green,SNR_blue].
-        "short" format generates this dataframe: [image_number, cell_number, particle, frame, red_int_mean, green_int_mean, blue_int_mean, x, y].
+        "long" format generates this dataframe: [image_number, cell_number, particle, frame, ch0_int_mean, ch1_int_mean, ch2_int_mean, ch0_int_std, ch1_int_std, ch2_int_std, x, y, ch0_SNR,ch1_SNR,ch2_SNR].
+        "short" format generates this dataframe: [image_number, cell_number, particle, frame, ch0_int_mean, ch1_int_mean, ch2_int_mean, x, y].
     method : str, optional
         Method to calculate intensity the options are : 'total_intensity' , 'disk_donut' and 'gaussian_fit'. The default is 'disk_donut'.
     step_size : float, optional
@@ -2045,7 +2051,7 @@ class Intensity():
         Returns
 
         dataframe_particles : pandas dataframe
-            Dataframe with fields [image_number, cell_number, particle, frame, red_int_mean, green_int_mean, blue_int_mean, red_int_std, green_int_std, blue_int_std, x, y, SNR_red,SNR_green,SNR_blue].
+            Dataframe with fields [image_number, cell_number, particle, frame, ch0_int_mean, ch1_int_mean, ch2_int_mean, ch0_int_std, ch1_int_std, ch2_int_std, x, y, ch0_SNR,ch1_SNR,ch2_SNR].
         array_intensities_mean : Numpy array
             Array with dimensions [S, T, C].
         time_vector : Numpy array
@@ -2258,23 +2264,23 @@ class Intensity():
             'cell_number': [], 
             'particle': [], 
             'frame': [], 
-            'red_int_mean': [], 
-            'green_int_mean': [], 
-            'blue_int_mean': [], 
-            'red_int_std': [], 
-            'green_int_std': [], 
-            'blue_int_std': [], 
+            'ch0_int_mean': [], 
+            'ch1_int_mean': [], 
+            'ch2_int_mean': [], 
+            'ch0_int_std': [], 
+            'ch1_int_std': [], 
+            'ch2_int_std': [], 
             'x': [], 
             'y': [],
-            'SNR_red':[],
-            'SNR_green':[],
-            'SNR_blue':[],
-            'background_int_mean_red':[],
-            'background_int_mean_green':[],
-            'background_int_mean_blue':[],
-            'background_int_std_red':[],
-            'background_int_std_green':[],
-            'background_int_std_blue':[] }
+            'ch0_SNR':[],
+            'ch1_SNR':[],
+            'ch2_SNR':[],
+            'ch0_bg_int_mean':[],
+            'ch1_bg_int_mean':[],
+            'ch2_bg_int_mean':[],
+            'ch0_bg_int_std':[],
+            'ch1_bg_int_std':[],
+            'ch2_bg_int_std':[] }
         dataframe_particles = pd.DataFrame(init_dataFrame)
         # Iterate for each spot and save time courses in the data frame
         counter = 0
@@ -2289,53 +2295,53 @@ class Intensity():
                 temporal_frames_vector = counter_time_vector
                 temporal_x_position_vector = self.spot_positions_movement[:, id, 1]
                 temporal_y_position_vector = self.spot_positions_movement[:, id, 0]
-            temporal_red_vector =  array_intensities_mean[id, temporal_frames_vector, 0]  # red
-            temporal_green_vector = array_intensities_mean[id, temporal_frames_vector, 1]  # green
-            temporal_blue_vector =  array_intensities_mean[id, temporal_frames_vector, 2]  # blue
-            temporal_red_vector_std =  array_intensities_std[id, temporal_frames_vector, 0]  # red
-            temporal_green_vector_std =  array_intensities_std[id, temporal_frames_vector, 1]  # green
-            temporal_blue_vector_std =  array_intensities_std[id, temporal_frames_vector, 2]  # blue
+            temporal_ch0_vector =  array_intensities_mean[id, temporal_frames_vector, 0]  # ch0
+            temporal_ch1_vector = array_intensities_mean[id, temporal_frames_vector, 1]  # ch1
+            temporal_ch2_vector =  array_intensities_mean[id, temporal_frames_vector, 2]  # ch2
+            temporal_ch0_vector_std =  array_intensities_std[id, temporal_frames_vector, 0]  # ch0
+            temporal_ch1_vector_std =  array_intensities_std[id, temporal_frames_vector, 1]  # ch1
+            temporal_ch2_vector_std =  array_intensities_std[id, temporal_frames_vector, 2]  # ch2
             temporal_spot_number_vector = [counter] * len(temporal_frames_vector)
             temporal_image_number_vector = [0] * len(temporal_frames_vector)
             temporal_cell_number_vector = [0] * len(temporal_frames_vector)
-            temporal_SNR_red =  array_intensities_snr[id, temporal_frames_vector, 0] # red
-            temporal_SNR_green =  array_intensities_snr[id, temporal_frames_vector, 1]  # green
-            temporal_SNR_blue =  array_intensities_snr[id, temporal_frames_vector, 2]  # blue
-            temporal_background_int_mean_red  = array_intensities_background_mean [id, temporal_frames_vector, 0]  # red
-            temporal_background_int_mean_green = array_intensities_background_mean [id, temporal_frames_vector, 1]  # green
-            temporal_background_int_mean_blue=  array_intensities_background_mean [id, temporal_frames_vector, 2]  # blue
-            temporal_background_int_std_red  = array_intensities_background_std[id, temporal_frames_vector, 0]  # red
-            temporal_background_int_std_green = array_intensities_background_std[id, temporal_frames_vector, 1]  # green
-            temporal_background_int_std_blue = array_intensities_background_std[id, temporal_frames_vector, 2]  # blue
+            temporal_ch0_SNR =  array_intensities_snr[id, temporal_frames_vector, 0] # ch0
+            temporal_ch1_SNR =  array_intensities_snr[id, temporal_frames_vector, 1]  # ch1
+            temporal_ch2_SNR =  array_intensities_snr[id, temporal_frames_vector, 2]  # ch2
+            temporal_ch0_bg_int_mean  = array_intensities_background_mean [id, temporal_frames_vector, 0]  # ch0
+            temporal_ch1_bg_int_mean = array_intensities_background_mean [id, temporal_frames_vector, 1]  # ch1
+            temporal_ch2_bg_int_mean=  array_intensities_background_mean [id, temporal_frames_vector, 2]  # ch2
+            temporal_ch0_bg_int_std  = array_intensities_background_std[id, temporal_frames_vector, 0]  # ch0
+            temporal_ch1_bg_int_std = array_intensities_background_std[id, temporal_frames_vector, 1]  # ch1
+            temporal_ch2_bg_int_std = array_intensities_background_std[id, temporal_frames_vector, 2]  # ch2
             # Section that append the information for each spots
             temp_data_frame = {'image_number': temporal_image_number_vector, 
                 'cell_number': temporal_cell_number_vector, 
                 'particle': temporal_spot_number_vector, 
                 'frame': temporal_frames_vector*self.step_size, 
-                'red_int_mean': np.round( temporal_red_vector ,2), 
-                'green_int_mean': np.round( temporal_green_vector ,2), 
-                'blue_int_mean': np.round( temporal_blue_vector ,2), 
-                'red_int_std': np.round( temporal_red_vector_std ,2), 
-                'green_int_std': np.round( temporal_green_vector_std ,2), 
-                'blue_int_std': np.round( temporal_blue_vector_std, 2), 
+                'ch0_int_mean': np.round( temporal_ch0_vector ,2), 
+                'ch1_int_mean': np.round( temporal_ch1_vector ,2), 
+                'ch2_int_mean': np.round( temporal_ch2_vector ,2), 
+                'ch0_int_std': np.round( temporal_ch0_vector_std ,2), 
+                'ch1_int_std': np.round( temporal_ch1_vector_std ,2), 
+                'ch2_int_std': np.round( temporal_ch2_vector_std, 2), 
                 'x': temporal_x_position_vector, 
                 'y': temporal_y_position_vector,
-                'SNR_red' : np.round( temporal_SNR_red ,2),
-                'SNR_green': np.round( temporal_SNR_green ,2),
-                'SNR_blue': np.round( temporal_SNR_blue ,2),
-                'background_int_mean_red': np.round( temporal_background_int_mean_red ,2),
-                'background_int_mean_green': np.round( temporal_background_int_mean_green ,2),
-                'background_int_mean_blue': np.round( temporal_background_int_mean_blue ,2),
-                'background_int_std_red': np.round( temporal_background_int_std_red ,2),
-                'background_int_std_green': np.round( temporal_background_int_std_green ,2),
-                'background_int_std_blue': np.round( temporal_background_int_std_blue ,2) }
+                'ch0_SNR' : np.round( temporal_ch0_SNR ,2),
+                'ch1_SNR': np.round( temporal_ch1_SNR ,2),
+                'ch2_SNR': np.round( temporal_ch2_SNR ,2),
+                'ch0_bg_int_mean': np.round( temporal_ch0_bg_int_mean ,2),
+                'ch1_bg_int_mean': np.round( temporal_ch1_bg_int_mean ,2),
+                'ch2_bg_int_mean': np.round( temporal_ch2_bg_int_mean ,2),
+                'ch0_bg_int_std': np.round( temporal_ch0_bg_int_std ,2),
+                'ch1_bg_int_std': np.round( temporal_ch1_bg_int_std ,2),
+                'ch2_bg_int_std': np.round( temporal_ch2_bg_int_std ,2) }
             counter += 1
             temp_DataFrame = pd.DataFrame(temp_data_frame)
             dataframe_particles = dataframe_particles.append(temp_DataFrame, ignore_index = True)
             dataframe_particles = dataframe_particles.astype({"image_number": int, "cell_number": int, "particle": int, "frame": int, "x": int, "y": int}) # specify data type as integer for some columns
         def reduce_dataframe(df):
             # This function is intended to reduce the columns that are not used in the ML process.
-            return df.drop(['red_int_std', 'green_int_std','blue_int_std','SNR_red', 'SNR_green', 'SNR_blue','background_int_mean_red','background_int_mean_green','background_int_mean_blue','background_int_std_red','background_int_std_green','background_int_std_blue'], axis = 1)
+            return df.drop(['ch0_int_std', 'ch1_int_std','ch2_int_std','ch0_SNR', 'ch1_SNR', 'ch2_SNR','ch0_bg_int_mean','ch1_bg_int_mean','ch2_bg_int_mean','ch0_bg_int_std','ch1_bg_int_std','ch2_bg_int_std'], axis = 1)
         if self.dataframe_format == 'short':
             dataframe_particles = reduce_dataframe(dataframe_particles)
         return dataframe_particles, array_intensities_mean, time_vector, mean_intensities, std_intensities, mean_intensities_normalized, std_intensities_normalized
@@ -2348,9 +2354,9 @@ class Covariance():
     Parameters
 
     dataframe_particles : pandas dataframe
-        Dataframe with fields [image_number, cell_number, particle, frame, red_int_mean, green_int_mean, blue_int_mean, red_int_std, green_int_std, blue_int_std, x, y, SNR_red,SNR_green,SNR_blue].
+        Dataframe with fields [image_number, cell_number, particle, frame, ch0_int_mean, ch1_int_mean, ch2_int_mean, ch0_int_std, ch1_int_std, ch2_int_std, x, y, ch0_SNR, ch1_SNR, ch2_SNR].
     selected_field : str, optinal
-        Field in the datafre to be used to calculate autocovariance. The deafault is 'green_int_mean'
+        Field in the datafre to be used to calculate autocovariance. The deafault is 'ch1_int_mean'
     max_lagtime : int, optional
         Is the time interval used to compute the mean square displacement. Trackpy uses a default of 100.
     show_plot : bool, optional
@@ -2359,7 +2365,7 @@ class Covariance():
         Frame rate in seconds. The default is 1 frame per second.
 
     '''
-    def __init__(self, intensity_array =None, dataframe_particles=None,selected_field='green_int_mean', max_lagtime= 100, show_plot= True,figure_size=(6,4),step_size=1):
+    def __init__(self, intensity_array =None, dataframe_particles=None,selected_field='ch1_int_mean', max_lagtime= 100, show_plot= True,figure_size=(6,4),step_size=1):
         self.intensity_array = intensity_array
         self.dataframe_particles = dataframe_particles
         self.max_lagtime = max_lagtime
@@ -2394,7 +2400,7 @@ class Covariance():
 
             Input
                 dataframe_simulated_cell : pandas dataframe
-                    Dataframe with fields [image_number, cell_number, particle, frame, red_int_mean, green_int_mean, blue_int_mean, red_int_std, green_int_std, blue_int_std, x, y, SNR_red,SNR_green,SNR_blue].
+                    Dataframe with fields [image_number, cell_number, particle, frame, ch0_int_mean, ch1_int_mean, ch2_int_mean, ch0_int_std, ch1_int_std, ch2_int_std, x, y, ch0_SNR, ch1_SNR, ch2_SNR].
                 selected_field : str,
                     selected field to extract data.
 
@@ -2585,8 +2591,8 @@ class SimulatedCell():
         Scaling factor for channel 2 that converts the intensity in the stochastic simulations to the intensity in the image.
     dataframe_format : str, optional
         Format for the dataframe the options are : 'short' , and 'long'. The default is 'short'.
-        "long" format generates this dataframe: [image_number, cell_number, particle, frame, red_int_mean, green_int_mean, blue_int_mean, red_int_std, green_int_std, blue_int_std, x, y, SNR_red,SNR_green,SNR_blue].
-        "short" format generates this dataframe: [image_number, cell_number, particle, frame, red_int_mean, green_int_mean, blue_int_mean, x, y].
+        "long" format generates this dataframe: [image_number, cell_number, particle, frame, ch0_int_mean, ch1_int_mean, ch2_int_mean, ch0_int_std, ch1_int_std, ch2_int_std, x, y, ch0_SNR,ch1_SNR,ch2_SNR].
+        "short" format generates this dataframe: [image_number, cell_number, particle, frame, ch0_int_mean, ch1_int_mean, ch2_int_mean, x, y].
     
     '''
     def __init__(self, base_video:np.ndarray,
@@ -2721,7 +2727,7 @@ class SimulatedCell():
         tensor_std_intensity_in_figure : NumPy array, np.float
             Array with dimensions [T, Spots]
         dataframe_particles : pandas dataframe
-            Dataframe with fields [image_number, cell_number, particle, frame, red_int_mean, green_int_mean, blue_int_mean, red_int_std, green_int_std, blue_int_std, x, y, SNR_red,SNR_green,SNR_blue].
+            Dataframe with fields [image_number, cell_number, particle, frame, ch0_int_mean, ch1_int_mean, ch2_int_mean, ch0_int_std, ch1_int_std, ch2_int_std, x, y, ch0_SNR,ch1_SNR,ch2_SNR].
         '''
         def make_replacement_pixelated_spots(matrix_background:np.ndarray, center_positions_vector:np.ndarray, size_spot:int, spot_sigma:int, using_ssa:bool, simulated_trajectories_time_point:np.ndarray,intensity_scale:float):
             #This function is intended to replace a kernel gaussian matrix for each spot position. The kernel gaussian matrix is scaled with the values obtained from the SSA o with the values given in a range.
@@ -2992,7 +2998,7 @@ class SimulatedCell():
         else:
             ssa_ch2=np.zeros(shape=(self.number_spots*len(self.time_vector)))
         ssa_complete_trajectories = np.stack((ssa_ch0,ssa_ch1,ssa_ch2),axis=-1)
-        ssa_columns = ['SSA_Ch0_UMP','SSA_Ch1_UMP','SSA_Ch2_UMP']
+        ssa_columns = ['ch0_SSA_UMP','ch1_SSA_UMP','ch2_SSA_UMP']
         dataframe_particles[ssa_columns] = ssa_complete_trajectories        
         return tensor_video , spot_positions_movement_int, dataframe_particles
 
@@ -3047,8 +3053,8 @@ class SimulatedCellDispatcher():
         Method used to simulate RNA intensities in the image. The optiions are 'constant' or 'random'. The default is 'constant'
     dataframe_format : str, optional
         Format for the dataframe the options are : 'short' , and 'long'. The default is 'short'.
-        "long" format generates this dataframe: [image_number, cell_number, particle, frame, red_int_mean, green_int_mean, blue_int_mean, red_int_std, green_int_std, blue_int_std, x, y, SNR_red,SNR_green,SNR_blue].
-        "short" format generates this dataframe: [image_number, cell_number, particle, frame, red_int_mean, green_int_mean, blue_int_mean, x, y].
+        "long" format generates this dataframe: [image_number, cell_number, particle, frame, ch0_int_mean, ch1_int_mean, ch2_int_mean, ch0_int_std, ch1_int_std, ch2_int_std, x, y, ch0_SNR,ch1_SNR,ch2_SNR].
+        "short" format generates this dataframe: [image_number, cell_number, particle, frame, ch0_int_mean, ch1_int_mean, ch2_int_mean, x, y].
     ignore_ch0 : bool, optional
         A flag that ignores channel 0 returning a NumPy array filled with zeros. The default is 0.
     ignore_ch1 : bool, optional
@@ -3159,7 +3165,7 @@ class SimulatedCellDispatcher():
         tensor_video : NumPy array uint16
             Array with dimensions [T, Y, X, C]
         dataframe_particles : pandas dataframe
-            Dataframe with fields [cell_number, particle, frame, red_int_mean, green_int_mean, blue_int_mean, red_int_std, green_int_std, blue_int_std, x, y, SNR_red,SNR_green,SNR_blue].
+            Dataframe with fields [cell_number, particle, frame, ch0_int_mean, ch1_int_mean, ch2_int_mean, ch0_int_std, ch1_int_std, ch2_int_std, x, y, ch0_SNR,ch1_SNR,ch2_SNR].
         list_ssa : List of NumPy arrays
             List of numpy arrays with the stochastic simulations for each gene. The format is [S, T], where the dimensions are S = spots and T = time.
         '''
@@ -3230,7 +3236,7 @@ class SimulatedCellDispatcher():
             DataFrame_particles_intensities['cell_number'] = DataFrame_particles_intensities['cell_number'].replace([0], self.image_number)
             DataFrame_particles_intensities['image_number'] = DataFrame_particles_intensities['image_number'].replace([0], self.image_number)
 
-            return tensor_video, DataFrame_particles_intensities  # [cell_number, particle, frame, red_int_mean, green_int_mean, blue_int_mean, red_int_std, green_int_std, blue_int_std, x, y].
+            return tensor_video, DataFrame_particles_intensities  # [cell_number, particle, frame, ch0_int_mean, ch1_int_mean, ch2_int_mean, ch0_int_std, ch1_int_std, ch2_int_std, x, y].
         # Runs the SSA and the simulated cell functions
         list_ssa = []
         list_min_ssa = []
@@ -3308,7 +3314,7 @@ class SimulatedCellDispatcher():
                 list_DataFrame_particles_intensities[i]['particle'] = list_DataFrame_particles_intensities[i]['particle'] + number_spots_for_previous_genes
         # Merging multiple dataframes in a single one.
         dataframe_simulated_cell = pd.concat(list_DataFrame_particles_intensities)        
-        return tensor_video, dataframe_simulated_cell, list_ssa
+        return tensor_video, dataframe_simulated_cell, list_ssa, self.mask_image
 
 
 class PipelineTracking():
@@ -3319,6 +3325,8 @@ class PipelineTracking():
 
     video : NumPy array
         Array of images with dimensions [T, Y, X, C].
+    mask : NumPy array, optional
+        Array of images with dimensions [ Y, X]. The default is None, and it will perform segmentation using Cellpose.
     particle_size : int, optional
         Average particle size. The default is 5.
     file_name : str, optional
@@ -3349,8 +3357,8 @@ class PipelineTracking():
         Intensity threshold value to be used during tracking. If no value is passed, the code attempts to calculate this value. The default is None.
     dataframe_format : str, optional
         Format for the dataframe the options are : 'short' , and 'long'. The default is 'short'.
-        "long" format generates this dataframe: [image_number, cell_number, particle, frame, red_int_mean, green_int_mean, blue_int_mean, red_int_std, green_int_std, blue_int_std, x, y, SNR_red,SNR_green,SNR_blue].
-        "short" format generates this dataframe: [image_number, cell_number, particle, frame, red_int_mean, green_int_mean, blue_int_mean, x, y].
+        "long" format generates this dataframe: [image_number, cell_number, particle, frame, ch0_int_mean, ch1_int_mean, ch2_int_mean, ch0_int_std, ch1_int_std, ch2_int_std, x, y, ch0_SNR,ch1_SNR,ch2_SNR].
+        "short" format generates this dataframe: [image_number, cell_number, particle, frame, ch0_int_mean, ch1_int_mean, ch2_int_mean, x, y].
     create_pdf : bool, optional
         Flag to indicate if a pdf report is needed. The default is True.
     path_temporal_results : path or str, optional.
@@ -3358,8 +3366,9 @@ class PipelineTracking():
     image_index : int, optional
         Index indicating a counter for the image. The default is 0.
     '''
-    def __init__(self, video:np.ndarray, particle_size:int = 5, file_name:str = 'Cell.tif', selected_channel_tracking:int = 0,selected_channel_segmentation:int = 0,  intensity_calculation_method:str = 'disk_donut', mask_selection_method:str = 'max_spots', show_plot:bool = 1, use_optimization_for_tracking: bool = 1, real_positions_dataframe = None, average_cell_diameter: float = 120, print_process_times:bool = 0,min_percentage_time_tracking=0.4,intensity_threshold_tracking=None,dataframe_format='short',create_pdf=True,path_temporal_results=None,image_index:int=0):
+    def __init__(self, video:np.ndarray, mask:np.ndarray = None, particle_size:int = 5, file_name:str = 'Cell.tif', selected_channel_tracking:int = 0,selected_channel_segmentation:int = 0,  intensity_calculation_method:str = 'disk_donut', mask_selection_method:str = 'max_spots', show_plot:bool = 1, use_optimization_for_tracking: bool = 1, real_positions_dataframe = None, average_cell_diameter: float = 120, print_process_times:bool = 0,min_percentage_time_tracking=0.4,intensity_threshold_tracking=None,dataframe_format='short',create_pdf=True,path_temporal_results=None,image_index:int=0):
         self.video = video
+        self.mask = mask
         self.particle_size = particle_size
         self.image = np.max(video,axis=0)
         self.num_frames = video.shape[0]
@@ -3393,7 +3402,7 @@ class PipelineTracking():
         Returns
 
         dataframe_particles : pandas dataframe
-            Dataframe with fields [image_number, cell_number, particle, frame, red_int_mean, green_int_mean, blue_int_mean, red_int_std, green_int_std, blue_int_std, x, y].
+            Dataframe with fields [image_number, cell_number, particle, frame, ch0_int_mean, ch1_int_mean, ch2_int_mean, ch0_int_std, ch1_int_std, ch2_int_std, x, y].
         selected_mask : Numpy array
             Array with the selected mask. Where zeros represents the background and one represent the area in the cell.
         array_intensities : Numpy array
@@ -3413,11 +3422,14 @@ class PipelineTracking():
         image_name_tracking = self.path_temporal_results.joinpath('tracking_'+str(self.image_index) +'.png')
         image_name_visualization = self.path_temporal_results.joinpath('visualization_'+str(self.image_index) +'.png')
         start = timer()
-        selected_masks = Cellpose(self.image, num_iterations = self.NUM_ITERATIONS_CELLPOSE, selection_method = 'max_cells_and_area', diameter = self.average_cell_diameter ).calculate_masks() # options are 'max_area' or 'max_cells'
-        if not ( selected_masks is None):
-            selected_mask  = CellposeSelection(selected_masks, self.video, selection_method = self.mask_selection_method, particle_size = self.particle_size, selected_channel = self.selected_channel_segmentation).select_mask()
+        if self.mask is None:
+            selected_masks = Cellpose(self.image, num_iterations = self.NUM_ITERATIONS_CELLPOSE, selection_method = 'max_cells_and_area', diameter = self.average_cell_diameter ).calculate_masks() # options are 'max_area' or 'max_cells'
+            if not ( selected_masks is None):
+                selected_mask  = CellposeSelection(selected_masks, self.video, selection_method = self.mask_selection_method, particle_size = self.particle_size, selected_channel = self.selected_channel_segmentation).select_mask()
+            else:
+                selected_mask = None
         else:
-            selected_mask = None
+            selected_mask = self.mask
         end = timer()
         # test if segmentation was succcesful
         MINIMAL_NUMBER_OF_PIXELS_IN_MASK = 10000
@@ -3909,6 +3921,119 @@ class Plots():
             axes[i].imshow(img_2d_rescaled, cmap='viridis') 
             axes[i].set_title('Channel_'+str(i))
         plt.show()
+    
+    def plot_cell_trajectories_ssa_crops(image, df,spot_size=5,selected_channel=1, selected_trajectory=None,microns_per_pixel=None, name_plot=None,perturbation_label=None,perturbation=False,perturbation_time=None):
+        # creating temporal folder to save images
+        if not (name_plot is None):
+            current_dir = pathlib.Path().absolute()
+            save_to_dir =  current_dir.joinpath('temp_images' )
+            Utilities.test_if_directory_exist_if_not_create(save_to_dir,remove_if_already_exist=False)
+            name_plot = save_to_dir.joinpath(name_plot)
+        # Extracting vector sizes
+        simulation_time_in_sec = df['frame'].values.max()+1
+        number_spots_per_cell = df['particle'].values.max()+1
+        # name for the vectors based on the user defined channel
+        int_mean_values = 'ch'+str(selected_channel)+'_int_mean'
+        ssa_values = 'ch'+str(selected_channel)+'_SSA_UMP'
+        # extracting data from frame zero
+        df_zero = df[['y','x','particle']][(df["frame"] == 0) ]
+        if (selected_trajectory is None):
+            selected_trajectory = df_zero['particle'].loc[ df_zero[['x']].idxmax()  ].values[0] # This selects the spots that is more to the right side of the image
+        spot_size_crop = spot_size+2
+        selected_color = 'orangered' #'royalblue'
+        number_bins = 20
+        number_selected_spots =30
+        linewidth_value = 1.5
+        position_selected_spot = df[['y','x']][(df["frame"] == 0) & (df["particle"] == selected_trajectory)].values[0]
+        # Crops
+        spot_range = np.linspace(-(spot_size_crop - 1) / 2, (spot_size_crop - 1) / 2, spot_size_crop,dtype=int)
+        def return_crop(image, y, x,spot_range):
+            crop_image = image[y+spot_range[0]:y+(spot_range[-1]+1), x+spot_range[0]:x+(spot_range[-1]+1)].copy()
+            return crop_image
+        crop_array = np.zeros(( spot_size_crop, spot_size_crop*number_selected_spots ))
+        time_array_crops = np.linspace(0, simulation_time_in_sec-1, number_selected_spots,dtype=int)
+        # Creating crops
+        counter = 0
+        for i,time_crop in enumerate (time_array_crops):
+            position_selected_spot_crop = df[['y','x']][(df["frame"] == time_crop) & (df["particle"] == selected_trajectory)].values[0].astype('int')
+            crop_array[:spot_size_crop, counter:spot_size_crop+counter] = return_crop (image[time_crop,:,:,selected_channel],position_selected_spot_crop[0],position_selected_spot_crop[1], spot_range)
+            counter += spot_size_crop
+        # Extracting intensity values
+        intensity_values_in_image = np.zeros((number_spots_per_cell,simulation_time_in_sec)) # pre-allocating memory for intensity
+        for i in range(number_spots_per_cell):
+            intensity_values_in_image[i,:] = df[int_mean_values][df['particle'] ==i].values
+        # Extracting SSA values
+        ssa_ump = np.zeros((number_spots_per_cell,simulation_time_in_sec)) # pre-allocating memory for intensity
+        for i in range(number_spots_per_cell):
+            ssa_ump[i,:] = df[ssa_values][df['particle'] ==i].values
+        # Plotting
+        widths = [1.5, 2, 0.3]
+        heights = [0.2, 1, 1]
+        plt.style.use(['default'])
+        fig = plt.figure(figsize=(11, 5),constrained_layout=True,dpi=300)
+        plt.tight_layout() 
+        gs = fig.add_gridspec(ncols=3, nrows=3, width_ratios=widths,height_ratios=heights)
+        #simulated cell
+        f_ax1 = fig.add_subplot(gs[:, 0]); f_ax1.axis('off')
+        f_ax1.imshow(image[0,:,:,selected_channel],cmap='Greys_r')
+        f_ax1.add_patch(Rectangle((position_selected_spot[1]-7,position_selected_spot[0]-7), 14,14, fill=False,edgecolor=selected_color,lw=1.5))
+        if not (microns_per_pixel is None):
+            scalebar = ScaleBar(dx = microns_per_pixel, units= 'um', length_fraction=0.2,location='lower right',box_color='k',color='w')
+            f_ax1.add_artist(scalebar)
+        # Crops
+        f_ax2 = fig.add_subplot(gs[0, 1:-1]); 
+        f_ax2.set_title('Translation spots')
+        f_ax2.imshow(crop_array,cmap='Greys_r')
+        f_ax2.set_yticklabels([])
+        f_ax2.set_xticklabels([])
+        f_ax2.tick_params(axis='both', which='both', right=False, left=False, top=False, bottom=False)
+        # connections
+        connection_top = ConnectionPatch(xyA=(position_selected_spot[1]+spot_size_crop, position_selected_spot[0]-spot_size_crop), xyB=(0,0), coordsA="data", coordsB="data", axesA=f_ax1, axesB=f_ax2, color=selected_color)
+        f_ax1.add_artist(connection_top)
+        connection_bottom = ConnectionPatch(xyA=(position_selected_spot[1]+spot_size_crop, position_selected_spot[0]+spot_size_crop), xyB=(0,spot_size_crop-1), coordsA="data", coordsB="data", axesA=f_ax1, axesB=f_ax2, color=selected_color)
+        f_ax1.add_artist(connection_bottom)
+        # trajectories image
+        f_ax3 = fig.add_subplot(gs[1, 1])
+        f_ax3.plot(intensity_values_in_image.T,'grey',alpha = .1)
+        f_ax3.plot(intensity_values_in_image[selected_trajectory,:].T,'-', linewidth = linewidth_value, color = selected_color,label = 'representative')
+        #f_ax3.set_xlabel('Time (s)')
+        f_ax3.set_ylabel('Intensity (au)')
+        f_ax3.set_ylim((intensity_values_in_image.min(),intensity_values_in_image.max()))
+        f_ax3.set_title('Intensities from simulated video', color ='k')
+        #f_ax3.ticklabel_format(style='sci', axis='y', scilimits=(0,0))
+        f_ax3.set_xlim((-2,simulation_time_in_sec+2))
+        if perturbation == True:
+            f_ax3.axvline(x=perturbation_time,linestyle='-', linewidth = 2, color = 'b',label = perturbation_label)
+        f_ax3.legend(loc='upper right',fontsize=8)
+        # dist image
+        f_ax4 = fig.add_subplot(gs[1, -1])
+        f_ax4.hist(intensity_values_in_image[:,:].flatten() , bins = number_bins, color = selected_color, orientation = 'horizontal')
+        f_ax4.set_ylim((intensity_values_in_image.min(),intensity_values_in_image.max()))
+        f_ax4.set_xlabel('Count')
+        f_ax4.set_yticklabels([]); f_ax4.set_yticks([])
+        #trajectories SSA
+        f_ax5 = fig.add_subplot(gs[2, 1])
+        f_ax5.plot(ssa_ump.T,'grey',alpha = .1)
+        f_ax5.plot(ssa_ump[selected_trajectory,:],'-', linewidth = linewidth_value, color = selected_color,label = 'representative')
+        f_ax5.set_xlabel('Time (s)')
+        f_ax5.set_ylabel('Intensity (au)')
+        f_ax5.set_ylim((-1,ssa_ump.max()))
+        f_ax5.set_xlim((-2,simulation_time_in_sec+2))
+        f_ax5.set_title('Intensities from SSA', color ='k')
+        if perturbation == True:
+            f_ax5.axvline(x=perturbation_time, linestyle='-', linewidth = 2, color = 'b',label = perturbation_label)
+        f_ax5.legend(loc='upper right',fontsize=8)
+        # Dist SSA
+        f_ax6 = fig.add_subplot(gs[-1, -1])
+        f_ax6.hist(ssa_ump[:,:].flatten() , bins = number_bins, color = selected_color, orientation = 'horizontal')
+        f_ax6.set_ylim((ssa_ump.min(),ssa_ump.max()))
+        f_ax6.set_xlabel('Count')
+        f_ax6.set_yticklabels([]); f_ax6.set_yticks([])
+        plt.subplots_adjust(left=1,right=10,wspace=0.0001, hspace=0.5)
+        plt.tight_layout(pad=0.02) 
+        if not (name_plot is None):
+            plt.savefig(name_plot, transparent=False,dpi=1200, bbox_inches = 'tight', format='pdf')
+        plt.show()
 
 
 
@@ -3918,6 +4043,21 @@ class Utilities():
     '''
     def __init__(self):
         pass
+    
+    def log_LL_fun(real_data,simulation_data,nbins=30):
+        hist_exp_data, hist_exp_bins = np.histogram( real_data , bins=nbins)
+        dist_sim_data, dist_sim_bins = np.histogram(simulation_data, bins=hist_exp_bins, density=True)
+        dist_sim_data[dist_sim_data ==0] = 1e-7
+        LL_int_distb = np.dot(hist_exp_data, np.log(dist_sim_data))    # likelihood function for comparing distributions
+        return -1*LL_int_distb
+    
+    def remove_extrema_in_vector(vector ,max_percentile = 99):
+        '''This function is intended to remove extrema data given by the max percentiles specified by the user'''
+        vector = vector [vector>0]
+        max_val = np.percentile(vector, max_percentile)
+        new_vector = vector [vector< max_val] # = np.percentile(vector,max_percentile)
+        print(0 ,round(max_val,2))
+        return new_vector
     
     def variable_to_list(tested_variable):
         if (isinstance(tested_variable, tuple)==False) and (isinstance(tested_variable, list)==False):
@@ -3946,9 +4086,9 @@ class Utilities():
                 # removing existing dir
                 shutil.rmtree(str(path_to_test))
                 # creating new directory
-                path_to_test.mkdir()
+                path_to_test.mkdir(parents=True, exist_ok=True)
         else:
-            path_to_test.mkdir()
+            path_to_test.mkdir(parents=True, exist_ok=True)
         return None
     
     def remove_folder(path_to_test):
@@ -4047,7 +4187,7 @@ class Utilities():
         temp_vid = img_as_uint(image)
         return temp_vid
     
-    def extract_field_from_dataframe(dataframe_path=None, dataframe=None,selected_time=None,selected_field='green_int_mean',use_nan_for_padding=False):
+    def extract_field_from_dataframe(dataframe_path=None, dataframe=None,selected_time=None,selected_field='ch1_int_mean',use_nan_for_padding=False):
         '''
         This function extracts the selected_field as a vector for a given frame. If selected_time is None, the code will return the extracted 
         data as a NumPy array with dimensions [number_particles, max_time_points]. The maximum time points are defined by the longest trajectory.
@@ -4056,7 +4196,7 @@ class Utilities():
             dataframe_path: Patlibpath or str, optional.    
                 Path to the selected dataframe.
             dataframe : pandas dataframe
-                Dataframe with fields [image_number, cell_number, particle, frame, red_int_mean, green_int_mean, blue_int_mean, red_int_std, green_int_std, blue_int_std, x, y, SNR_red,SNR_green,SNR_blue].
+                Dataframe with fields [image_number, cell_number, particle, frame, ch0_int_mean, ch1_int_mean, ch2_int_mean, ch0_int_std, ch1_int_std, ch2_int_std, x, y, ch0_SNR,ch1_SNR,ch2_SNR].
             selected_field : str,
                 selected field to extract data.
             selected_time : int, optional
@@ -4204,7 +4344,7 @@ def simulate_cell ( video_dir,
     save_as_tif : bool, optional
         If true, it generates and saves a uint16 (High) quality image tif file for the simulation. The default is 0.
     save_dataframe : bool, optional
-        If true, it generates and saves a pandas dataframe with the simulation. Dataframe with fields [image_number, cell_number, particle, frame, red_int_mean, green_int_mean, blue_int_mean, red_int_std, green_int_std, blue_int_std, x, y]. The default is 0.
+        If true, it generates and saves a pandas dataframe with the simulation. Dataframe with fields [image_number, cell_number, particle, frame, ch0_int_mean, ch1_int_mean, ch2_int_mean, ch0_int_std, ch1_int_std, ch2_int_std, x, y]. The default is 0.
     save_as_gif : bool, optional
         If true, it generates and saves a .gif with the simulation. The default is 0.
     frame_selection_empty_video : str, optional
@@ -4223,8 +4363,8 @@ def simulate_cell ( video_dir,
         Method used to simulate RNA intensities in the image. The optiions are 'constant' or 'random'. The default is 'constant'
     dataframe_format : str, optional
         Format for the dataframe the options are : 'short' , and 'long'. The default is 'short'.
-        "long" format generates this dataframe: [image_number, cell_number, particle, frame, red_int_mean, green_int_mean, blue_int_mean, red_int_std, green_int_std, blue_int_std, x, y, SNR_red,SNR_green,SNR_blue].
-        "short" format generates this dataframe: [image_number, cell_number, particle, frame, red_int_mean, green_int_mean, blue_int_mean, x, y].
+        "long" format generates this dataframe: [image_number, cell_number, particle, frame, ch0_int_mean, ch1_int_mean, ch2_int_mean, ch0_int_std, ch1_int_std, ch2_int_std, x, y, ch0_SNR,ch1_SNR,ch2_SNR].
+        "short" format generates this dataframe: [image_number, cell_number, particle, frame, ch0_int_mean, ch1_int_mean, ch2_int_mean, x, y].
     scale_intensity_in_base_video : bool, optional
         Flag to scale intensity to a maximum value of 10000. This arbritary value is selected based on the maximum intensities obtained from the original images. The default is False.
     basal_intensity_in_background_video : int, optional
@@ -4246,7 +4386,7 @@ def simulate_cell ( video_dir,
     Returns
 
     dataframe_particles : pandas dataframe
-        Dataframe with fields [image_number, cell_number, particle, frame, red_int_mean, green_int_mean, blue_int_mean, red_int_std, green_int_std, blue_int_std, x, y].
+        Dataframe with fields [image_number, cell_number, particle, frame, ch0_int_mean, ch1_int_mean, ch2_int_mean, ch0_int_std, ch1_int_std, ch2_int_std, x, y].
     selected_mask : Numpy array
         Array with the selected mask. Where zeros represents the background and one represent the area in the cell.
     array_intensities : Numpy array
@@ -4328,6 +4468,7 @@ def simulate_cell ( video_dir,
     list_ssa_all_cells_and_genes =[]
     list_videos = []
     list_files_names_outputs = []
+    list_masks  = []
     # Reading all empty cells in directory
     path_files, list_files_names, list_images, num_cell_shapes = Utilities.read_files_in_directory(directory=video_dir, extension_of_files_to_look_for = 'tif',return_images_in_list=True)
     for i in range(0,number_cells): 
@@ -4341,7 +4482,7 @@ def simulate_cell ( video_dir,
                 selected_video = 0
         initial_video = list_images[selected_video] #imread(str(path_files[selected_video])) # video with empty cell
         mask_image = imread(masks_dir.joinpath('mask_cell_shape_'+str(selected_video)+'.tif'))
-        video, single_dataframe_simulated_cell, list_ssa = SimulatedCellDispatcher(initial_video,
+        video, single_dataframe_simulated_cell, list_ssa, mask_used = SimulatedCellDispatcher(initial_video,
                                                                                     list_gene_sequences,
                                                                                     list_number_spots,
                                                                                     list_target_channels_proteins,
@@ -4391,6 +4532,7 @@ def simulate_cell ( video_dir,
         list_dataframe_simulated_cell.append(single_dataframe_simulated_cell)
         list_ssa_all_cells_and_genes.append(list_ssa)
         list_videos.append(video)
+        list_masks.append(mask_used)
         # list file names
         list_files_names_outputs.append(saved_file_name+'.tif')
     # Concatenating results
@@ -4433,10 +4575,11 @@ def simulate_cell ( video_dir,
                             list_files_names_outputs).write_metadata()
     end = timer()
     print('Time to generate simulated data:',round(end - start), ' sec')
-    return list_videos, list_dataframe_simulated_cell, merged_dataframe_simulated_cells, ssa_trajectories, list_files_names_outputs, save_to_path_video, save_to_path_df.joinpath('dataframe_sim_cell.csv')
+    return list_videos, list_masks, list_dataframe_simulated_cell, merged_dataframe_simulated_cells, ssa_trajectories, list_files_names_outputs, save_to_path_video, save_to_path_df.joinpath('dataframe_sim_cell.csv')
 
 
 def image_processing(files_dir_path_processing,
+                    list_masks = None,
                     particle_size=14,
                     selected_channel_tracking = 0,
                     selected_channel_segmentation = 0,
@@ -4468,12 +4611,15 @@ def image_processing(files_dir_path_processing,
     # Creating directory to store tracking images.
     current_dir = pathlib.Path().absolute()
     save_to_path_ip =  current_dir.joinpath('temp_processing',files_dir_path_processing.name )
-    Utilities.test_if_directory_exist_if_not_create(save_to_path_ip,remove_if_already_exist=True)
+    Utilities.test_if_directory_exist_if_not_create(save_to_path_ip,remove_if_already_exist=False)
     if create_pdf == True:
         path_temporal_results =  save_to_path_ip.joinpath('temp_results')
         Utilities.test_if_directory_exist_if_not_create(path_temporal_results,remove_if_already_exist=True)
     list_video_paths = []
+    
     for i in range(0,number_images): 
+        if not (list_masks is None):
+            mask = list_masks[i]
         selected_video = imread(path_files[i]) # Loading the video
         file_name = pathlib.Path(path_files[i]).name
         frames_in_video = selected_video.shape[0]
@@ -4483,6 +4629,7 @@ def image_processing(files_dir_path_processing,
         else:
             image_real_positions_dataframe = None
         DataFrame_particles_intensities, selected_mask, array_intensities, time_vector, _,_, _, _,segmentation_succesful = PipelineTracking(video=selected_video,
+                                                                                                                    mask = mask,
                                                                                                                     particle_size=particle_size,
                                                                                                                     file_name=file_name,
                                                                                                                     selected_channel_tracking=selected_channel_tracking ,
