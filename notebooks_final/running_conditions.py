@@ -30,8 +30,8 @@ sys.path.append(str(rsnaped_dir))
 import rsnaped as rsp
 
 ########################################################
-number_of_simulated_cells = 12
-number_repetitions_for_statistics = 4
+number_of_simulated_cells = 20
+number_repetitions_for_statistics = 8
 number_conditions = 6
 number_ssa = 5000
 variable_range_0 = np.linspace(start=30,stop=80,num=number_conditions).astype(int)  # number_spots

@@ -16,7 +16,7 @@ Authors: Luis U. Aguilera, William Raymond, Brooke Silagy, Brian Munsky.
 
 # To manipulate arrays
 import pkg_resources
-pkg_resources.require("numpy >= `1.20.1")  #  to use specific numpy version
+#pkg_resources.require("numpy >= `1.20.1")  #  to use specific numpy version
 import numpy as np
 from numpy import ndarray
 from numpy import unravel_index

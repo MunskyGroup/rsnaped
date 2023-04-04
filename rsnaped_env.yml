@@ -3,7 +3,6 @@ channels:
   - pytorch
   - defaults
 dependencies:
-  - eigen=3.3.7=hfd86e86_0
   - _libgcc_mutex=0.1=main
   - _openmp_mutex=4.5=1_gnu
   - blas=1.0=mkl
