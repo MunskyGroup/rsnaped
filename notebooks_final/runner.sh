@@ -17,7 +17,7 @@ export CUDA_VISIBLE_DEVICES=0,1
 # Make sure to convert str to the desired data types.
 
 # Paths with configuration files
-path_to_executable="${PWD%/*}/notebooks_final/testing_conditions.py" 
+path_to_executable="${PWD%/*}/notebooks_final/running_conditions.py" 
 nohup python3 "$path_to_executable" >> 'output.txt' &
 
 # #####################################
@@ -32,9 +32,9 @@ conda deactivate
 # ########### TO MONITOR PROGRESS #########################
 # To check if the process is still running
 # ps -ef | grep python3
-# ps -ef | grep python3 | grep "testing_conditions"
-# ps -ef | grep python3 | grep "testing_conditions" | awk '{print $2}'   # Processes running the pipeline.
-# kill $(ps -ef | grep python3 | grep "testing_conditions" | awk '{print $2}')
+# ps -ef | grep python3 | grep "running_conditions"
+# ps -ef | grep python3 | grep "running_conditions" | awk '{print $2}'   # Processes running the pipeline.
+# kill $(ps -ef | grep python3 | grep "running_conditions" | awk '{print $2}')
 
 # nvidia-smi | grep 'Default'
 

@@ -18,7 +18,7 @@ module load cudnn/8.3-10.2
 
 ####################  PATHS TO CODE FILES  ############################
 
-path_to_executable="${PWD%/*}/notebooks_final/testing_conditions.py" 
+path_to_executable="${PWD%/*}/notebooks_final/running_conditions.py" 
 ~/.conda/envs/rsnaped_env/bin/python "$path_to_executable"  >> 'output.txt' &
 
 # ########### TO EXECUTE RUN IN TERMINAL #########################
