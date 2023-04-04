@@ -38,3 +38,8 @@ exit 0
 # scancel [jobid]
 # squeue -u [username]
 # squeue
+
+# ########### CLUSTER INSTALLATION #########################
+# git clone --depth 1 https://github.com/MunskyGroup/rsnaped.git
+# /opt/ohpc/pub/apps/anaconda3/bin/conda env remove -n rsnaped_env
+# /opt/ohpc/pub/apps/anaconda3/bin/conda env create -f rsnaped_env.yml
