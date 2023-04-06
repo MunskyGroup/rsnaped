@@ -1908,8 +1908,8 @@ class Trackpy():
                 plt.ylabel('log (number of spots)', size=16)
                 plt.savefig(self.image_name,bbox_inches='tight')
                 plt.show()
-            print('The number of detected trajectories is: ', number_particles)
-            print('The selected intensity threshold is: ', str(selected_int_optimized), '\n' )
+                print('The number of detected trajectories is: ', number_particles)
+                print('The selected intensity threshold is: ', str(selected_int_optimized), '\n' )
         video_filtered = np.expand_dims(self.video_filtered,axis=3)
         return trackpy_dataframe, int(number_particles), video_filtered
 
@@ -3421,7 +3421,8 @@ class PipelineTracking():
         
         image_name_tracking = self.path_temporal_results.joinpath('tracking_'+str(self.image_index) +'.png')
         image_name_visualization = self.path_temporal_results.joinpath('visualization_'+str(self.image_index) +'.png')
-        start = timer()
+        if self.print_process_times ==True:
+            start = timer()
         if self.mask is None:
             selected_masks = Cellpose(self.image, num_iterations = self.NUM_ITERATIONS_CELLPOSE, selection_method = 'max_cells_and_area', diameter = self.average_cell_diameter ).calculate_masks() # options are 'max_area' or 'max_cells'
             if not ( selected_masks is None):
@@ -3430,7 +3431,8 @@ class PipelineTracking():
                 selected_mask = None
         else:
             selected_mask = self.mask
-        end = timer()
+        if self.print_process_times ==True:
+            end = timer()
         # test if segmentation was succcesful
         MINIMAL_NUMBER_OF_PIXELS_IN_MASK = 10000
         if not(selected_mask is None):
@@ -3448,7 +3450,8 @@ class PipelineTracking():
             print('mask time:', round(end - start), ' sec')
         if not ( selected_mask is None) and (segmentation_succesful == True):
             # Tracking
-            start = timer()
+            if self.print_process_times ==True:
+                start = timer()
             if self.num_frames > 20:
                 minimal_frames =  int(self.num_frames*self.MIN_PERCENTAGE_FRAMES_FOR_TRACKING) # minimal number of frames to consider a trajectory
             else:
@@ -3458,11 +3461,13 @@ class PipelineTracking():
             else:
                 use_default_filter = 1
             Dataframe_trajectories, _, filtered_video = Trackpy(self.video, selected_mask, particle_size = self.particle_size, selected_channel = self.selected_channel_tracking, minimal_frames = minimal_frames, optimization_iterations = self.NUM_ITERATIONS_TRACKING, use_default_filter = use_default_filter, show_plot = self.show_plot,intensity_threshold_tracking=self.intensity_threshold_tracking, image_name=image_name_tracking).perform_tracking()
-            end = timer()
+            
             if self.print_process_times == True:
+                end = timer()
                 print('tracking time:', round(end - start), ' sec')
             # Intensity calculation
-            start = timer()
+            if self.print_process_times == True:
+                start = timer()
             if not ( Dataframe_trajectories is None):
                 dataframe_particles, array_intensities, time_vector, mean_intensities, std_intensities, mean_intensities_normalized, std_intensities_normalized = Intensity(self.video, self.particle_size, Dataframe_trajectories, method = self.intensity_calculation_method, show_plot = 0, dataframe_format=self.dataframe_format).calculate_intensity()
                 # This flag makes segmentation_succesful flase if less than 4 particles are detected in the dataframe_particles.
@@ -3478,15 +3483,14 @@ class PipelineTracking():
                 std_intensities = None
                 mean_intensities_normalized = None
                 std_intensities_normalized = None
-            end = timer()
+            
             if self.print_process_times == True:
+                end = timer()
                 print('intensity calculation time:', round(end - start), ' sec')
             if (self.show_plot == True) or (self.create_pdf==True):
                 if tracking_succesful == True:
-                    print(array_intensities.shape[0])
                     VisualizerImage(self.video, filtered_video, Dataframe_trajectories, self.file_name, list_mask_array = selected_mask, selected_channel = self.selected_channel_tracking, selected_time_point = 0, normalize = False, individual_figure_size = 7, list_real_particle_positions = self.real_positions_dataframe,image_name=image_name_visualization,show_plot=self.show_plot,save_image_as_file=self.save_image_as_file).plot()
                 else:
-                    print('False',array_intensities.shape[0])
                     VisualizerImage(self.video, filtered_video, None, self.file_name, list_mask_array = selected_mask, selected_channel = self.selected_channel_tracking, selected_time_point = 0, normalize = False, individual_figure_size = 7, list_real_particle_positions = self.real_positions_dataframe,image_name=image_name_visualization,show_plot=self.show_plot,save_image_as_file=self.save_image_as_file).plot()
         else:
             dataframe_particles = None
@@ -4344,7 +4348,7 @@ def simulate_cell ( video_dir,
     step_size_in_sec : float, optional
         Step size for the simulation. In seconds. The default is 1.
     save_as_tif : bool, optional
-        If true, it generates and saves a uint16 (High) quality image tif file for the simulation. The default is 0.
+        If true, it generates and saves a uint16 (High) quality image tif file for the simulation. The default is True.
     save_dataframe : bool, optional
         If true, it generates and saves a pandas dataframe with the simulation. Dataframe with fields [image_number, cell_number, particle, frame, ch0_int_mean, ch1_int_mean, ch2_int_mean, ch0_int_std, ch1_int_std, ch2_int_std, x, y]. The default is 0.
     save_as_gif : bool, optional
@@ -4597,7 +4601,7 @@ def image_processing(files_dir_path_processing,
                     use_optimization_for_tracking=True,
                     real_positions_dataframe = None,
                     average_cell_diameter=200,
-                    print_process_times=1,
+                    print_process_times=False,
                     min_percentage_time_tracking=0.3,
                     dataframe_format='long',
                     create_pdf=False,
@@ -4662,7 +4666,7 @@ def image_processing(files_dir_path_processing,
         list_segmentation_succesful.append(segmentation_succesful)
         list_file_names.append(file_name)
         list_frames_videos.append(frames_in_video)
-        print('Progress: ',str(i+1),'/',str(number_images))
+        #print('Progress: ',str(i+1),'/',str(number_images))
     # Creating metadata file
     if create_metadata == True:
         metadata_filename_ip= str(save_to_path_ip.joinpath('metadata_image_processing.txt'))
