@@ -196,7 +196,10 @@ class SSA_rsnapsim():
         '''
         t = np.linspace(0,self.t_burnin+self.frames,(self.t_burnin+self.frames+1)*(self.frame_rate))
         _, _, tagged_pois,raw_seq = rss.seqmanip.open_seq_file(str(self.gene_file))
-        gene_obj = tagged_pois['1'][0]
+        try:
+            gene_obj = tagged_pois['1'][0]
+        except:
+            gene_obj = tagged_pois['0'][0]
         gene_obj.ke_mu = self.ke
         number_probes = np.max(gene_obj.probe_vec)
         gene_length = len(raw_seq)
@@ -4060,7 +4063,6 @@ class Utilities():
         vector = vector [vector>0]
         max_val = np.percentile(vector, max_percentile)
         new_vector = vector [vector< max_val] # = np.percentile(vector,max_percentile)
-        print(0 ,round(max_val,2))
         return new_vector
     
     def variable_to_list(tested_variable):
@@ -4632,6 +4634,8 @@ def image_processing(files_dir_path_processing,
     for i in range(0,number_images): 
         if not (list_masks is None):
             mask = list_masks[i]
+        else:
+            mask=None
         selected_video = imread(path_files[i]) # Loading the video
         file_name = pathlib.Path(path_files[i]).name
         frames_in_video = selected_video.shape[0]

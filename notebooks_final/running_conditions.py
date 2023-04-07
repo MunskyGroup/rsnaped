@@ -1,6 +1,4 @@
 # !/usr/bin/env python3
-# # ~/.conda/envs/rsnaped_env/bin/python
-
 # -*- coding: utf-8 -*-
 
 import numpy as np 
@@ -33,11 +31,11 @@ import rsnaped as rsp
 
 ########################################################
 number_of_simulated_cells = 12
-number_repetitions_for_statistics = 6
-number_conditions = 6
+number_repetitions_for_statistics = 12
+number_conditions = 10
 number_ssa = 4000
 variable_range_0 = np.linspace(start=30,stop=80,num=number_conditions).astype(int)  # number_spots
-variable_range_1 = np.round(np.linspace(start=0.5,stop=4,num=number_conditions),2)  # SNR
+variable_range_1 = np.round(np.linspace(start=0.2,stop=2,num=number_conditions),2)  # SNR
 variable_range_2 = np.round(np.logspace(np.log10(0.01), np.log10(0.5), num=number_conditions),3) # k_diff
 variable_range_3 = np.linspace(start=20,stop=100,num=number_conditions).astype(int)  # simulation_time
 ################################################################
@@ -51,7 +49,7 @@ microns_per_pixel = 0.13
 spot_size = 7 # spot size for the simulation and tracking.
 spot_sigma = 1.5
 elongation_rate = 10
-initiation_rate = 0.01
+initiation_rate = 0.03
 intensity_scale_ch0 = 1
 intensity_scale_ch1 = 1
 intensity_scale_ch2 = None
