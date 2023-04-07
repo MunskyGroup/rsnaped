@@ -197,9 +197,9 @@ class SSA_rsnapsim():
         t = np.linspace(0,self.t_burnin+self.frames,(self.t_burnin+self.frames+1)*(self.frame_rate))
         _, _, tagged_pois,raw_seq = rss.seqmanip.open_seq_file(str(self.gene_file))
         try:
-            gene_obj = tagged_pois['1'][0]
-        except:
             gene_obj = tagged_pois['0'][0]
+        except:
+            gene_obj = tagged_pois['1'][0]
         gene_obj.ke_mu = self.ke
         number_probes = np.max(gene_obj.probe_vec)
         gene_length = len(raw_seq)
@@ -3270,7 +3270,10 @@ class SimulatedCellDispatcher():
         for g in range(len(self.list_gene_sequences)):
             _, _,tagged_pois,raw_seq = rss.seqmanip.open_seq_file(str(self.list_gene_sequences[g]))
             gene_len = len(raw_seq)
-            gene_obj = tagged_pois['1'][0]
+            try:
+                gene_obj = tagged_pois['0'][0]
+            except:
+                gene_obj = tagged_pois['1'][0]
             number_probes = np.max(gene_obj.probe_vec)
             calculated_mean_int_in_ssa[g] = (gene_len * self.list_initiation_rates[g]) / (self.list_elongation_rates[g] * number_probes)
         # Calculated Scaling factors for intensity
