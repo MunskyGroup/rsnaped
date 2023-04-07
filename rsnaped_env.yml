@@ -118,8 +118,8 @@ dependencies:
     - pywavelets==1.2.0
     - pyyaml==6.0
     - pyzmq==22.3.0
-    - rsnapsim==0.0.53
-    - rsnapsim-ssa-cpp==0.0.21
+    - rsnapsim==0.0.58
+    - rsnapsim-ssa-cpp==0.0.23
     - scikit-image==0.19.2
     - scipy==1.8.0
     - seaborn==0.11.2
@@ -144,4 +144,4 @@ dependencies:
     - xarray==2022.3.0
     - xmltodict==0.12.0
     - zipp==3.7.0
-prefix: /home/luisub/.conda/envs/rsnaped_env
+prefix: /home/luisub/anaconda3/envs/rsnaped_env
