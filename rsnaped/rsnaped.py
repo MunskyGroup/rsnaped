@@ -24,7 +24,11 @@ from numpy import unravel_index
 try:
     import rsnapsim as rss
 except:
-    print('rsnapsim is not installed')
+    print('Problems importing rsnapsim')
+try:
+    import cv2
+except:
+    print('Problems importing cv2')
 # System libraries
 import io
 import sys
@@ -96,7 +100,7 @@ import time
 try:
     from cellpose import models
 except:
-    print('cellpose is not installed')
+    print('Problems importing cellpose')
 # Plotting
 import matplotlib.pyplot as plt
 import matplotlib.path as mpltPath
@@ -109,12 +113,9 @@ import re # to iterate in files
 import glob # to iterate in files
 import pathlib
 from pathlib import Path
-import cv2
 os.environ["CUDA_VISIBLE_DEVICES"] = "0,1"
-#plt.style.use("dark_background")
 import shutil
 from fpdf import FPDF
-
 from matplotlib_scalebar.scalebar import ScaleBar
 from matplotlib.patches import Rectangle
 from matplotlib.patches import ConnectionPatch

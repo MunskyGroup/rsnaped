@@ -1,9 +1,11 @@
 #!/bin/bash
 # #SBATCH --gres=gpu:4
-# #SBATCH --nodelist=gpu2    # gpu2 gpu3 gpu4
+#SBATCH --nodes=3
+#SBATCH --ntasks-per-node=12
+# #SBATCH --nodelist=node28    # gpu2 gpu3 gpu4
 #SBATCH --partition=all
-#SBATCH --ntasks=4
-#SBATCH --job-name=sim_cell
+# #SBATCH --ntasks=4
+#SBATCH --job-name=sim_par
 
 # module purge
 module load gnu9/9.4.0 
