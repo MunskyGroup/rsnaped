@@ -4342,7 +4342,7 @@ def simulate_cell ( video_dir,
     list_target_channels_mRNA : List of int with a range from 0 to 2
         List where every element represents the specific channel where the spots for the mRNA signals will be located.
     list_diffusion_coefficients : List of floats
-        List where every element represents the diffusion coefficient for every gene.
+        List where every element represents the diffusion coefficient for every gene. The units are microns^2 per second. The code automatically convert it to pixels^2 per second during the simulation.
     list_label_names : List of str or int
         List where every element contains the label for each gene. Optional the default is None. None will assign an integer label to each gene from 0 to n, ehere n is the number of genes-1.
     list_elongation_rates : List of floats

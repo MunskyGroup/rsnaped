@@ -1,14 +1,11 @@
-#!/bin/bas
-id=$(od -An -tx1 /dev/urandom | head -n 1 | cut -c 2-9 | tr -d ' \n'
+#!/bin/bash
 # #SBATCH --gres=gpu:4
-#SBATCH --output=out_$id.txt
-#SBATCH --error=error_$id.txt
-#SBATCH --nodes=4
+#SBATCH --nodes=8
 #SBATCH --ntasks-per-node=12
 # #SBATCH --nodelist=node28    # gpu2 gpu3 gpu4
 #SBATCH --partition=all
 # #SBATCH --ntasks=4
-#SBATCH --job-name=$id
+#SBATCH --job-name=test
 
 # module purge
 module load gnu9/9.4.0 
