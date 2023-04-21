@@ -29,11 +29,11 @@ masks_dir = current_dir.parents[0].joinpath('DataBases','masks_for_sim_cell')
 sys.path.append(str(rsnaped_dir))
 import rsnaped as rsp
 ########################################################
-number_of_simulated_cells = 8
+number_of_simulated_cells = 12
 number_repetitions_for_statistics = 8
-number_conditions = 10
+number_conditions = 8
 number_ssa = 5000
-variable_range_0 = np.linspace(start=30,stop=80,num=number_conditions).astype(int)  # number_spots
+variable_range_0 = np.linspace(start=30,stop=200,num=number_conditions).astype(int)  # number_spots
 variable_range_1 = np.round(np.linspace(start=0.2,stop=2,num=number_conditions),2)  # SNR
 variable_range_2 = np.round(np.logspace(np.log10(0.01), np.log10(0.5), num=number_conditions),3) # k_diff
 variable_range_3 = np.linspace(start=20,stop=100,num=number_conditions).astype(int)  # simulation_time
@@ -195,11 +195,11 @@ def image_processing_conditions (number_repetitions_for_statistics,
 
 ########################################################
 def plots_conditions(variable_range,ks_dist_mean_vector,ks_dist_std_vector,save_to_dir,plot_name='',label_x='' , extend_x_range= False,use_log_scale=False,selected_color='#1C00FE'):
-    plt.figure(figsize=(5, 5))
+    plt.figure(figsize=(5, 4))
     plt.errorbar(variable_range, ks_dist_mean_vector,  yerr=ks_dist_std_vector, ecolor=selected_color,linestyle='')
     plt.plot(variable_range, ks_dist_mean_vector, marker='o', markersize=12, linestyle='none',color=selected_color )
     #plt.title(plot_name+' ('+ str(number_of_simulated_cells) + ' Cells)')
-    plt.ylabel('KD (Real-Simulation)')
+    plt.ylabel('KD (SSA-Image)')
     plt.xlabel(label_x)
     plt.xlabel(r'${}$'.format(label_x))
     if extend_x_range == True:

@@ -769,7 +769,6 @@ class MaskManual_createMask():
             plt.rcParams["figure.figsize"] = (5,5)
             plt.imshow(self.video_removed_mask[self.time_point_selected,:,:,self.selected_channel], cmap=plt.cm.cividis)
             plt.show()        
-
         return self.video_removed_mask, mask_array
 
 
@@ -1657,7 +1656,7 @@ class CellposeSelection():
     video : NumPy array
         An array of images with dimensions [T, Y, X, C].
     selection_method : str, optional
-        Options used by the optimization algorithm to select a cell based on the number of cells or the number of spots. The options are: 'max_area' or 'max_spots'. The default is 'maximum_area'.
+        Options used by the optimization algorithm to select a cell based on the number of cells or the number of spots. The options are: 'all_cells_in_image','max_area' or 'max_spots'. The default is 'maximum_area'.
     particle_size : int, optional
         Average particle size. The default is 5.
     selected_channel : int, optional
@@ -1781,7 +1780,6 @@ class Trackpy():
             temp_vid = img_as_uint(image)
             return temp_vid
         ini_video = np.asarray(Parallel(n_jobs = self.NUMBER_OF_CORES)(delayed(img_uint)(video[i, :, :, self.selected_channel]) for i in range(0, self.time_points)) )
-        
         def filter_video(video, tracking_filter,frames_to_track):
             # function that remove outliers from the video
             video = RemoveExtrema(video, min_percentile = 0.5, max_percentile = 99.9).remove_outliers()
@@ -1864,6 +1862,8 @@ class Trackpy():
             values_at_coords = mask[tuple(coords_int.T)] # If 1 the value is in the mask
             dataframe['In Mask'] = values_at_coords # Check if pts are on/in polygon mask  
             return dataframe 
+        
+        
         # main function that performs the particle tracking
         def video_tracking(video, mask, min_int = None, flag_for_optimization=0):
             if min_int == None:
@@ -1888,6 +1888,9 @@ class Trackpy():
                 trackpy_dataframe = tp.filter_stubs(dataframe_linked_particles, self.minimal_frames)  
                 number_particles = trackpy_dataframe['particle'].nunique()            
             return trackpy_dataframe, number_particles        
+        
+        
+        
         # Tracking using a given intensity_threshold_tracking
         if not (self.intensity_threshold_tracking is None):
             trackpy_dataframe, number_particles = video_tracking(video=self.video_filtered, mask=self.mask, min_int= self.intensity_threshold_tracking)
@@ -1903,7 +1906,6 @@ class Trackpy():
             index_max_second_derivative = derivative_vector_detected_spots.argmax()+NUMBER_OF_LEFT_BINS_IGNORED_FOR_OPTIMIZATION #+ self.ADDED_INDEX_TO_OPTIMIZED_SELECTION 
             selected_int_optimized = min_int_vector[index_max_second_derivative]  # + self.ADDED_INTENSITY_TO_OPTIMIZED_SELECTION
             trackpy_dataframe, number_particles = video_tracking(video=self.video_filtered, mask=self.mask, min_int= selected_int_optimized)
-            
             if self.show_plot ==True:
                 plt.figure(figsize =(5,5))
                 plt.plot(min_int_vector, log_num_spots, label='norm detected_spots',linewidth=5,color='lime')
@@ -3468,7 +3470,6 @@ class PipelineTracking():
             else:
                 use_default_filter = 1
             Dataframe_trajectories, _, filtered_video = Trackpy(self.video, selected_mask, particle_size = self.particle_size, selected_channel = self.selected_channel_tracking, minimal_frames = minimal_frames, optimization_iterations = self.NUM_ITERATIONS_TRACKING, use_default_filter = use_default_filter, show_plot = self.show_plot,intensity_threshold_tracking=self.intensity_threshold_tracking, image_name=image_name_tracking).perform_tracking()
-            
             if self.print_process_times == True:
                 end = timer()
                 print('tracking time:', round(end - start), ' sec')
@@ -3951,7 +3952,7 @@ class Plots():
         if (selected_trajectory is None):
             selected_trajectory = df_zero['particle'].loc[ df_zero[['x']].idxmax()  ].values[0] # This selects the spots that is more to the right side of the image
         spot_size_crop = spot_size+2
-        selected_color = 'orangered' #'royalblue'
+        selected_color = '#1C00FE' #'orangered' #'royalblue'
         number_bins = 20
         number_selected_spots =30
         linewidth_value = 1.5
@@ -4014,7 +4015,7 @@ class Plots():
         #f_ax3.ticklabel_format(style='sci', axis='y', scilimits=(0,0))
         f_ax3.set_xlim((-2,simulation_time_in_sec+2))
         if perturbation == True:
-            f_ax3.axvline(x=perturbation_time,linestyle='-', linewidth = 2, color = 'b',label = perturbation_label)
+            f_ax3.axvline(x=perturbation_time,linestyle='-', linewidth = 2, color = 'orangered',label = perturbation_label)
         f_ax3.legend(loc='upper right',fontsize=8)
         # dist image
         f_ax4 = fig.add_subplot(gs[1, -1])
@@ -4032,7 +4033,7 @@ class Plots():
         f_ax5.set_xlim((-2,simulation_time_in_sec+2))
         f_ax5.set_title('Intensities from SSA', color ='k')
         if perturbation == True:
-            f_ax5.axvline(x=perturbation_time, linestyle='-', linewidth = 2, color = 'b',label = perturbation_label)
+            f_ax5.axvline(x=perturbation_time, linestyle='-', linewidth = 2, color = 'orangered',label = perturbation_label)
         f_ax5.legend(loc='upper right',fontsize=8)
         # Dist SSA
         f_ax6 = fig.add_subplot(gs[-1, -1])
