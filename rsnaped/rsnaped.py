@@ -119,6 +119,8 @@ from fpdf import FPDF
 from matplotlib_scalebar.scalebar import ScaleBar
 from matplotlib.patches import Rectangle
 from matplotlib.patches import ConnectionPatch
+from scipy.ndimage.measurements import center_of_mass
+
 
 #import statsmodels.tsa.stattools as stattools
 #https://www.statsmodels.org/devel/generated/statsmodels.tsa.stattools.acf.html#statsmodels.tsa.stattools.acf
@@ -416,7 +418,6 @@ class AugmentationVideo():
             return self.video, selected_angle
         
 
-
 class RemoveExtrema():
     '''
     This class is intended to remove extreme values from a video. The format of the video must be [Y, X] , [Y, X, C] , [Z, Y, X, C] or [T, Y, X, C].
@@ -431,9 +432,11 @@ class RemoveExtrema():
         Higher bound to normalize intensity. The default is 99.
     selected_channels : List or None, optional
         Use this option to select a list channels to remove extrema. The default is None and applies the removal of extrema to all the channels.
+    format_video : str, optional,
+        Use this option to select the format of the video. The default is 'TYXC'. Options are 'YX' , 'YXC' , 'ZYXC' or 'TYXC'.
     '''
 
-    def __init__(self, video:np.ndarray, min_percentile:float = 1, max_percentile:float = 99, selected_channels:Union[list, None] = None):
+    def __init__(self, video:np.ndarray, min_percentile:float = 1, max_percentile:float = 99, selected_channels = None, format_video = 'TYXC'):
         self.video = video
         self.min_percentile = min_percentile
         self.max_percentile = max_percentile
@@ -441,6 +444,7 @@ class RemoveExtrema():
                 self.selected_channels = [selected_channels]
         else:
             self.selected_channels =selected_channels
+        self.format_video = format_video
 
     def remove_outliers(self):
         '''
@@ -452,48 +456,126 @@ class RemoveExtrema():
             Normalized video. Array with dimensions [T, Y, X, C] or image with format [Y, X].
         '''
         
-        normalized_video = np.copy(self.video)
-        # Normalization code for image with format [Y, X]
-        if len(self.video.shape) == 2:
-            number_time_points = 1
-            number_channels = 1
-            normalized_video_temp = normalized_video
-            if not np.max(normalized_video_temp) == 0: # this section detect that the channel is not empty to perform the normalization.
-                max_val = np.percentile(normalized_video_temp, self.max_percentile)
-                min_val = np.min ( (0, np.percentile(normalized_video_temp, self.min_percentile)))
-                normalized_video_temp [normalized_video_temp > max_val] = max_val
-                normalized_video_temp [normalized_video_temp < min_val] = min_val
-                normalized_video_temp [normalized_video_temp < 0] = 0
-                normalized_video = normalized_video_temp
-        # Normalization for video with format [Y, X, C].
-        if len(self.video.shape) == 3:
-            number_channels   = self.video.shape[2]
-            for index_channels in range (number_channels):
-                if (index_channels in self.selected_channels) or (self.selected_channels is None) :
-                    normalized_video_temp = normalized_video[ :, :, index_channels]
-                    if not np.max(normalized_video_temp) == 0: # this section detect that the channel is not empty to perform the normalization.
-                        max_val = np.percentile(normalized_video_temp, self.max_percentile)
-                        min_val = np.min ( (0,np.percentile(normalized_video_temp, self.min_percentile)))
-                        normalized_video_temp [normalized_video_temp > max_val] = max_val
-                        normalized_video_temp [normalized_video_temp < min_val] =  min_val
-                        normalized_video_temp [normalized_video_temp < 0] = 0
-                        normalized_video[ :, :, index_channels] = normalized_video_temp[ :, :, index_channels] 
-        # Normalization for video with format [T, Y, X, C] or [Z, Y, X, C].
-        if len(self.video.shape) == 4:
-            number_time_points, number_channels   = self.video.shape[0], self.video.shape[3]
-            for index_channels in range (number_channels):
-                if (index_channels in self.selected_channels) or (self.selected_channels is None) :
-                    for index_time in range (number_time_points):
-                        normalized_video_temp = normalized_video[index_time, :, :, index_channels]
-                        if not np.max(normalized_video_temp) == 0: # this section detect that the channel is not empty to perform the normalization.
-                            max_val = np.percentile(normalized_video_temp, self.max_percentile)
-                            min_val = np.min ( (0,np.percentile(normalized_video_temp, self.min_percentile)))
-                            normalized_video_temp [normalized_video_temp > max_val] = max_val
-                            normalized_video_temp [normalized_video_temp < min_val] = min_val
-                            normalized_video_temp [normalized_video_temp < 0] = 0
-                            normalized_video[ index_time, :, :, index_channels] = normalized_video_temp
-            normalized_video[normalized_video<0]=0
-        return np.asarray(normalized_video, 'uint16')
+        def image_extrema_removal(image):
+            max_val = np.percentile(image, self.max_percentile)
+            min_val = np.min ( (0, np.percentile(image, self.min_percentile)))
+            image [image > max_val] = max_val
+            image [image < min_val] = min_val
+            image [image < 0] = 0
+            return image
+        # Preallocate array
+        temp_video = np.zeros(self.video.shape)
+        # Remove extrema depending on the format of the video
+        if self.format_video == 'YX':
+            if not np.max(self.video) == 0: 
+                temp_video = image_extrema_removal(self.video)
+            else:
+                temp_video = self.video
+        elif self.format_video == 'YXC':
+            for i in range(0, self.video.shape[2]):
+                temp_img = self.video[:,:,i]
+                if not np.max(temp_img) == 0:
+                    temp_img = image_extrema_removal(temp_img)
+                    temp_video[:,:,i] = temp_img
+                else:
+                    temp_video[:,:,i] = temp_img
+        elif self.format_video == 'TYX':
+            for i in range(0, self.video.shape[0]):
+                temp_img = self.video[i,:,:]
+                if not np.max(temp_img) == 0:
+                    temp_img = image_extrema_removal(temp_img)
+                    temp_video[i,:,:] = temp_img
+                else:
+                    temp_video[i,:,:] = temp_img
+        elif self.format_video == 'TYXC' or self.format_video == 'ZYXC':
+            for i in range(0, self.video.shape[0]):
+                for j in range(0, self.video.shape[3]):
+                    temp_img = self.video[i,:,:,j]
+                    if not np.max(temp_img) == 0:
+                        temp_img = image_extrema_removal(temp_img)
+                        temp_video[i,:,:,j] = temp_img
+                    else:
+                        temp_video[i,:,:,j] = temp_img
+        return np.asarray(temp_video, 'uint16')
+
+# class RemoveExtrema():
+#     '''
+#     This class is intended to remove extreme values from a video. The format of the video must be [Y, X] , [Y, X, C] , [Z, Y, X, C] or [T, Y, X, C].
+
+#     Parameters
+
+#     video : NumPy array
+#         Array of images with dimensions [Y, X] , [Y, X, C] , [Z, Y, X, C] or [T, Y, X, C].
+#     min_percentile : float, optional
+#         Lower bound to normalize intensity. The default is 1.
+#     max_percentile : float, optional
+#         Higher bound to normalize intensity. The default is 99.
+#     selected_channels : List or None, optional
+#         Use this option to select a list channels to remove extrema. The default is None and applies the removal of extrema to all the channels.
+#     '''
+
+#     def __init__(self, video:np.ndarray, min_percentile:float = 1, max_percentile:float = 99, selected_channels:Union[list, None] = None):
+#         self.video = video
+#         self.min_percentile = min_percentile
+#         self.max_percentile = max_percentile
+#         if not (type(selected_channels) is list):
+#                 self.selected_channels = [selected_channels]
+#         else:
+#             self.selected_channels =selected_channels
+
+#     def remove_outliers(self):
+#         '''
+#         This method normalizes the values of a video by removing extreme values.
+
+#         Returns
+
+#         normalized_video : np.uint16
+#             Normalized video. Array with dimensions [T, Y, X, C] or image with format [Y, X].
+#         '''
+        
+#         normalized_video = np.copy(self.video)
+#         normalized_video_temp = np.zeros_like(normalized_video)
+#         # Normalization code for image with format [Y, X]
+#         if len(self.video.shape) == 2:
+#             number_time_points = 1
+#             number_channels = 1
+#             #normalized_video_temp = normalized_video
+#             if not np.max(normalized_video) == 0: # this section detect that the channel is not empty to perform the normalization.
+#                 max_val = np.percentile(normalized_video, self.max_percentile)
+#                 min_val = np.min ( (0, np.percentile(normalized_video, self.min_percentile)))
+#                 normalized_video [normalized_video > max_val] = max_val
+#                 normalized_video [normalized_video < min_val] = min_val
+#                 normalized_video [normalized_video < 0] = 0
+#                 normalized_video_temp = normalized_video
+#         # Normalization for video with format [Y, X, C].
+#         if len(self.video.shape) == 3:
+#             number_channels   = self.video.shape[-1]
+#             for index_channels in range (number_channels):
+#                 if (index_channels in self.selected_channels) or (self.selected_channels is None) :
+#                     #normalized_video_temp = normalized_video[ :, :, index_channels]
+#                     if not np.max(normalized_video_temp) == 0: # this section detect that the channel is not empty to perform the normalization.
+#                         max_val = np.percentile(normalized_video_temp, self.max_percentile)
+#                         min_val = np.min ( (0,np.percentile(normalized_video_temp, self.min_percentile)))
+#                         normalized_video_temp [normalized_video_temp > max_val] = max_val
+#                         normalized_video_temp [normalized_video_temp < min_val] =  min_val
+#                         normalized_video_temp [normalized_video_temp < 0] = 0
+#                         normalized_video[ :, :, index_channels] = normalized_video_temp[ :, :, index_channels] 
+#         # Normalization for video with format [T, Y, X, C] or [Z, Y, X, C].
+#         if len(self.video.shape) == 4:
+#             number_time_points, number_channels   = self.video.shape[0], self.video.shape[-1]
+#             for index_channels in range (number_channels):
+#                 if (index_channels in self.selected_channels) or (self.selected_channels is None) :
+#                     for index_time in range (number_time_points):
+#                         normalized_video_temp = normalized_video[index_time, :, :, index_channels].copy()
+#                         if not np.max(normalized_video_temp) == 0: # this section detect that the channel is not empty to perform the normalization.
+#                             max_val = np.percentile(normalized_video_temp, self.max_percentile)
+#                             min_val = np.min ( (0,np.percentile(normalized_video_temp, self.min_percentile)))
+#                             normalized_video_temp [normalized_video_temp > max_val] = max_val
+#                             normalized_video_temp [normalized_video_temp < min_val] = min_val
+#                             normalized_video_temp [normalized_video_temp < 0] = 0
+#                             normalized_video[ index_time, :, :, index_channels] = normalized_video_temp
+#             normalized_video[normalized_video<0]=0
+#         return np.asarray(normalized_video, 'uint16')
 
 
 class ScaleIntensity():
@@ -844,7 +926,7 @@ class BeadsAlignment():
         number_spots_first_image = positions_in_first_image.shape[0]
         number_spots_second_image = positions_in_second_image.shape[0]
         distance_matrix_after = np.zeros( (number_spots_first_image)) #  the distance matrix is an square matrix resulting from the concatenation of both spot  types.
-        # This code claculates the distance matrix between the spots detected in the two images
+        # This code calculates the distance matrix between the spots detected in the two images
         for i in range(number_spots_first_image):
             for j in range(number_spots_first_image):
                 if j==i:
@@ -973,6 +1055,9 @@ class VisualizerImage():
         self.show_plot=show_plot
         self.save_image_as_file=save_image_as_file
         self.colormap= colormap
+        
+
+        
         # Checking if the video is a list or a single video.
         if not (type(list_videos) is list):
             list_videos = [list_videos]
@@ -1019,7 +1104,7 @@ class VisualizerImage():
                 temp_video = np.copy(list_videos[index_video])
                 for index_channels in range (number_channels):
                     for index_time in range (number_time_points):
-                        temp_video[index_time, :, :, index_channels] = RemoveExtrema(temp_video[index_time, :, :, index_channels]).remove_outliers()
+                        temp_video[index_time, :, :, index_channels] = RemoveExtrema(temp_video[index_time, :, :, index_channels],format_video='YX').remove_outliers()
                 list_videos_normalized.append(temp_video)
             self.list_videos = list_videos_normalized
         else:
@@ -1272,7 +1357,7 @@ class VisualizerVideo():
                 temp_video = np.copy(list_videos[index_video])
                 for index_channels in range (number_channels):
                     for index_time in range (number_time_points):
-                        temp_video[index_time, :, :, index_channels] = RemoveExtrema(temp_video[index_time, :, :, index_channels]).remove_outliers()
+                        temp_video[index_time, :, :, index_channels] = RemoveExtrema(temp_video[index_time, :, :, index_channels],format_video='YX').remove_outliers()
                 list_videos_normalized.append(temp_video)
             self.list_videos = list_videos_normalized
         else:
@@ -1548,7 +1633,7 @@ class Cellpose():
     Parameters
 
     video : NumPy array
-        Array of images with dimensions [T, Y, X, C].
+        Array of images with dimensions [T, Y, X].
     num_iterations : int, optional
         Number of iterations for the optimization process. The default is 5.
     channels : List, optional
@@ -1561,7 +1646,7 @@ class Cellpose():
         Option to use the optimization algorithm to maximize the number of cells or maximize the size options are 'max_area' or 'max_cells' or 'max_cells_and_area'. The default is 'max_cells_and_area'.
     '''
     def __init__(self, video:np.ndarray, num_iterations:int = 5, channels:list = [0, 0], diameter:float = 120, model_type:str = 'cyto', selection_method:str = 'max_cells_and_area'):
-        self.video = video
+        #self.video = video
         self.num_iterations = num_iterations
         self.minimum_probability = 0
         self.maximum_probability = 4
@@ -1570,7 +1655,18 @@ class Cellpose():
         self.model_type = model_type # options are 'cyto' or 'nuclei'
         self.selection_method = selection_method # options are 'max_area' or 'max_cells'
         self.optimization_parameter = np.round(np.linspace(self.minimum_probability, self.maximum_probability, self.num_iterations), 2)
-
+        # removing pixels that over the 98 percentile. This operation is only performed for cell segmentation.
+        if len(video.shape) > 3:  
+            raise ValueError ('A multicolor image is passed for segmentation. Please select a color channel for segmentation and pass the image with one of the following formats [T, Y, X] or [Y, X]')
+            #temp_video = np.copy(video)
+        elif len(video.shape) ==3:
+            # for index_time in range (temp_video.shape[0]):
+            #     temp_video[index_time, :, :] = RemoveExtrema(temp_video[index_time, :, :],format_video='YX').remove_outliers()
+            # self.video = temp_video
+            self.video = RemoveExtrema(video, min_percentile = 0.5, max_percentile = 99,format_video='TYX').remove_outliers()
+        else:
+            self.video = RemoveExtrema(video, min_percentile = 0.5, max_percentile = 99,format_video='YX').remove_outliers()
+                        
     def calculate_masks(self):
         '''
         This method performs the process of image masking using **Cellpose**.
@@ -1692,9 +1788,11 @@ class CellposeSelection():
                 selected_mask = temp_mask + (self.mask == largest_mask) # Selecting a single mask and making this mask equal to one and the background equal to zero.
             else: # do nothing if only a single mask is detected per image.
                 selected_mask = self.mask
+        
         if self.selection_method == 'all_cells_in_image':
             # Returning all masks in the image
             selected_mask = self.mask
+        
         if self.selection_method == 'max_spots':
             # Iterating for each mask to select the mask with the largest area.
             n_masks = np.max(self.mask)
@@ -1782,7 +1880,11 @@ class Trackpy():
         ini_video = np.asarray(Parallel(n_jobs = self.NUMBER_OF_CORES)(delayed(img_uint)(video[i, :, :, self.selected_channel]) for i in range(0, self.time_points)) )
         def filter_video(video, tracking_filter,frames_to_track):
             # function that remove outliers from the video
-            video = RemoveExtrema(video, min_percentile = 0.5, max_percentile = 99.9).remove_outliers()
+            #if video.ndim == 4:
+            #video = RemoveExtrema(video[:, :, :, self.selected_channel], min_percentile = 0.5, max_percentile = 99.9,format_video='TYX').remove_outliers()
+            video = RemoveExtrema(video, min_percentile = 0.5, max_percentile = 99.9,format_video='TYX').remove_outliers()
+            #else:
+            #     raise ValueError (' Please reformat your video to the following format [T,Y,X,C]')
             # selecting the filter to apply
             if tracking_filter == 'bandpass_filter':
                 temp_vid_dif_filter = Parallel(n_jobs = self.NUMBER_OF_CORES)(delayed(bandpass_filter)(video[i, :, :], self.low_pass_filter, self.highpass_filter) for i in range(0, frames_to_track))
@@ -1830,7 +1932,10 @@ class Trackpy():
         self.MIN_INT_OPTIMIZATION = 1 
         if use_default_filter ==0:
             f_init = tp.locate(self.video_filtered[0, :, :], self.particle_size, minmass = 1, max_iterations = 100, preprocess = False, percentile = 70)
-            self.MAX_INT_OPTIMIZATION = np.max( (1, np.round( np.max(f_init.mass.values) ) ) )
+            if not f_init.empty:
+                self.MAX_INT_OPTIMIZATION = np.max( (1, np.round( np.max(f_init.mass.values) ) ) )
+            else:
+                self.MAX_INT_OPTIMIZATION = self.MAX_INT_OPTIMIZATION_DEFAULT_VALUE
         else:
             self.MAX_INT_OPTIMIZATION = self.MAX_INT_OPTIMIZATION_DEFAULT_VALUE
         if self.optimization_iterations <= 10:
@@ -1862,7 +1967,6 @@ class Trackpy():
             values_at_coords = mask[tuple(coords_int.T)] # If 1 the value is in the mask
             dataframe['In Mask'] = values_at_coords # Check if pts are on/in polygon mask  
             return dataframe 
-        
         
         # main function that performs the particle tracking
         def video_tracking(video, mask, min_int = None, flag_for_optimization=0):
@@ -2017,7 +2121,7 @@ class Intensity():
     show_plot : bool, optional
         Allows the user to show a plot for the optimization process. The default is True.
     '''
-    def __init__(self, video:np.ndarray, particle_size:int = 5, trackpy_dataframe: Union[object , None ] = None, spot_positions_movement: Union[np.ndarray, None] = None,dataframe_format:str = 'short',   method:str = 'disk_donut', step_size:float = 1, show_plot:bool = True):
+    def __init__(self, video:np.ndarray, particle_size:int = 5, trackpy_dataframe: Union[object , None ] = None, spot_positions_movement: Union[np.ndarray, None] = None,dataframe_format:str = 'short',   method:str = 'disk_donut', step_size:float = 1, show_plot:bool = True,cell_counter:int=0):
         if particle_size < 3:
             particle_size = 3 # minimal size allowed for detection
         if (particle_size % 2) == 0:
@@ -2040,6 +2144,7 @@ class Intensity():
             self.n_particles = self.trackpy_dataframe['particle'].nunique()
         if not ( spot_positions_movement is None):
             self.n_particles = spot_positions_movement.shape[1]
+
         if (trackpy_dataframe is None) and (spot_positions_movement is None):
             print ('Error a trackpy_dataframe or spot_positions_movement should be given')
             raise
@@ -2049,6 +2154,8 @@ class Intensity():
             self.NUMBER_OF_CORES = multiprocessing.cpu_count()
         else:
             self.NUMBER_OF_CORES =1
+            
+        self.cell_counter = cell_counter
     
     def calculate_intensity(self):
         '''
@@ -2071,12 +2178,13 @@ class Intensity():
         std_intensities_normalized : Numpy array
             Array with dimensions [S, T, C].
         '''
+        
         time_points, number_channels  = self.video.shape[0], self.video.shape[3]
-        array_intensities_mean = np.zeros((self.n_particles, time_points, number_channels))
-        array_intensities_std = np.zeros((self.n_particles, time_points, number_channels))
-        array_intensities_snr = np.zeros((self.n_particles, time_points, number_channels))
-        array_intensities_background_mean = np.zeros((self.n_particles, time_points, number_channels))
-        array_intensities_background_std = np.zeros((self.n_particles, time_points, number_channels))
+        array_intensities_mean = np.zeros((self.n_particles, time_points, number_channels))*np.nan
+        array_intensities_std = np.zeros((self.n_particles, time_points, number_channels))*np.nan
+        array_intensities_snr = np.zeros((self.n_particles, time_points, number_channels))*np.nan
+        array_intensities_background_mean = np.zeros((self.n_particles, time_points, number_channels))*np.nan
+        array_intensities_background_std = np.zeros((self.n_particles, time_points, number_channels))*np.nan
         def gaussian_fit(test_im):
             size_spot = test_im.shape[0]
             image_flat = test_im.ravel()
@@ -2094,6 +2202,10 @@ class Intensity():
         def return_crop(image:np.ndarray, x:int, y:int,spot_range):
             crop_image = image[y+spot_range[0]:y+(spot_range[-1]+1), x+spot_range[0]:x+(spot_range[-1]+1)].copy()
             return crop_image
+
+        def reduce_dataframe(df):
+            # This function is intended to reduce the columns that are not used in the ML process.
+            return df.drop(['ch0_int_std', 'ch1_int_std','ch2_int_std','ch0_SNR', 'ch1_SNR', 'ch2_SNR','ch0_bg_int_mean','ch1_bg_int_mean','ch2_bg_int_mean','ch0_bg_int_std','ch1_bg_int_std','ch2_bg_int_std'], axis = 1)
         
         def return_donut(image, spot_size):
             tem_img = image.copy().astype('float')
@@ -2115,10 +2227,10 @@ class Intensity():
             mean_intensity_donut = np.mean(values_donut.flatten().astype('float')) # mean calculation ignoring zeros
             std_intensity_donut = np.std(values_donut.flatten().astype('float')) # mean calculation ignoring zeros
             #print('s',values_disk.shape,values_donut.shape)
-            if std_intensity_donut >0:
-                SNR = (mean_intensity_disk-mean_intensity_donut) / std_intensity_donut
-            else:
-                SNR = 0
+            #if std_intensity_donut >0:
+            SNR = (mean_intensity_disk-mean_intensity_donut) / std_intensity_donut
+            #else:
+            #    SNR = 0
             mean_background_int = mean_intensity_donut
             std_background_int = std_intensity_donut
             return SNR, mean_background_int,std_background_int
@@ -2133,11 +2245,11 @@ class Intensity():
         
         # Section that marks particles if a numpy array with spot positions is passed.
         def intensity_from_position_movement(particle_index , frames_part ,time_points, number_channels ):
-            intensities_mean = np.zeros((time_points, number_channels))
-            intensities_std = np.zeros((time_points, number_channels))
-            intensities_snr = np.zeros((time_points, number_channels))
-            intensities_background_mean = np.zeros((time_points, number_channels))
-            intensities_background_std = np.zeros((time_points, number_channels))
+            intensities_mean = np.zeros((time_points, number_channels))*np.nan
+            intensities_std = np.zeros((time_points, number_channels))*np.nan
+            intensities_snr = np.zeros((time_points, number_channels))*np.nan
+            intensities_background_mean = np.zeros((time_points, number_channels))*np.nan
+            intensities_background_std = np.zeros((time_points, number_channels))*np.nan
             for j in range(0, frames_part):
                 for i in range(0, number_channels):
                     x_pos = int(np.round(self.spot_positions_movement[j,particle_index, 1]))
@@ -2156,11 +2268,11 @@ class Intensity():
             return intensities_mean, intensities_std, intensities_snr, intensities_background_mean, intensities_background_std
         def intensity_from_dataframe(particle_index ,time_points, number_channels ):
             frames_part = self.trackpy_dataframe.loc[self.trackpy_dataframe['particle'] == self.trackpy_dataframe['particle'].unique()[particle_index]].frame.values
-            intensities_mean = np.zeros((time_points, number_channels))
-            intensities_std = np.zeros((time_points, number_channels))
-            intensities_snr = np.zeros((time_points, number_channels))
-            intensities_background_mean = np.zeros((time_points, number_channels))
-            intensities_background_std = np.zeros((time_points, number_channels))
+            intensities_mean = np.zeros((time_points, number_channels))*np.nan
+            intensities_std = np.zeros((time_points, number_channels))*np.nan
+            intensities_snr = np.zeros((time_points, number_channels))*np.nan
+            intensities_background_mean = np.zeros((time_points, number_channels))*np.nan
+            intensities_background_std = np.zeros((time_points, number_channels))*np.nan
             for j in range(0, len(frames_part)):
                 for i in range(0, number_channels):
                     current_frame = frames_part[j]
@@ -2181,8 +2293,8 @@ class Intensity():
                         intensities_std[ current_frame, i] = np.max((0, np.std(values_disk))) # std intensity in image
                     elif self.method == 'gaussian_fit':
                         intensities_mean[current_frame, i], intensities_std[ current_frame, i] = gaussian_fit(values_disk)# disk_donut(crop_image, disk_size)
-            intensities_mean[np.isnan(intensities_mean)] = 0 # replacing nans with zeros
-            intensities_std[np.isnan(intensities_std)] = 0 # replacing nans with zeros
+            #intensities_mean[np.isnan(intensities_mean)] = 0 # replacing nans with zeros
+            #intensities_std[np.isnan(intensities_std)] = 0 # replacing nans with zeros
             return intensities_mean, intensities_std, intensities_snr , intensities_background_mean, intensities_background_std
         if not ( self.spot_positions_movement is None):
             frames_part = self.spot_positions_movement.shape[0]
@@ -2203,81 +2315,33 @@ class Intensity():
         mean_intensities = np.nanmean(array_intensities_mean, axis = 0, dtype = np.float32)
         std_intensities = np.nanstd(array_intensities_mean, axis = 0, dtype = np.float32)
         # Calculate mean intensities normalized
-        array_mean_intensities_normalized = np.zeros_like(array_intensities_mean)*nan
+        array_mean_intensities_normalized = np.zeros_like(array_intensities_mean)*np.nan
         for k in range (0, self.n_particles):
                 for i in range(0, number_channels):
                     if np.nanmax( array_intensities_mean[k, :, i]) > 0:
                         array_mean_intensities_normalized[k, :, i] = array_intensities_mean[k, :, i]/ np.nanmax( array_intensities_mean[k, :, i])
         mean_intensities_normalized = np.nanmean(array_mean_intensities_normalized, axis = 0, dtype = np.float32)
-        mean_intensities_normalized = np.nan_to_num(mean_intensities_normalized)
+        #mean_intensities_normalized = np.nan_to_num(mean_intensities_normalized)
         std_intensities_normalized = np.nanstd(array_mean_intensities_normalized, axis = 0, dtype = np.float32)
-        std_intensities_normalized = np.nan_to_num(std_intensities_normalized)
+        #std_intensities_normalized = np.nan_to_num(std_intensities_normalized)
         time_vector = np.arange(0, time_points, 1)*self.step_size
-        if self.show_plot == True:
-            _, ax = plt.subplots(3, 1, figsize = (16, 4))
-            for id in range (0, self.n_particles):
-                frames_part = self.trackpy_dataframe.loc[self.trackpy_dataframe['particle'] == self.trackpy_dataframe['particle'].unique()[id]].frame.values
-                ax[0].plot(self.trackpy_dataframe.loc[self.trackpy_dataframe['particle'] == self.trackpy_dataframe['particle'].unique()[id]].frame.values, array_intensities_mean[id, frames_part, 0], 'r')
-                ax[1].plot(self.trackpy_dataframe.loc[self.trackpy_dataframe['particle'] == self.trackpy_dataframe['particle'].unique()[id]].frame.values, array_intensities_mean[id, frames_part, 1], 'g')
-                ax[2].plot(self.trackpy_dataframe.loc[self.trackpy_dataframe['particle'] == self.trackpy_dataframe['particle'].unique()[id]].frame.values, array_intensities_mean[id, frames_part, 2], 'b')
-            ax[0].set(title = 'Trajectories: Intensity vs Time')
-            ax[2].set(xlabel = 'Time (a.u.)')
-            ax[1].set(ylabel = 'Intensity (a.u.)')
-            ax[0].set_xlim([0, time_points-1])
-            ax[1].set_xlim([0, time_points-1])
-            ax[2].set_xlim([0, time_points-1])
-            ax[0].set_xticks([])
-            ax[1].set_xticks([])
-            plt.show()
-            _, ax = plt.subplots(3, 1, figsize = (16, 4))
-            for id in range (0, self.n_particles):
-                time_vector = np.arange(0, time_points, 1)*self.step_size
-                ax[0].plot(time_vector, mean_intensities[:, 0], 'r')
-                ax[1].plot(time_vector, mean_intensities[:, 1], 'g')
-                ax[2].plot(time_vector, mean_intensities[:, 2], 'b')
-                ax[0].fill_between(time_vector, mean_intensities[:, 0] - std_intensities[:, 0], mean_intensities[:, 0] + std_intensities[:, 0], color = 'lightgray', alpha = 0.9)
-                ax[1].fill_between(time_vector, mean_intensities[:, 1] - std_intensities[:, 1], mean_intensities[:, 1] + std_intensities[:, 1], color = 'lightgray', alpha = 0.9)
-                ax[2].fill_between(time_vector, mean_intensities[:, 2] - std_intensities[:, 2], mean_intensities[:, 2] + std_intensities[:, 2], color = 'lightgray', alpha = 0.9)
-            ax[0].set(title = 'Mean values')
-            ax[2].set(xlabel = 'Time (a.u.)')
-            ax[1].set(ylabel = 'Intensity (a.u.)')
-            ax[0].set_xlim([0, time_points-1])
-            ax[1].set_xlim([0, time_points-1])
-            ax[2].set_xlim([0, time_points-1])
-            ax[0].set_xticks([])
-            ax[1].set_xticks([])
-            plt.show()
-            _, ax = plt.subplots(3, 1, figsize = (16, 4))
-            for id in range (0, self.n_particles):
-                time_vector = np.arange(0, time_points, 1)*self.step_size
-                ax[0].plot(time_vector, mean_intensities_normalized[:, 0], 'r')
-                ax[1].plot(time_vector, mean_intensities_normalized[:, 1], 'g')
-                ax[2].plot(time_vector, mean_intensities_normalized[:, 2], 'b')
-                ax[0].fill_between(time_vector, mean_intensities_normalized[:, 0] - std_intensities_normalized[:, 0], mean_intensities_normalized[:, 0] + std_intensities_normalized[:, 0], color = 'lightgray', alpha = 0.9)
-                ax[1].fill_between(time_vector, mean_intensities_normalized[:, 1] - std_intensities_normalized[:, 1], mean_intensities_normalized[:, 1] + std_intensities_normalized[:, 1], color = 'lightgray', alpha = 0.9)
-                ax[2].fill_between(time_vector, mean_intensities_normalized[:, 2] - std_intensities_normalized[:, 2], mean_intensities_normalized[:, 2] + std_intensities_normalized[:, 2], color = 'lightgray', alpha = 0.9)
-            ax[0].set(title = 'Mean values normalized by max intensity of each trajectory')
-            ax[2].set(xlabel = 'Time (a.u.)')
-            ax[1].set(ylabel = 'Intensity (a.u.)')
-            ax[0].set_xlim([0, time_points-1])
-            ax[1].set_xlim([0, time_points-1])
-            ax[2].set_xlim([0, time_points-1])
-            ax[0].set_xticks([])
-            ax[1].set_xticks([])
-            plt.show()
+        
+        if (self.show_plot == True) and not ( self.trackpy_dataframe is None):
+            Plots.plot_tracking_spots(self.trackpy_dataframe, mean_intensities, mean_intensities_normalized, array_intensities_mean, std_intensities, std_intensities_normalized, self.step_size,time_points)
+                
         # Initialize a dataframe
         init_dataFrame = {'image_number': [], 
             'cell_number': [], 
             'particle': [], 
             'frame': [], 
+            'x': [], 
+            'y': [],
             'ch0_int_mean': [], 
             'ch1_int_mean': [], 
             'ch2_int_mean': [], 
             'ch0_int_std': [], 
             'ch1_int_std': [], 
             'ch2_int_std': [], 
-            'x': [], 
-            'y': [],
             'ch0_SNR':[],
             'ch1_SNR':[],
             'ch2_SNR':[],
@@ -2289,6 +2353,8 @@ class Intensity():
             'ch2_bg_int_std':[] }
         dataframe_particles = pd.DataFrame(init_dataFrame)
         # Iterate for each spot and save time courses in the data frame
+        
+        
         counter = 0
         for id in range (0, self.n_particles):
             # Loop that populates the dataframes
@@ -2296,42 +2362,56 @@ class Intensity():
                 temporal_frames_vector = np.around(self.trackpy_dataframe.loc[self.trackpy_dataframe['particle'] == self.trackpy_dataframe['particle'].unique()[id]].frame.values)  # time_(sec)
                 temporal_x_position_vector = self.trackpy_dataframe.loc[self.trackpy_dataframe['particle'] == self.trackpy_dataframe['particle'].unique()[id]].x.values
                 temporal_y_position_vector = self.trackpy_dataframe.loc[self.trackpy_dataframe['particle'] == self.trackpy_dataframe['particle'].unique()[id]].y.values
-            else:
+            elif not ( self.spot_positions_movement is None):
                 counter_time_vector = np.arange(0, time_points, 1)
                 temporal_frames_vector = counter_time_vector
                 temporal_x_position_vector = self.spot_positions_movement[:, id, 1]
                 temporal_y_position_vector = self.spot_positions_movement[:, id, 0]
+            else:
+                temporal_frames_vector = np.array([1])
+                temporal_x_position_vector = 0
+                temporal_y_position_vector = 0
+                
+            temporal_spot_number_vector = [counter] * len(temporal_frames_vector)
+            temporal_image_number_vector = [0] * len(temporal_frames_vector)
+            temporal_cell_number_vector = [self.cell_counter] * len(temporal_frames_vector)
+            
+            # Populating fields for all colors
+            
             temporal_ch0_vector =  array_intensities_mean[id, temporal_frames_vector, 0]  # ch0
             temporal_ch1_vector = array_intensities_mean[id, temporal_frames_vector, 1]  # ch1
             temporal_ch2_vector =  array_intensities_mean[id, temporal_frames_vector, 2]  # ch2
+            
             temporal_ch0_vector_std =  array_intensities_std[id, temporal_frames_vector, 0]  # ch0
             temporal_ch1_vector_std =  array_intensities_std[id, temporal_frames_vector, 1]  # ch1
             temporal_ch2_vector_std =  array_intensities_std[id, temporal_frames_vector, 2]  # ch2
-            temporal_spot_number_vector = [counter] * len(temporal_frames_vector)
-            temporal_image_number_vector = [0] * len(temporal_frames_vector)
-            temporal_cell_number_vector = [0] * len(temporal_frames_vector)
+            
             temporal_ch0_SNR =  array_intensities_snr[id, temporal_frames_vector, 0] # ch0
             temporal_ch1_SNR =  array_intensities_snr[id, temporal_frames_vector, 1]  # ch1
             temporal_ch2_SNR =  array_intensities_snr[id, temporal_frames_vector, 2]  # ch2
+            
             temporal_ch0_bg_int_mean  = array_intensities_background_mean [id, temporal_frames_vector, 0]  # ch0
             temporal_ch1_bg_int_mean = array_intensities_background_mean [id, temporal_frames_vector, 1]  # ch1
             temporal_ch2_bg_int_mean=  array_intensities_background_mean [id, temporal_frames_vector, 2]  # ch2
+            
             temporal_ch0_bg_int_std  = array_intensities_background_std[id, temporal_frames_vector, 0]  # ch0
             temporal_ch1_bg_int_std = array_intensities_background_std[id, temporal_frames_vector, 1]  # ch1
             temporal_ch2_bg_int_std = array_intensities_background_std[id, temporal_frames_vector, 2]  # ch2
+            
+            
             # Section that append the information for each spots
             temp_data_frame = {'image_number': temporal_image_number_vector, 
                 'cell_number': temporal_cell_number_vector, 
                 'particle': temporal_spot_number_vector, 
                 'frame': temporal_frames_vector*self.step_size, 
+                'x': temporal_x_position_vector, 
+                'y': temporal_y_position_vector,
                 'ch0_int_mean': np.round( temporal_ch0_vector ,2), 
                 'ch1_int_mean': np.round( temporal_ch1_vector ,2), 
                 'ch2_int_mean': np.round( temporal_ch2_vector ,2), 
                 'ch0_int_std': np.round( temporal_ch0_vector_std ,2), 
                 'ch1_int_std': np.round( temporal_ch1_vector_std ,2), 
                 'ch2_int_std': np.round( temporal_ch2_vector_std, 2), 
-                'x': temporal_x_position_vector, 
-                'y': temporal_y_position_vector,
                 'ch0_SNR' : np.round( temporal_ch0_SNR ,2),
                 'ch1_SNR': np.round( temporal_ch1_SNR ,2),
                 'ch2_SNR': np.round( temporal_ch2_SNR ,2),
@@ -2345,9 +2425,7 @@ class Intensity():
             temp_DataFrame = pd.DataFrame(temp_data_frame)
             dataframe_particles = dataframe_particles.append(temp_DataFrame, ignore_index = True)
             dataframe_particles = dataframe_particles.astype({"image_number": int, "cell_number": int, "particle": int, "frame": int, "x": int, "y": int}) # specify data type as integer for some columns
-        def reduce_dataframe(df):
-            # This function is intended to reduce the columns that are not used in the ML process.
-            return df.drop(['ch0_int_std', 'ch1_int_std','ch2_int_std','ch0_SNR', 'ch1_SNR', 'ch2_SNR','ch0_bg_int_mean','ch1_bg_int_mean','ch2_bg_int_mean','ch0_bg_int_std','ch1_bg_int_std','ch2_bg_int_std'], axis = 1)
+
         if self.dataframe_format == 'short':
             dataframe_particles = reduce_dataframe(dataframe_particles)
         return dataframe_particles, array_intensities_mean, time_vector, mean_intensities, std_intensities, mean_intensities_normalized, std_intensities_normalized
@@ -2642,7 +2720,7 @@ class SimulatedCell():
         self.intensity_calculation_method = intensity_calculation_method
         self.base_video = preprocessed_base_video
         if not (video_for_mask is None):
-            video_for_mask = RemoveExtrema(video_for_mask, min_percentile = 0, max_percentile = 99.8).remove_outliers()
+            video_for_mask = RemoveExtrema(video_for_mask, min_percentile = 0, max_percentile = 99.8,format_video='TYXC').remove_outliers()
             self.video_for_mask = video_for_mask
         else:
             self.video_for_mask = self.base_video
@@ -3121,7 +3199,7 @@ class SimulatedCellDispatcher():
         else:
             preprocessed_base_video  = initial_video
             self.mask_image = mask_image
-        preprocessed_base_video = RemoveExtrema(preprocessed_base_video, min_percentile = 0, max_percentile = 99).remove_outliers()
+        preprocessed_base_video = RemoveExtrema(preprocessed_base_video, min_percentile = 0, max_percentile = 99,format_video='TYXC').remove_outliers()
         if scale_intensity_in_base_video == True:
             preprocessed_base_video = ScaleIntensity(video=preprocessed_base_video, scale_maximum_value=basal_intensity_in_background_video).apply_scale()
         # Calculating statistics from initial video
@@ -3457,58 +3535,70 @@ class PipelineTracking():
             tracking_succesful = False
         if self.print_process_times == True:
             print('mask time:', round(end - start), ' sec')
+                
         if not ( selected_mask is None) and (segmentation_succesful == True):
-            # Tracking
-            if self.print_process_times ==True:
+            number_masks = np.max(selected_mask)
+            if self.print_process_times == True:
                 start = timer()
-            if self.num_frames > 20:
-                minimal_frames =  int(self.num_frames*self.MIN_PERCENTAGE_FRAMES_FOR_TRACKING) # minimal number of frames to consider a trajectory
-            else:
-                minimal_frames =  int(self.num_frames*0.4) # minimal number of frames to consider a trajectory
-            if self.use_optimization_for_tracking == True:
-                use_default_filter = 0
-            else:
-                use_default_filter = 1
-            Dataframe_trajectories, _, filtered_video = Trackpy(self.video, selected_mask, particle_size = self.particle_size, selected_channel = self.selected_channel_tracking, minimal_frames = minimal_frames, optimization_iterations = self.NUM_ITERATIONS_TRACKING, use_default_filter = use_default_filter, show_plot = self.show_plot,intensity_threshold_tracking=self.intensity_threshold_tracking, image_name=image_name_tracking).perform_tracking()
+            dataframe_particles_all_cells = pd.DataFrame()
+            for i in range (1,number_masks+1):
+                mask = np.zeros_like(selected_mask)
+                mask[selected_mask==i] = 1
+                # Tracking
+                if self.print_process_times ==True:
+                    start = timer()
+                if self.num_frames > 20:
+                    minimal_frames =  int(self.num_frames*self.MIN_PERCENTAGE_FRAMES_FOR_TRACKING) # minimal number of frames to consider a trajectory
+                else:
+                    minimal_frames =  int(self.num_frames*0.4) # minimal number of frames to consider a trajectory
+                if self.use_optimization_for_tracking == True:
+                    use_default_filter = 0
+                else:
+                    use_default_filter = 1
+                Dataframe_trajectories, _, filtered_video = Trackpy(self.video, mask=mask, particle_size = self.particle_size, selected_channel = self.selected_channel_tracking, minimal_frames = minimal_frames, optimization_iterations = self.NUM_ITERATIONS_TRACKING, use_default_filter = use_default_filter, show_plot = self.show_plot,intensity_threshold_tracking=self.intensity_threshold_tracking, image_name=image_name_tracking).perform_tracking()
+                # Intensity calculation
+                
+                if not ( Dataframe_trajectories is None):
+                    dataframe_particles, array_intensities, time_vector, mean_intensities, std_intensities, mean_intensities_normalized, std_intensities_normalized = Intensity(self.video, self.particle_size, Dataframe_trajectories, method = self.intensity_calculation_method, show_plot = 0, dataframe_format=self.dataframe_format,cell_counter=i-1).calculate_intensity()
+                    # This flag makes segmentation_succesful flase if less than 4 particles are detected in the dataframe_particles.
+                    # This option avoids problem while calculating the next steps.
+                    if array_intensities.shape[0]<1:
+                        segmentation_succesful =False
+                        tracking_succesful =False
+                else:
+                    dataframe_particles =Intensity(self.video, self.particle_size, Dataframe_trajectories, method = self.intensity_calculation_method, show_plot = 0, dataframe_format=self.dataframe_format,cell_counter=i-1).calculate_intensity()[0]
+                    #dataframe_particles = None
+                    array_intensities = None
+                    time_vector = None
+                    mean_intensities = None
+                    std_intensities = None
+                    mean_intensities_normalized = None
+                    std_intensities_normalized = None
+                #dataframe_particles
+                dataframe_particles_all_cells = dataframe_particles_all_cells.append(dataframe_particles, ignore_index = True)
+                # Visualization
+                if (self.show_plot == True) or (self.create_pdf==True):
+                    if tracking_succesful == True:
+                        VisualizerImage(self.video, filtered_video, Dataframe_trajectories, self.file_name, list_mask_array = mask, selected_channel = self.selected_channel_tracking, selected_time_point = 0, normalize = False, individual_figure_size = 7, list_real_particle_positions = self.real_positions_dataframe,image_name=image_name_visualization,show_plot=self.show_plot,save_image_as_file=self.save_image_as_file).plot()
+                    else:
+                        VisualizerImage(self.video, filtered_video, None, self.file_name, list_mask_array = mask, selected_channel = self.selected_channel_tracking, selected_time_point = 0, normalize = False, individual_figure_size = 7, list_real_particle_positions = self.real_positions_dataframe,image_name=image_name_visualization,show_plot=self.show_plot,save_image_as_file=self.save_image_as_file).plot()
+            # Printing processing time
             if self.print_process_times == True:
                 end = timer()
                 print('tracking time:', round(end - start), ' sec')
-            # Intensity calculation
-            if self.print_process_times == True:
-                start = timer()
-            if not ( Dataframe_trajectories is None):
-                dataframe_particles, array_intensities, time_vector, mean_intensities, std_intensities, mean_intensities_normalized, std_intensities_normalized = Intensity(self.video, self.particle_size, Dataframe_trajectories, method = self.intensity_calculation_method, show_plot = 0, dataframe_format=self.dataframe_format).calculate_intensity()
-                # This flag makes segmentation_succesful flase if less than 4 particles are detected in the dataframe_particles.
-                # This option avoids problem while calculating the next steps.
-                if array_intensities.shape[0]<4:
-                    segmentation_succesful =False
-                    tracking_succesful =False
-            else:
-                dataframe_particles = None
-                array_intensities = None
-                time_vector = None
-                mean_intensities = None
-                std_intensities = None
-                mean_intensities_normalized = None
-                std_intensities_normalized = None
-            
-            if self.print_process_times == True:
-                end = timer()
-                print('intensity calculation time:', round(end - start), ' sec')
-            if (self.show_plot == True) or (self.create_pdf==True):
-                if tracking_succesful == True:
-                    VisualizerImage(self.video, filtered_video, Dataframe_trajectories, self.file_name, list_mask_array = selected_mask, selected_channel = self.selected_channel_tracking, selected_time_point = 0, normalize = False, individual_figure_size = 7, list_real_particle_positions = self.real_positions_dataframe,image_name=image_name_visualization,show_plot=self.show_plot,save_image_as_file=self.save_image_as_file).plot()
-                else:
-                    VisualizerImage(self.video, filtered_video, None, self.file_name, list_mask_array = selected_mask, selected_channel = self.selected_channel_tracking, selected_time_point = 0, normalize = False, individual_figure_size = 7, list_real_particle_positions = self.real_positions_dataframe,image_name=image_name_visualization,show_plot=self.show_plot,save_image_as_file=self.save_image_as_file).plot()
+        
+        
         else:
-            dataframe_particles = None
+            dataframe_particles_all_cells = None
             array_intensities = None
             time_vector = None
             mean_intensities = None
             std_intensities = None
             mean_intensities_normalized = None
             std_intensities_normalized = None
-        return dataframe_particles,selected_mask, array_intensities, time_vector, mean_intensities, std_intensities, mean_intensities_normalized, std_intensities_normalized, segmentation_succesful
+
+
+        return dataframe_particles_all_cells,selected_mask, array_intensities, time_vector, mean_intensities, std_intensities, mean_intensities_normalized, std_intensities_normalized, segmentation_succesful
 
 
 class PhotobleachingCalculation():
@@ -3614,6 +3704,7 @@ class PhotobleachingCorrection():
         self.mask = mask
         self.step_size = step_size
         self.selected_channel = selected_channel
+        
     def apply_photobleaching_correction(self): 
         time_points, height, width, number_channels   = self.video.shape[0],self.video.shape[1], self.video.shape[2], self.video.shape[3]
         # define type of function to search
@@ -3629,6 +3720,46 @@ class PhotobleachingCorrection():
                 mean_cell_intensity[i,k] = temp_cell_int[np.nonzero(temp_cell_int)].mean()
         video_photobleached_corrected = 0
         return video_photobleached_corrected
+    
+    def correct_photobleaching_video(video, mask_array, normalized=False, guess = None, niter=10000):
+        # get the average intensity in the mask for each channel
+        average_ints = np.zeros([video.shape[0], video.shape[-1],]   )
+        for i in range(video.shape[0]):
+            mask =mask_array[i]
+            for j in range(video.shape[-1]):
+                average_ints[i,j] = np.mean(video[i,:,:,j][mask == 1])
+        try:  #generate an inital guess
+            guess[0] #### ASK WILL ABOUT THIS CODE
+        except:
+            guess = (np.mean(average_ints[0])*.5, .3,)
+        
+        def expo(x,a,c):        
+            '''
+            exponential function.
+            '''
+            #c = np.abs(c)
+            return a*np.exp(-c*x)
+        corrected_video = np.zeros(video.shape) #preallocate final video
+        tvec = range(video.shape[0]) #time vector for fitting
+        exponentials = np.zeros(average_ints.shape) #array for exponentials
+        for i in range(video.shape[-1]): # for each trajectory
+            # fit the exponential curve
+            opt,cov = curve_fit(expo,tvec,average_ints[:,i],p0=guess,maxfev=niter)
+            exponentials[:,i] = expo(tvec,opt[0],opt[1])
+            if normalized:
+                exponentials[:,i] = expo(tvec,opt[0],opt[1])
+            else:
+                exponentials[:,i] = expo(tvec,1.0,opt[1])
+        #correct each frame for each channel
+        for i in range(video.shape[-1]):
+            for j in range(video.shape[0]):
+                corrected_video[j,:,:,i] = video[j,:,:,i]/exponentials[j,i] 
+
+        return corrected_video, exponentials, opt, cov
+    
+    
+    
+    
 
 class ReportPDF():
     '''
@@ -3918,6 +4049,61 @@ class Plots():
     '''
     def __init__(self):
         pass
+    
+    def plot_tracking_spots(trackpy_dataframe, mean_intensities, mean_intensities_normalized, array_intensities_mean, std_intensities, std_intensities_normalized, step_size,time_points):
+        n_particles = trackpy_dataframe['particle'].nunique()
+        _, ax = plt.subplots(3, 1, figsize = (16, 4))
+        for id in range (0, n_particles):
+            frames_part = trackpy_dataframe.loc[trackpy_dataframe['particle'] == trackpy_dataframe['particle'].unique()[id]].frame.values
+            ax[0].plot(trackpy_dataframe.loc[trackpy_dataframe['particle'] == trackpy_dataframe['particle'].unique()[id]].frame.values, array_intensities_mean[id, frames_part, 0], 'r')
+            ax[1].plot(trackpy_dataframe.loc[trackpy_dataframe['particle'] == trackpy_dataframe['particle'].unique()[id]].frame.values, array_intensities_mean[id, frames_part, 1], 'g')
+            ax[2].plot(trackpy_dataframe.loc[trackpy_dataframe['particle'] == trackpy_dataframe['particle'].unique()[id]].frame.values, array_intensities_mean[id, frames_part, 2], 'b')
+        ax[0].set(title = 'Trajectories: Intensity vs Time')
+        ax[2].set(xlabel = 'Time (a.u.)')
+        ax[1].set(ylabel = 'Intensity (a.u.)')
+        ax[0].set_xlim([0, time_points-1])
+        ax[1].set_xlim([0, time_points-1])
+        ax[2].set_xlim([0, time_points-1])
+        ax[0].set_xticks([])
+        ax[1].set_xticks([])
+        plt.show()
+        _, ax = plt.subplots(3, 1, figsize = (16, 4))
+        for id in range (0, n_particles):
+            time_vector = np.arange(0, time_points, 1)*step_size
+            ax[0].plot(time_vector, mean_intensities[:, 0], 'r')
+            ax[1].plot(time_vector, mean_intensities[:, 1], 'g')
+            ax[2].plot(time_vector, mean_intensities[:, 2], 'b')
+            ax[0].fill_between(time_vector, mean_intensities[:, 0] - std_intensities[:, 0], mean_intensities[:, 0] + std_intensities[:, 0], color = 'lightgray', alpha = 0.9)
+            ax[1].fill_between(time_vector, mean_intensities[:, 1] - std_intensities[:, 1], mean_intensities[:, 1] + std_intensities[:, 1], color = 'lightgray', alpha = 0.9)
+            ax[2].fill_between(time_vector, mean_intensities[:, 2] - std_intensities[:, 2], mean_intensities[:, 2] + std_intensities[:, 2], color = 'lightgray', alpha = 0.9)
+        ax[0].set(title = 'Mean values')
+        ax[2].set(xlabel = 'Time (a.u.)')
+        ax[1].set(ylabel = 'Intensity (a.u.)')
+        ax[0].set_xlim([0, time_points-1])
+        ax[1].set_xlim([0, time_points-1])
+        ax[2].set_xlim([0, time_points-1])
+        ax[0].set_xticks([])
+        ax[1].set_xticks([])
+        plt.show()
+        _, ax = plt.subplots(3, 1, figsize = (16, 4))
+        for id in range (0, n_particles):
+            time_vector = np.arange(0, time_points, 1)*step_size
+            ax[0].plot(time_vector, mean_intensities_normalized[:, 0], 'r')
+            ax[1].plot(time_vector, mean_intensities_normalized[:, 1], 'g')
+            ax[2].plot(time_vector, mean_intensities_normalized[:, 2], 'b')
+            ax[0].fill_between(time_vector, mean_intensities_normalized[:, 0] - std_intensities_normalized[:, 0], mean_intensities_normalized[:, 0] + std_intensities_normalized[:, 0], color = 'lightgray', alpha = 0.9)
+            ax[1].fill_between(time_vector, mean_intensities_normalized[:, 1] - std_intensities_normalized[:, 1], mean_intensities_normalized[:, 1] + std_intensities_normalized[:, 1], color = 'lightgray', alpha = 0.9)
+            ax[2].fill_between(time_vector, mean_intensities_normalized[:, 2] - std_intensities_normalized[:, 2], mean_intensities_normalized[:, 2] + std_intensities_normalized[:, 2], color = 'lightgray', alpha = 0.9)
+        ax[0].set(title = 'Mean values normalized by max intensity of each trajectory')
+        ax[2].set(xlabel = 'Time (a.u.)')
+        ax[1].set(ylabel = 'Intensity (a.u.)')
+        ax[0].set_xlim([0, time_points-1])
+        ax[1].set_xlim([0, time_points-1])
+        ax[2].set_xlim([0, time_points-1])
+        ax[0].set_xticks([])
+        ax[1].set_xticks([])
+        plt.show()
+            
     def plot_image_channels(image, selected_time_point = 0):
         '''
         This function plots all the channels for the original image.
@@ -3929,7 +4115,7 @@ class Plots():
         _ , axes = plt.subplots(nrows=1, ncols=number_channels, figsize=(15, 5))
         for i in range (0,number_channels ):
             img_2d = image[selected_time_point,:,:,i]
-            img_2d_rescaled = RemoveExtrema(img_2d, min_percentile = 0.1, max_percentile= 99.5).remove_outliers()
+            img_2d_rescaled = RemoveExtrema(img_2d, min_percentile = 0.1, max_percentile= 99.5,format_video='YX').remove_outliers()
             axes[i].imshow(img_2d_rescaled, cmap='viridis') 
             axes[i].set_title('Channel_'+str(i))
         plt.show()
@@ -4198,7 +4384,7 @@ class Utilities():
         temp_vid = img_as_uint(image)
         return temp_vid
     
-    def extract_field_from_dataframe(dataframe_path=None, dataframe=None,selected_time=None,selected_field='ch1_int_mean',use_nan_for_padding=False):
+    def extract_field_from_dataframe(dataframe_path=None, dataframe=None,selected_time=None,selected_field='ch1_int_mean',use_nan_for_padding=True):
         '''
         This function extracts the selected_field as a vector for a given frame. If selected_time is None, the code will return the extracted 
         data as a NumPy array with dimensions [number_particles, max_time_points]. The maximum time points are defined by the longest trajectory.
@@ -4215,7 +4401,7 @@ class Utilities():
             selected_field : str, optional.
                 selected dataframe to extract data.
             use_nan_for_padding: bool, optional
-                Option to fill the array with Nans instead of zeros. The default is false.
+                Option to fill the array with Nans instead of zeros. The default is True.
         Returns
 
             extracted_data : Selected Field for each particle. NumPy array with dimensions [number_particles, max_time_points] if selected_time is None. The maximum time points are defined by the longest trajectory. Short trajectories are populated with zeros or Nans.
@@ -4229,20 +4415,23 @@ class Utilities():
             '''
             # get the total number of particles in all cells
             total_particles = 0
-            for cell in set(dataframe['image_number']):
-                total_particles += len(set(dataframe[dataframe['image_number'] == 0]['particle'] ))
+            for image_id in set(dataframe['image_number']):
+                for cell in set(dataframe[dataframe['image_number'] == image_id]['cell_number'] ):
+                    total_particles += len(set(dataframe[ (dataframe['image_number'] == image_id) & ( dataframe['cell_number'] == cell) ]   ['particle'] ))
             #preallocate numpy array sof n_particles by nframes
             field_as_array = np.zeros([total_particles, np.max(dataframe['frame'])+1] ) 
             if use_nan_for_padding == True:
                 field_as_array[:] = np.nan
             k = 0
             # For loops that iterate for each particle and stores the data in the previously pre-alocated arrays.
-            for cell in set(dataframe['image_number']):  #for every cell 
-                for particle in set(dataframe[dataframe['image_number'] == 0]['particle'] ): #for every particle
-                    temporal_dataframe = dataframe[(dataframe['image_number'] == cell) & (dataframe['particle'] == particle)]  #slice the dataframe
-                    frame_values = temporal_dataframe['frame'].values
-                    field_as_array[k, frame_values] = temporal_dataframe[selected_field].values  #fill the arrays to return out
-                    k+=1 #iterate over k (total particles)
+            for image_id in set(dataframe['image_number']):  #for every cell 
+                for cell in set(dataframe[dataframe['image_number'] == image_id]['cell_number'] ):
+                    
+                    for particle in set( dataframe[(dataframe['image_number'] == image_id)& (dataframe['cell_number'] == cell)    ]['particle'] ): #for every particle
+                        temporal_dataframe = dataframe[(dataframe['image_number'] == image_id)  & ( dataframe['cell_number'] == cell)  & (dataframe['particle'] == particle)]  #slice the dataframe
+                        frame_values = temporal_dataframe['frame'].values
+                        field_as_array[k, frame_values] = temporal_dataframe[selected_field].values  #fill the arrays to return out
+                        k+=1 #iterate over k (total particles)
             return field_as_array 
         if not(dataframe_path is None):
             temporal_dataframe = pd.read_csv(dataframe_path)
@@ -4253,6 +4442,9 @@ class Utilities():
         else:
             extracted_data = df_to_array(temporal_dataframe,selected_field,use_nan_for_padding)
         return extracted_data
+    
+    
+    
     def remove_spots_from_image(image, x_values, y_values,spot_size):
         img_removed_spots = image.copy()
         for i in range(len(x_values)):
@@ -4597,7 +4789,8 @@ def simulate_cell ( video_dir,
     return list_videos, list_masks, list_dataframe_simulated_cell, merged_dataframe_simulated_cells, ssa_trajectories, list_files_names_outputs, save_to_path_video, save_to_path_df.joinpath('dataframe_sim_cell.csv')
 
 
-def image_processing(files_dir_path_processing,
+def image_processing(files_dir_path_processing=None,
+                    video=None,
                     list_masks = None,
                     particle_size=14,
                     selected_channel_tracking = 0,
@@ -4610,6 +4803,7 @@ def image_processing(files_dir_path_processing,
                     average_cell_diameter=200,
                     print_process_times=False,
                     min_percentage_time_tracking=0.3,
+                    intensity_threshold_tracking=None,
                     dataframe_format='long',
                     create_pdf=False,
                     create_metadata=False):
@@ -4621,16 +4815,24 @@ def image_processing(files_dir_path_processing,
     list_segmentation_succesful=[]
     list_file_names =[]
     list_frames_videos=[]
+    
     ## Reads the folder with the results and import the simulations as lists
-    is_a_file = Utilities.test_if_file_exist(files_dir_path_processing)
-    if is_a_file == False:
-        path_files, _, _, number_images = Utilities.read_files_in_directory(directory= files_dir_path_processing, extension_of_files_to_look_for = 'tif',return_images_in_list=False)
+    if not (files_dir_path_processing is None):
+        is_a_file = Utilities.test_if_file_exist(files_dir_path_processing)
+        if is_a_file == False:
+            path_files, _, _, number_images = Utilities.read_files_in_directory(directory= files_dir_path_processing, extension_of_files_to_look_for = 'tif',return_images_in_list=False)
+        else:
+            path_files = [Utilities.convert_str_to_path(files_dir_path_processing)]
+            number_images = 1
+        processing_path_name = files_dir_path_processing.name
     else:
-        path_files = [Utilities.convert_str_to_path(files_dir_path_processing)]
+        path_files = None
         number_images = 1
+        processing_path_name = 'temp'
+        
     # Creating directory to store tracking images.
     current_dir = pathlib.Path().absolute()
-    save_to_path_ip =  current_dir.joinpath('temp_processing',files_dir_path_processing.name )
+    save_to_path_ip =  current_dir.joinpath('temp_processing',processing_path_name )
     Utilities.test_if_directory_exist_if_not_create(save_to_path_ip,remove_if_already_exist=False)
     path_temporal_results =  save_to_path_ip.joinpath('temp_results')
     Utilities.test_if_directory_exist_if_not_create(path_temporal_results,remove_if_already_exist=True)
@@ -4641,9 +4843,15 @@ def image_processing(files_dir_path_processing,
             mask = list_masks[i]
         else:
             mask=None
-        selected_video = imread(path_files[i]) # Loading the video
-        file_name = pathlib.Path(path_files[i]).name
+        if not (path_files is None):
+            selected_video = imread(path_files[i]) # Loading the video
+            file_name = pathlib.Path(path_files[i]).name
+        else:
+            selected_video = video
+            file_name = 'temp'
+            
         frames_in_video = selected_video.shape[0]
+        
         if not (real_positions_dataframe is None):
             image_real_positions_dataframe= Utilities.variable_to_list(real_positions_dataframe)
             image_real_positions_dataframe = image_real_positions_dataframe[i]
@@ -4663,6 +4871,7 @@ def image_processing(files_dir_path_processing,
                                                                                                                     average_cell_diameter=average_cell_diameter,
                                                                                                                     print_process_times=print_process_times,
                                                                                                                     min_percentage_time_tracking=min_percentage_time_tracking,
+                                                                                                                    intensity_threshold_tracking=intensity_threshold_tracking,
                                                                                                                     dataframe_format=dataframe_format,
                                                                                                                     create_pdf=create_pdf,
                                                                                                                     path_temporal_results=path_temporal_results,
@@ -4671,7 +4880,10 @@ def image_processing(files_dir_path_processing,
         list_array_intensities.append(array_intensities)
         list_time_vector.append(time_vector)
         list_selected_mask.append(selected_mask)
-        list_video_paths.append(path_files[i])
+        if not (path_files is None):
+            list_video_paths.append(path_files[i])
+        else:
+            list_video_paths.append([])
         list_segmentation_succesful.append(segmentation_succesful)
         list_file_names.append(file_name)
         list_frames_videos.append(frames_in_video)
