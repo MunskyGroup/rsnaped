@@ -6,8 +6,6 @@ Created on Fri Jun 26 22:10:24 2020
 Authors: Luis U. Aguilera, William Raymond, Brooke Silagy, Brian Munsky.
 '''
 
-# https://eikonomega.medium.com/getting-started-with-sphinx-autodoc-part-1-2cebbbca5365
-# https://docs.anaconda.com/restructuredtext/detailed/
 
 # Conventions.
 # module_name, package_name, ClassName, method_name,
@@ -649,14 +647,6 @@ class GaussianLaplaceFilter():
         video_filtered : np.uint16
             Filtered video resulting from the bandpass process. Array with format [T, Y, X, C].
         '''
-        # temporal function that converts floats to uint
-        def img_uint(image):
-            temp_vid = img_as_uint(image)
-            return temp_vid
-        # temporal function that converts uint to float
-        def img_float(image):
-            temp_vid = img_as_float64(image)
-            return temp_vid
         # Pre-allocating arrays
         number_time_points, number_channels   = self.video.shape[0], self.video.shape[3]
         video_filtered = np.zeros_like(self.video, dtype = np.uint16)
@@ -700,13 +690,9 @@ class GaussianFilter():
         for index_channels in range(0, number_channels):
             for index_time in range(0, number_time_points):
                 video_bp_filtered_float[index_time, :, :, index_channels] = gaussian(self.video[index_time, :, :, index_channels], self.sigma)
-        # temporal function that converts floats to uint
-        def img_uint(image):
-            temp_vid = img_as_uint(image)
-            return temp_vid
         # returning the image normalized as uint. Notice that difference_of_gaussians converts the image into float.
         for index_channels in range(0, number_channels):
-            init_video = Parallel(n_jobs = self.NUMBER_OF_CORES)(delayed(img_uint)(video_bp_filtered_float[i, :, :, index_channels]) for i in range(0, number_time_points))
+            init_video = Parallel(n_jobs = self.NUMBER_OF_CORES)(delayed(Utilities.img_uint)(video_bp_filtered_float[i, :, :, index_channels]) for i in range(0, number_time_points))
             video_filtered[:,:,:,index_channels] = np.asarray(init_video)
         return video_filtered
 
@@ -744,13 +730,6 @@ class BandpassFilter():
         video_filtered : np.uint16
             Filtered video resulting from the bandpass process. Array with format [T, Y, X, C].
         '''
-        def img_uint(image):
-            temp_vid = img_as_uint(image)
-            return temp_vid
-        # temporal function that converts uint to float
-        def img_float(image):
-            temp_vid = img_as_float64(image)
-            return temp_vid
         # Pre-allocating arrays
         number_time_points, number_channels   = self.video.shape[0], self.video.shape[3]
         video_bp_filtered_float = np.zeros_like(self.video, dtype = np.float64)
@@ -758,7 +737,7 @@ class BandpassFilter():
         video_filtered = np.zeros_like(self.video, dtype = np.uint16)
         # returning the image normalized as uint. Notice that difference_of_gaussians converts the image into float.
         for index_channels in range(0, number_channels):
-            temp_video = Parallel(n_jobs = self.NUMBER_OF_CORES)(delayed(img_float)(self.video [i, :, :, index_channels]) for i in range(0, number_time_points))
+            temp_video = Parallel(n_jobs = self.NUMBER_OF_CORES)(delayed(Utilities.img_float)(self.video [i, :, :, index_channels]) for i in range(0, number_time_points))
             video_float[:,:,:,index_channels] = np.asarray(temp_video)
         # Applying the filter
         for index_channels in range(0, number_channels):
@@ -766,7 +745,7 @@ class BandpassFilter():
                 video_bp_filtered_float[index_time, :, :, index_channels] = difference_of_gaussians(video_float[index_time, :, :, index_channels], self.low_pass, self.high_pass)
         # returning the image normalized as uint. Notice that difference_of_gaussians converts the image into float.
         for index_channels in range(0, number_channels):
-            init_video = Parallel(n_jobs = self.NUMBER_OF_CORES)(delayed(img_uint)(video_bp_filtered_float[i, :, :, index_channels]) for i in range(0, number_time_points))
+            init_video = Parallel(n_jobs = self.NUMBER_OF_CORES)(delayed(Utilities.img_uint)(video_bp_filtered_float[i, :, :, index_channels]) for i in range(0, number_time_points))
             video_filtered[:,:,:,index_channels] = np.asarray(init_video)
         return video_filtered
 
@@ -796,35 +775,6 @@ class MaskingImage():
         '''
         video_removed_mask = np.einsum('ijkl, jk -> ijkl', self.video, self.mask)
         return video_removed_mask
-
-
-#/***************************************************************************************
-#    This class has been modified from the following reference.
-#    Title: Select ROI within Jupyter Notebook.  bbox_select
-#    Author: Prateek Khandelwal
-#    Date: July 14, 2019
-#    Availability: https://gist.github.com/Pked01/83cdef1dfe49e4004f5af78708767850
-class ManualMask():
-    def __init__(self,video,time_point_selected,selected_channel):
-        normalized_video = RemoveExtrema(video, min_percentile= 0, max_percentile = 99,selected_channels=selected_channel).remove_outliers()
-        self.image = normalized_video[time_point_selected,:,:,selected_channel]
-        self.selected_points = []
-        self.figure_to_draw_points , axes_in_figure = plt.subplots()
-        self.new_image = axes_in_figure.imshow(np.copy(self.image),cmap='Spectral_r')
-        self.cli = self.figure_to_draw_points.canvas.mpl_connect('button_press_event', self.onclick)
-    # Function to draw the polygon in the figure
-    def polygon(self,new_image,points_in_polygon):
-        points_in_polygon = np.array(points_in_polygon, np.int32)
-        points_in_polygon = points_in_polygon.reshape((-1,1,2))
-        cv2.polylines(new_image,pts=[points_in_polygon],isClosed=True,color=(0,0,0),thickness=3)
-        return new_image
-    # Event handling
-    def onclick(self, event):
-        self.selected_points.append([event.xdata,event.ydata])
-        if len(self.selected_points)>=1:
-            self.figure_to_draw_points
-            self.new_image.set_data(self.polygon(np.copy(self.image),self.selected_points))
-#***************************************************************************************/
 
 
 class MaskManual_createMask():
@@ -899,7 +849,6 @@ class BeadsAlignment():
         array_spots_0 = np.asarray( df0[['y','x']]) # coordinates for spot_type_0 with shape [num_spots_type_0, 3]
         array_spots_1 = np.asarray( df1[['y','x']]) # coordinates for spot_type_1 with shape [num_spots_type_1, 3]
         total_spots0 = array_spots_0.shape[0]
-        #total_spots1 = array_spots_1.shape[0]
         # Concatenating arrays from spots 0 and 1
         array_all_spots = np.concatenate((array_spots_0,array_spots_1), axis=0) 
         # Calculating a distance matrix. 
@@ -941,27 +890,9 @@ class BeadsAlignment():
         print('Spots detected in the second image:')
         print(np.round(positions_in_second_image[0:np.min((5, number_spots_second_image)),:],1))
         print('_______ ')
-        # Plotting the detected spots.
+        # Plotting the images with the detected spots
         if self.show_plot == True:
-            _, ax = plt.subplots(2,2, figsize=(10, 10))
-            ax[0,0].imshow(self.first_image_beads,cmap='Greys_r')
-            ax[0,0].set_xticks([]); ax[0,0].set_yticks([])
-            ax[0,0].set_title('Original first image')
-            ax[0,1].imshow(filtered_first_image_beads,cmap='Greys_r')
-            ax[0,1].set_xticks([]); ax[0,1].set_yticks([])
-            ax[0,1].set_title('Filtered image')
-            for i in range(0, positions_in_first_image.shape[0]):
-                circle1=plt.Circle((positions_in_first_image[i,0], positions_in_first_image[i,1]), self.spot_size, color = 'yellow', fill = False)
-                ax[0,1].add_artist(circle1)        
-            ax[1,0].imshow(self.second_image_beads,cmap='Greys_r')
-            ax[1,0].set_xticks([]); ax[1,0].set_yticks([])
-            ax[1,0].set_title('Original second image')
-            ax[1,1].imshow(filtered_second_image_beads,cmap='Greys_r')
-            ax[1,1].set_xticks([]); ax[1,1].set_yticks([])
-            ax[1,1].set_title('Filtered image')
-            for i in range(0, positions_in_second_image.shape[0]):
-                circle2=plt.Circle((positions_in_second_image[i,0], positions_in_second_image[i,1]), self.spot_size, color = 'yellow', fill = False)
-                ax[1,1].add_artist(circle2)
+            Plots.plot_beads_alignment(self.first_image_beads,filtered_first_image_beads,positions_in_first_image, self.second_image_beads,filtered_second_image_beads,positions_in_second_image,self.spot_size )
         # Calculating the minimum value of rows for the alignment
         no_spots_for_alignment = min(positions_in_first_image.shape[0], positions_in_second_image.shape[0])
         src = positions_in_first_image[:no_spots_for_alignment, :2].reshape((no_spots_for_alignment, 2))
@@ -1013,618 +944,6 @@ class CamerasAlignment():
         return transformed_video
 
 
-class VisualizerImage():
-    '''
-    This class is intended to visualize videos as 2D images. This class has the option to mark the particles that previously were selected by trackPy.
-
-    Parameters
-
-    list_videos : List of NumPy arrays or a single NumPy array
-        Images or videos to visualize. The format is a list of Numpy arrays where each array follows the convention [T, Y, X, C] or an image array with format [Y, X].
-    list_videos_filtered : List of NumPy arrays or a single NumPy array or None
-        Images or videos to visualize. The format is a list of Numpy arrays where each array follows the convention [T, Y, X, C]. The default is None.
-    list_selected_particles_dataframe : pandas data frame, optional
-        A pandas data frame containing the position of each spot in the image. The default is None.
-    list_files_names : List of str or str, optional
-        List of file names to display as the title on the image. The default is None.
-    list_mask_array : List of NumPy arrays or a single NumPy array, with Boolean values, where 1 represents the masked area, and 0 represents the area outside the mask.
-        An array of images with dimensions [Y, X].
-    selected_channel : int, optional
-        Allows the user to define the channel to visualize in the plotted images. The default is 0.
-    selected_time_point : int, optional
-        Allows the user to define the time point or frame to display on the image. The default is 0.
-    normalize : bool, optional
-        Option to normalize the data by removing outliers. The code removes the 1 and 99 percentiles from the image. The default is False.
-    individual_figure_size : float, optional
-        Allows the user to change the size of each image. The default is 5.
-    list_real_particle_positions : List of Pandas dataframes or a single dataframe, optional.
-        A pandas data frame containing the position of each spot in the image. This dataframe is generated with class SimulatedCell, and it contains the true position for each spot. This option is only intended to be used to train algorithms for tracking and visualize real vs detected spots. The default is None.
-    image_name : str, optional.
-        Name for the image. The default is 'temp_image.png'.
-    show_plot: bool, optional
-        Flag to display the image to screen. The default is True.
-    save_image_as_file : bool, optional,
-        Flag to save image as png. The default is False.
-    '''
-    def __init__(self, list_videos: list, list_videos_filtered: Union[list, None] = None, list_selected_particles_dataframe: Union[list, None] = None, list_files_names: Union[list, None] = None, list_mask_array: Union[list, None] = None, list_real_particle_positions: Union[list, None] = None, selected_channel:int = 0, selected_time_point:int = 0, normalize:bool = False, individual_figure_size:float = 5,image_name:str='temp_image.png',show_plot:bool=True,save_image_as_file:bool=False,colormap='plasma'):
-        self.particle_size = 7
-        self.selected_time_point = selected_time_point
-        self.selected_channel = selected_channel
-        self.individual_figure_size = individual_figure_size
-        self.image_name =image_name
-        self.show_plot=show_plot
-        self.save_image_as_file=save_image_as_file
-        self.colormap= colormap
-        
-
-        
-        # Checking if the video is a list or a single video.
-        if not (type(list_videos) is list):
-            list_videos = [list_videos]
-            self.list_videos = list_videos
-            self.number_videos = 1
-        else:
-            self.list_videos = list_videos
-            self.number_videos = len(list_videos)
-        if not (type(list_mask_array) is list):
-            list_mask_array = [list_mask_array]
-            self.list_mask_array = list_mask_array
-        else:
-            self.list_mask_array = list_mask_array
-        #### LIST REAL PARTICLES TO SHOW ON THE IMAGE
-        if not (type(list_real_particle_positions) is list):
-            list_real_particle_positions = [list_real_particle_positions]
-            self.list_real_particle_positions = list_real_particle_positions
-        else:
-            self.list_real_particle_positions = list_real_particle_positions
-        if not (type(list_files_names) is list):
-            list_files_names = [list_files_names]
-            self.list_files_names = list_files_names
-        else:
-            self.list_files_names = list_files_names
-        if not (type(list_videos_filtered) is list):
-            list_videos_filtered = [list_videos_filtered]
-            self.list_videos_filtered = list_videos_filtered
-        else:
-            self.list_videos_filtered = list_videos_filtered
-        if not (type(list_selected_particles_dataframe) is list):
-            list_selected_particles_dataframe = [list_selected_particles_dataframe]
-            self.list_selected_particles_dataframe = list_selected_particles_dataframe
-        else:
-            self.list_selected_particles_dataframe = list_selected_particles_dataframe
-        self.list_number_frames = [list_videos[i].shape[0] for i in range(0, self.number_videos)]
-        maximum_time_point_video =  min ( self.list_number_frames ) # Minimum of maximum size in the list of videos.
-        if selected_time_point > maximum_time_point_video:
-            self.selected_time_point = maximum_time_point_video
-        # remove the 1 and 99 percentile if normalize == True
-        if normalize == True:
-            list_videos_normalized = []
-            for index_video in range(0, self.number_videos):
-                number_time_points, _, _, number_channels = list_videos[index_video].shape
-                temp_video = np.copy(list_videos[index_video])
-                for index_channels in range (number_channels):
-                    for index_time in range (number_time_points):
-                        temp_video[index_time, :, :, index_channels] = RemoveExtrema(temp_video[index_time, :, :, index_channels],format_video='YX').remove_outliers()
-                list_videos_normalized.append(temp_video)
-            self.list_videos = list_videos_normalized
-        else:
-            self.list_videos = list_videos
-        # This section converts an image [Y, X] into a video with dimensions. [T, Y, X, C].
-        if len(list_videos[0].shape) == 2:
-            list_videos_4D = []
-            for index_video in range(0, self.number_videos):
-                temp_video_shape = np.zeros((1, list_videos[index_video].shape[0], list_videos[index_video].shape[1], 1), dtype = np.float32)
-                temp_video_shape[0, :, :, 0] = list_videos[index_video]
-                list_videos_4D.append(temp_video_shape)
-            list_videos = list_videos_4D
-            self.selected_channel = 0
-            self.selected_time_point = 0
-    def plot(self):
-        '''
-        This method plots a list of images as a grid.
-
-        Returns
-
-        None.
-        '''
-        # Plotting only the cells
-        NUM_COLUMNS = 8
-        if ( self.list_selected_particles_dataframe[0] is None):
-            NUM_ROWS = int(math.ceil(len(self.list_videos) / NUM_COLUMNS))
-            # Loop to plot multiple cells in a grid
-            gs = gridspec.GridSpec(NUM_ROWS, NUM_COLUMNS)
-            gs.update(wspace = 0.1, hspace = 0.1) # set the spacing between axes.
-            fig = plt.figure(figsize = (self.individual_figure_size*NUM_COLUMNS, self.individual_figure_size*NUM_ROWS))
-            for index_video in range(0, self.number_videos):
-                ax = fig.add_subplot(gs[index_video])
-                ax.imshow(self.list_videos[index_video][self.selected_time_point, :, :, self.selected_channel], cmap = 'gray')
-                ax.set_xticks([])
-                ax.set_yticks([])
-                if not ( self.list_files_names[0] is None):
-                    ax.set(title = self.list_files_names[index_video][0:-4])
-                else:
-                    ax.set(title = 'Cell_'+str(index_video))
-        # Plotting the cells and the detected spots
-        if not ( self.list_selected_particles_dataframe[0] is None) and ( ( self.list_videos_filtered[0] is None)):
-            NUM_ROWS = int(math.ceil(len(self.list_videos) / NUM_COLUMNS))
-            # Loop to plot multiple cells in a grid
-            gs = gridspec.GridSpec(NUM_ROWS, NUM_COLUMNS)
-            gs.update(wspace = 0.1, hspace = 0.1) # set the spacing between axes.
-            fig = plt.figure(figsize = (self.individual_figure_size*NUM_COLUMNS, self.individual_figure_size*NUM_ROWS))
-            counter = 0
-            for index_video in range(0, self.number_videos):
-                ax = fig.add_subplot(gs[index_video])
-                ax.imshow(self.list_videos[index_video][self.selected_time_point, :, :, self.selected_channel], cmap = 'gray')
-                ax.set_xticks([])
-                ax.set_yticks([])
-                if not ( self.list_files_names[0] is None):
-                    ax.set(title = self.list_files_names[index_video][0:-4])
-                else:
-                    ax.set(title = 'Cell_'+str(index_video))
-                # main loop to mark spots
-                number_particles  = None
-                frames_part = None
-                x_pos = None
-                y_pos = None
-                if not (self.list_selected_particles_dataframe[0] is None):
-                    selected_particles_dataframe = self.list_selected_particles_dataframe[counter]
-                    if not len (self.list_selected_particles_dataframe[counter]) == 0:
-                        number_particles = selected_particles_dataframe['particle'].nunique()
-                        for k in range (0, number_particles):
-                            frames_part = selected_particles_dataframe.loc[selected_particles_dataframe['particle'] == selected_particles_dataframe['particle'].unique()[k]].frame.values
-                            index_time = self.selected_time_point
-                            if index_time in frames_part: # plotting the circles for each detected particle at a given time point
-                                index_val = np.where(frames_part == index_time)
-                                x_pos = int(selected_particles_dataframe.loc[selected_particles_dataframe['particle'] == selected_particles_dataframe['particle'].unique()[k]].x.values[index_val])
-                                y_pos = int(selected_particles_dataframe.loc[selected_particles_dataframe['particle'] == selected_particles_dataframe['particle'].unique()[k]].y.values[index_val])
-                            try:
-                                circle = plt.Circle((x_pos, y_pos), self.particle_size/2, color = 'yellow', fill = False)
-                                ax.add_artist(circle)
-                            except:
-                                pass
-                # main loop to mark spots ==  > REAL SPOTS. USE FOR SIMULATED CELL
-                number_particles  = None
-                frames_part = None
-                x_pos = None
-                y_pos = None
-                if not (self.list_real_particle_positions[0] is None):
-                    selected_particles_dataframe = self.list_real_particle_positions[counter]
-                    if not len (self.list_real_particle_positions[counter]) == 0:
-                        number_particles = selected_particles_dataframe['particle'].nunique()
-                        for k in range (0, number_particles):
-                            frames_part = selected_particles_dataframe.loc[selected_particles_dataframe['particle'] == selected_particles_dataframe['particle'].unique()[k]].frame.values
-                            index_time = self.selected_time_point
-                            if index_time in frames_part: # plotting the circles for each detected particle at a given time point
-                                index_val = np.where(frames_part == index_time)
-                                x_pos = int(selected_particles_dataframe.loc[selected_particles_dataframe['particle'] == selected_particles_dataframe['particle'].unique()[k]].x.values[index_val])
-                                y_pos = int(selected_particles_dataframe.loc[selected_particles_dataframe['particle'] == selected_particles_dataframe['particle'].unique()[k]].y.values[index_val])
-                            try:
-                                circle = plt.Circle((x_pos, y_pos), 2, color = 'orangered', fill = False)
-                                ax.add_artist(circle)
-                            except:
-                                pass
-                # Plots the mask contour on the video
-                if not ( self.list_mask_array[0] is None):
-                    mask_array = self.list_mask_array[index_video]
-                    if len(mask_array.shape) == 3:
-                        contuour_position = find_contours(mask_array[index_time, :, :], 0.8)
-                    elif len(mask_array.shape) == 2:
-                        contuour_position = find_contours(mask_array[:, :], 0.8)
-                    temp = contuour_position[0][:, 1]
-                    temp2 = contuour_position[0][:, 0]
-                    plt.fill(temp, temp2, facecolor = 'none', edgecolor = 'yellow')
-                counter += 1
-        # Plotting the cells and the detected spots and the filtered video.
-        if (not ( self.list_selected_particles_dataframe[0] is None)) and (not ( self.list_videos_filtered[0] is None)) :
-            NUM_ROWS = self.number_videos
-            gs = gridspec.GridSpec(NUM_ROWS, NUM_COLUMNS)
-            gs.update(wspace = 0.1, hspace = 0.1) # set the spacing between axes.
-            fig = plt.figure(figsize = (self.individual_figure_size*NUM_COLUMNS, self.individual_figure_size*NUM_ROWS))
-            counter = 0
-            for index_video in range(0, self.number_videos*3, 3):
-                if not ( self.list_files_names[0] is None):
-                    title_str = self.list_files_names[counter][0:-4]
-                else:
-                    title_str = 'Cell_'+str(counter)
-                # Figure with raw video
-                ax = fig.add_subplot(gs[index_video])
-                ax.imshow(self.list_videos[counter][self.selected_time_point, :, :, self.selected_channel], cmap = self.colormap, vmax = np.max(self.list_videos[counter][self.selected_time_point, :, :, self.selected_channel])*0.95)
-                ax.set_xticks([])
-                ax.set_yticks([])
-                ax.set(title = title_str + ' Original')
-                # Figure with filtered video
-                ax = fig.add_subplot(gs[index_video+1])
-                ax.imshow(self.list_videos_filtered[counter][self.selected_time_point, :, :, self.selected_channel], cmap = self.colormap )
-                #ax.imshow(self.list_videos_filtered[counter][self.selected_time_point, :, :, self.selected_channel], cmap = 'Greys', vmin = 0 ,vmax = np.max(self.list_videos[counter][self.selected_time_point, :, :, self.selected_channel]))
-                ax.set_xticks([])
-                ax.set_yticks([])
-                ax.set(title = title_str + ' Filtered' )
-                # Figure with original video and marking the spots
-                ax = fig.add_subplot(gs[index_video+2])
-                ax.imshow(self.list_videos[counter][self.selected_time_point, :, :, self.selected_channel], cmap = self.colormap, vmax = np.max(self.list_videos[counter][self.selected_time_point, :, :, self.selected_channel])*0.95)
-                ax.set_xticks([])
-                ax.set_yticks([])
-                ax.set(title = title_str + ' Detected Spots' )
-                # main loop to mark spots
-                number_particles  = None
-                frames_part = None
-                x_pos = None
-                y_pos = None
-                # Section that plots the spots
-                selected_particles_dataframe = self.list_selected_particles_dataframe[counter]
-                if not len (self.list_selected_particles_dataframe[counter]) == 0:
-                    number_particles = selected_particles_dataframe['particle'].nunique()
-                    for k in range (0, number_particles):
-                        frames_part = selected_particles_dataframe.loc[selected_particles_dataframe['particle'] == selected_particles_dataframe['particle'].unique()[k]].frame.values
-                        index_time = self.selected_time_point
-                        if index_time in frames_part: # plotting the circles for each detected particle at a given time point
-                            index_val = np.where(frames_part == index_time)
-                            x_pos = int(selected_particles_dataframe.loc[selected_particles_dataframe['particle'] == selected_particles_dataframe['particle'].unique()[k]].x.values[index_val])
-                            y_pos = int(selected_particles_dataframe.loc[selected_particles_dataframe['particle'] == selected_particles_dataframe['particle'].unique()[k]].y.values[index_val])
-                        try:
-                            circle = plt.Circle((x_pos, y_pos), self.particle_size/2, color = 'w', fill = False)
-                            ax.add_artist(circle)
-                        except:
-                            pass
-                # main loop to mark spots ==  > REAL SPOTS. USE FOR SIMULATED CELL
-                number_particles  = None
-                frames_part = None
-                x_pos = None
-                y_pos = None
-                if not ( self.list_real_particle_positions[0] is None):
-                    selected_particles_dataframe = self.list_real_particle_positions[counter]
-                    if not len (self.list_real_particle_positions[counter]) == 0:
-                        number_particles = selected_particles_dataframe['particle'].nunique()
-                        for k in range (0, number_particles):
-                            frames_part = selected_particles_dataframe.loc[selected_particles_dataframe['particle'] == selected_particles_dataframe['particle'].unique()[k]].frame.values
-                            index_time = self.selected_time_point
-                            if index_time in frames_part: # plotting the circles for each detected particle at a given time point
-                                index_val = np.where(frames_part == index_time)
-                                x_pos = int(selected_particles_dataframe.loc[selected_particles_dataframe['particle'] == selected_particles_dataframe['particle'].unique()[k]].x.values[index_val])
-                                y_pos = int(selected_particles_dataframe.loc[selected_particles_dataframe['particle'] == selected_particles_dataframe['particle'].unique()[k]].y.values[index_val])
-                            try:
-                                circle = plt.Circle((x_pos, y_pos), 2, color = 'yellow', fill = True)
-                                ax.add_artist(circle)
-                            except:
-                                pass
-                # Plots the mask contour on the video
-                if not ( self.list_mask_array[0] is None):
-                    mask_array = self.list_mask_array[index_video]
-                    if len(mask_array.shape) == 3:
-                        contuour_position = find_contours(mask_array[index_time, :, :], 0.8)
-                    elif len(mask_array.shape) == 2:
-                        contuour_position = find_contours(mask_array[:, :], 0.8)
-                    temp = contuour_position[0][:, 1]
-                    temp2 = contuour_position[0][:, 0]
-                    plt.fill(temp, temp2, facecolor = 'none', edgecolor = 'yellow')
-                counter += 1
-        fig.tight_layout()
-        if self.save_image_as_file == True:
-            plt.savefig(self.image_name,bbox_inches='tight')
-        if self.show_plot ==True:
-            plt.show()
-        else:
-            plt.close()
-        return None
-
-
-class VisualizerVideo():
-    '''
-    This class is intended to visualize videos as interactive widgets. This class has the option to mark the particles that previously were selected by trackPy.
-
-    Parameters
-
-    list_videos : List of NumPy arrays or a single NumPy array
-        Images or videos to visualize. The format is a list of Numpy arrays where each array follows the convention [T, Y, X, C] or an image array with format [Y, X].
-    dataframe_particles : pandas data frame, optional
-        A pandas data frame containing the position of each spot in the image. The default is None.
-    list_mask_array : List of NumPy arrays or a single NumPy array, with Boolean values, where 1 represents the masked area, and 0 represents the area outside the mask.
-        An array of images with dimensions [Y, X].
-    show_time_projection_spots : int, optional
-        Allows the user to display the projection of all detected spots for all time points on the current image. The default is False.
-    normalize : bool, optional
-        Option to normalize the data by removing outliers. The code removes the 1 and 99 percentiles from the image. The default is False.
-    step_size_in_sec : float, optional
-        Step size in seconds. The default is 1.
-    '''
-    def __init__(self, list_videos:list, dataframe_particles = None, list_mask_array:list = None, show_time_projection_spots:bool = False, normalize:bool = False, step_size_in_sec:float = 1):
-        self.particle_size = 7
-        self.show_time_projection_spots = show_time_projection_spots
-        # Checking if the video is a list or a single video.
-        if not (type(list_videos) is list):
-            list_videos = [list_videos]
-            self.list_videos = list_videos
-            self.number_videos = 1
-        else:
-            self.number_videos = len(list_videos)
-        if not (type(list_mask_array) is list):
-            list_mask_array = [list_mask_array]
-            self.list_mask_array = list_mask_array
-        else:
-            self.list_mask_array = list_mask_array
-        if not (type(dataframe_particles) is list):
-            dataframe_particles = [dataframe_particles]
-            self.dataframe_particles = dataframe_particles
-        else:
-            self.dataframe_particles = dataframe_particles
-        self.list_number_frames = [list_videos[i].shape[0] for i in range(0, self.number_videos)]
-        self.min_time_all_cells = min(self.list_number_frames)
-        # remove the 1 and 99 percentile if normalize == True
-        if normalize == True:
-            list_videos_normalized = []
-            for index_video in range(0, self.number_videos):
-                number_time_points, _, _, number_channels = list_videos[index_video].shape
-                temp_video = np.copy(list_videos[index_video])
-                for index_channels in range (number_channels):
-                    for index_time in range (number_time_points):
-                        temp_video[index_time, :, :, index_channels] = RemoveExtrema(temp_video[index_time, :, :, index_channels],format_video='YX').remove_outliers()
-                list_videos_normalized.append(temp_video)
-            self.list_videos = list_videos_normalized
-        else:
-            self.list_videos = self.list_videos
-        n_channels = [self.list_videos[i].shape[3] for i in range(0, self.number_videos)][0]
-        self.min_num_channels = np.min((n_channels))
-        self.step_size_in_sec = step_size_in_sec
-    def make_video_app(self):
-        '''
-        This method returns two objects (controls and output) that can be used to display a widget.
-
-        Returns
-
-        controls : object
-            Controls from interactive to use with ipywidgets **display**.
-        output : object
-            Output values from from interactive to use with ipywidgets **display**.
-        '''
-        def figure_viewer(drop_cell:int, index_time_slider:int, drop_channel:int):
-            video = self.list_videos[drop_cell]
-            selected_particles_dataframe = self.dataframe_particles[drop_cell]
-            drop_size = self.particle_size
-            index_time = int(index_time_slider/self.step_size_in_sec)
-            plt.figure(1)
-            ax = plt.gca()
-            if drop_channel == 'Ch_0':
-                channel = 0
-                plt.imshow(video[index_time, :, :, channel], cmap = 'gray', vmax = np.max(video[index_time, :, :, channel])*0.95)
-            elif drop_channel == 'Ch_1':
-                channel = 1
-                plt.imshow(video[index_time, :, :, channel], cmap = 'gray', vmax = np.max(video[index_time, :, :, channel])*0.95)
-            elif drop_channel == 'Ch_2':  # vmax = np.mean(video[index_time, :, :, channel])+3*np.std(video[index_time, :, :, channel])
-                channel = 2
-                plt.imshow(video[index_time, :, :, channel], cmap = 'gray', vmax = np.max(video[index_time, :, :, channel])*0.95)
-            elif drop_channel == 'Ch_3':
-                channel = 3
-                plt.imshow(video[index_time, :, :, channel], cmap = 'gray', vmax = np.max(video[index_time, :, :, channel])*0.95)
-            else :
-                # Converting a np.uint16 array into float.
-                image = np.copy(video[index_time, :, :, :])
-                min_image, max_image = np.min(image), np.max(image)
-                image -= min_image
-                image_float = np.array(image, 'float32')
-                image_float *= 255./(max_image-min_image)
-                image = np.asarray(np.round(image_float), 'uint8')
-                plt.imshow(image, vmax = np.max(image)*0.95)
-            # Plots the detected spots.
-            if not ( self.dataframe_particles[0] is None):
-                n_particles = selected_particles_dataframe['particle'].nunique()
-                for k in range (0, n_particles):
-                    frames_part = selected_particles_dataframe.loc[selected_particles_dataframe['particle'] == selected_particles_dataframe['particle'].unique()[k]].frame.values
-                    if index_time in frames_part: # plotting the circles for each detected particle at a given time point
-                        index_val = np.where(frames_part == index_time)
-                        x_pos = int(selected_particles_dataframe.loc[selected_particles_dataframe['particle'] == selected_particles_dataframe['particle'].unique()[k]].x.values[index_val])
-                        y_pos = int(selected_particles_dataframe.loc[selected_particles_dataframe['particle'] == selected_particles_dataframe['particle'].unique()[k]].y.values[index_val])
-                    elif self.show_time_projection_spots == True: # In case the spot is not detected in a given time point, plot the closest the point
-                        index_closest = np.abs(frames_part - index_time).argmin()
-                        x_pos = int(selected_particles_dataframe.loc[selected_particles_dataframe['particle'] == selected_particles_dataframe['particle'].unique()[k]].x.values[index_closest])
-                        y_pos = int(selected_particles_dataframe.loc[selected_particles_dataframe['particle'] == selected_particles_dataframe['particle'].unique()[k]].y.values[index_closest])
-                    try:
-                        circle = plt.Circle((x_pos, y_pos), drop_size/2, color = 'yellow', fill = False)
-                        ax.add_artist(circle)
-                    except:
-                        pass
-            # Plots the mask contour on the video
-            if not ( self.list_mask_array[0] is None):
-                mask_array = self.list_mask_array[drop_cell]
-                if len(mask_array.shape) == 3:
-                    contuour_position = find_contours(mask_array[index_time, :, :], 0.8)
-                elif len(mask_array.shape) == 2:
-                    contuour_position = find_contours(mask_array[:, :], 0.8)
-                temp = contuour_position[0][:, 1]
-                temp2 = contuour_position[0][:, 0]
-                plt.fill(temp, temp2, facecolor = 'none', edgecolor = 'yellow')
-            plt.show()
-        # This section defines the drop menu for the number of channels in the video.
-        if self.min_num_channels == 1:
-            options_channels = ['Ch_0']
-        if self.min_num_channels == 2:
-            options_channels = ['Ch_0', 'Ch_1']
-        if self.min_num_channels == 3:
-            options_channels = ['Ch_0', 'Ch_1', 'Ch_2', 'All_Channels']
-        if self.min_num_channels == 4:
-            options_channels = ['Ch_0', 'Ch_1', 'Ch_2', 'Ch_3', 'All_Channels']
-        options_cells = list(range(0, self.number_videos))
-        interactive_plot = interactive(figure_viewer, drop_cell = widgets.Dropdown(options = options_cells, description = 'Cell'), 
-                                        index_time_slider = widgets.IntSlider(min = 0, max = (self.min_time_all_cells-1)*self.step_size_in_sec , step = self.step_size_in_sec, value = 0, description = 'Time'), 
-                                        drop_channel = widgets.Dropdown(options = options_channels, description = 'Channel'))
-        controls = HBox(interactive_plot.children[:-1], layout = Layout(flex_flow = 'row wrap'))
-        output = interactive_plot.children[-1]
-        return controls, output
-
-
-class VisualizerVideo3D():
-    '''
-    This class is intended to visualize 3d videos as interactive widgets.
-
-    Parameters
-
-    list_videos : List of NumPy arrays or a single NumPy array
-        Images or videos to visualize. The format is a list of Numpy arrays where each array follows the convention [T, Y, X, C] or an image array with format [Y, X].
-    '''
-    def __init__(self, list_videos:list):
-        # Checking if the video is a list or a single video.
-        if not (type(list_videos) is list):
-            list_videos = [list_videos]
-            self.list_videos = list_videos
-            self.number_videos = 1
-        else:
-            self.number_videos = len(list_videos)
-        self.list_number_frames = [list_videos[i].shape[0] for i in range(0, self.number_videos)]
-        self.min_time_all_cells = min(self.list_number_frames)
-        list_number_z_slices = [list_videos[i].shape[1] for i in range(0, self.number_videos)]
-        self.min_z_slices = min(list_number_z_slices)
-        n_channels = [list_videos[i].shape[3] for i in range(0, self.number_videos)][0]
-        self.min_num_channels = np.min((n_channels))
-    def make_video_app(self):
-        '''
-        This method returns two objects (controls and output) that can be used to display a widget.
-
-        Returns
-
-        controls : object
-            Controls from interactive to use with ipywidgets **display**.
-        output : object
-            Output values from from interactive to use with ipywidgets **display**.
-        '''
-        def figure_viewer(drop_cell:int, drop_channel:int, index_z_axis:int, index_time:int):
-            plt.figure(1)
-            video = self.list_videos[drop_cell]
-            if drop_channel == 'Ch_0':
-                channel = 0
-                plt.imshow(video[index_time, index_z_axis, :, :, channel], cmap = 'gray')
-            elif drop_channel == 'Ch_1':
-                channel = 1
-                plt.imshow(video[index_time, index_z_axis, :, :, channel], cmap = 'gray')
-            elif drop_channel == 'Ch_2':
-                channel = 2
-                plt.imshow(video[index_time, index_z_axis, :, :, channel], cmap = 'gray')
-            elif drop_channel == 'Ch_3':
-                channel = 3
-                plt.imshow(video[index_time, index_z_axis, :, :, channel], cmap = 'gray')
-            elif drop_channel == 'All_Channels' :
-                # Converting a np.uint16 array into float.
-                image = np.copy(video[index_time, index_z_axis:, :, 0:int(np.min((3, self.min_num_channels)))])
-                min_image, max_image = np.min(image), np.max(image)
-                image -= min_image
-                image_float = np.array(image, 'float32')
-                image_float *= 255./(max_image-min_image)
-                image = np.asarray(np.round(image_float), 'uint8')
-                plt.imshow(image)
-            plt.axis('off')
-            plt.show()
-        options_cell = list(range(0, self.number_videos))
-        if self.min_num_channels == 1:
-            options_ch = ['Ch_0']
-        if self.min_num_channels == 2:
-            options_ch = ['Ch_0', 'Ch_1']
-        if self.min_num_channels == 3:
-            options_ch = ['Ch_0', 'Ch_1', 'Ch_2', 'All_Channels']
-        if self.min_num_channels == 4:
-            options_ch = ['Ch_0', 'Ch_1', 'Ch_2', 'Ch_3', 'All_Channels']
-        interactive_plot = interactive(figure_viewer,   drop_cell = widgets.Dropdown(options = options_cell, description = 'Cell'), 
-                                                        drop_channel = widgets.Dropdown(options = options_ch, description = 'Channel', value = 'Ch_0'), 
-                                                        index_z_axis =  widgets.IntSlider(min = 0, max = self.min_z_slices-1, step = 1, value = 0, description = 'z-slice'), 
-                                                        index_time = widgets.IntSlider(min = 0, max = self.min_time_all_cells-1, step = 1, value = 0, description = 'time') )
-        controls = HBox(interactive_plot.children[:-1], layout = Layout(flex_flow = 'row wrap'))
-        output = interactive_plot.children[-1]
-        return controls, output
-
-
-class VisualizerCrops():
-    '''
-    This class is intended to visualize the spots detected b trackPy as crops in an interactive widget.
-
-    Parameters
-
-    list_videos : List of NumPy arrays or a single NumPy array.
-        Images or videos to visualize. The format is a list of Numpy arrays where each array follows the convention [T, Y, X, C].
-    list_selected_particles_dataframe : pandas data frame.
-        A pandas data frame containing the position of each spot in the image.
-    particle_size : int, optional
-        Average particle size. The default is 5.
-    '''
-    def __init__(self, list_videos:list, list_selected_particles_dataframe:list, particle_size:int = 5):
-        if (particle_size % 2) == 0:
-            self.particle_size = particle_size + 1
-            print('Warning! Particle_size must be an odd number, this was automatically changed to: ', particle_size)
-        else:
-            self.particle_size = particle_size
-        self.disk_size = int(particle_size/2) # size of the half of the crop
-        self.crop_size = int(particle_size/2)+2
-        # Checking if the video is a list or a single video.
-        if not (type(list_videos) is list):
-            list_videos = [list_videos]
-            self.list_videos = list_videos
-            self.number_videos = 1
-        else:
-            self.number_videos = len(list_videos)
-        if not (type(list_selected_particles_dataframe) is list):
-            list_selected_particles_dataframe = [list_selected_particles_dataframe]
-            self.list_selected_particles_dataframe = list_selected_particles_dataframe
-        self.list_number_frames = [list_videos[i].shape[0] for i in range(0, self.number_videos)]
-        self.min_time_all_cells = min(self.list_number_frames)
-    def make_video_app(self):
-        '''
-        This method returns two objects (controls and output) to display a widget.
-
-        Returns
-
-        controls : object
-            Controls from interactive to use with ipywidgets **display**.
-        output : object
-            Output values from from interactive to use with ipywidgets **display**.
-        '''
-        def figure_viewer(drop_cell:int, track:int, index_time:int):
-            video = self.list_videos[drop_cell]
-            selected_particles_dataframe = self.list_selected_particles_dataframe[drop_cell]
-            n_particles = selected_particles_dataframe['particle'].nunique()
-            frames_vector = np.zeros((n_particles, 2))
-            for index_particle in range(0, n_particles):
-                frames_part = selected_particles_dataframe.loc[selected_particles_dataframe['particle'] == selected_particles_dataframe['particle'].unique()[index_particle]].frame.values
-                frames_vector[index_particle, :] = frames_part[0], frames_part[-1]
-            def return_crop(image:np.ndarray, x_pos:int, y_pos:int, crop_size:int):
-                # function that recenter the spots
-                crop_image = image[y_pos-(crop_size):y_pos+(crop_size+1), x_pos-(crop_size):x_pos+(crop_size+1)]
-                return crop_image
-            number_channels  = video.shape[3]
-            size_cropped_image = (100+(self.crop_size+1)) - (100-(self.crop_size)) # true size of crop in image
-            ch0_image  = np.zeros((size_cropped_image, size_cropped_image))
-            ch1_image  = np.zeros((size_cropped_image, size_cropped_image))
-            ch2_image  = np.zeros((size_cropped_image, size_cropped_image))
-            frames_part = selected_particles_dataframe.loc[selected_particles_dataframe['particle'] == selected_particles_dataframe['particle'].unique()[track]].frame.values
-            if index_time in frames_part: # detecting the position for the crop
-                index_val = np.where(frames_part == index_time)
-                x_pos = int(selected_particles_dataframe.loc[selected_particles_dataframe['particle'] == selected_particles_dataframe['particle'].unique()[track]].x.values[index_val])
-                y_pos = int(selected_particles_dataframe.loc[selected_particles_dataframe['particle'] == selected_particles_dataframe['particle'].unique()[track]].y.values[index_val])
-            else: #in case the code doesn't find a position it uses the closes time point value.
-                index_closest = np.abs(frames_part - index_time).argmin()
-                x_pos = int(selected_particles_dataframe.loc[selected_particles_dataframe['particle'] == selected_particles_dataframe['particle'].unique()[track]].x.values[index_closest])
-                y_pos = int(selected_particles_dataframe.loc[selected_particles_dataframe['particle'] == selected_particles_dataframe['particle'].unique()[track]].y.values[index_closest])
-            ch0_image[:, :] = return_crop(video[index_time, :, :, 0], x_pos, y_pos, self.crop_size)
-            ch1_image[:, :] = return_crop(video[index_time, :, :, 1], x_pos, y_pos, self.crop_size)
-            ch2_image[:, :] = return_crop(video[index_time, :, :, 2], x_pos, y_pos, self.crop_size)
-            _, ax = plt.subplots(1, number_channels, figsize = (10, 5))
-            for index_channels in range(0, number_channels):
-                if index_channels == 0:
-                    ax[index_channels].imshow(ch0_image[index_time, :, :], origin = 'bottom', cmap = 'gray')
-                    ax[index_channels].set_axis_off()
-                    ax[index_channels].set(title = 'Channel_0 (Red)')
-                elif index_channels == 1:
-                    ax[index_channels].imshow(ch1_image[index_time, :, :], origin = 'bottom', cmap = 'gray')
-                    ax[index_channels].set_axis_off()
-                    ax[index_channels].set(title = 'Channel_1 (Green)')
-                else:
-                    ax[index_channels].imshow(ch2_image[index_time, :, :], origin = 'bottom', cmap = 'gray')
-                    ax[index_channels].set_axis_off()
-                    ax[index_channels].set(title = 'Channel_2 (Blue)')
-            print('For track '+ str(track) + ' a spot is detected between time points : '+ str(int(frames_vector[track, 0])) + ' and ' + str(int(frames_vector[track, 1])) )
-        options_cells = list(range(0, self.number_videos))
-        interactive_plot = interactive(figure_viewer, drop_cell = widgets.Dropdown(options = options_cells, description = 'Cell'), 
-                                        track = widgets.IntSlider(min = 0, max = self.selected_particles_dataframe['particle'].nunique()-1, step = 1, value = 0, description = 'track'), 
-                                        index_time = widgets.IntSlider(min = 0, max = self.video.shape[0]-1, step = 1, value = 0, description = 'time'))
-        controls = HBox(interactive_plot.children[:-1], layout = Layout(flex_flow = 'row wrap'))
-        output = interactive_plot.children[-1]
-        return controls, output
-
 
 class Cellpose():
     '''
@@ -1658,11 +977,7 @@ class Cellpose():
         # removing pixels that over the 98 percentile. This operation is only performed for cell segmentation.
         if len(video.shape) > 3:  
             raise ValueError ('A multicolor image is passed for segmentation. Please select a color channel for segmentation and pass the image with one of the following formats [T, Y, X] or [Y, X]')
-            #temp_video = np.copy(video)
         elif len(video.shape) ==3:
-            # for index_time in range (temp_video.shape[0]):
-            #     temp_video[index_time, :, :] = RemoveExtrema(temp_video[index_time, :, :],format_video='YX').remove_outliers()
-            # self.video = temp_video
             self.video = RemoveExtrema(video, min_percentile = 0.5, max_percentile = 99,format_video='TYX').remove_outliers()
         else:
             self.video = RemoveExtrema(video, min_percentile = 0.5, max_percentile = 99,format_video='YX').remove_outliers()
@@ -1860,40 +1175,19 @@ class Trackpy():
         self.NUMBER_OF_CORES = multiprocessing.cpu_count()
         self.time_points = video.shape[0]
         self.selected_channel = selected_channel
-        # Functions with the bandpass and gaussian filters
-        def bandpass_filter (image: np.ndarray, lowfilter, highpass):
-            temp_vid = difference_of_gaussians(image, lowfilter, highpass, truncate = 3.0)
-            return img_as_uint(temp_vid)
-        def gaussian_filter(image: np.ndarray, sigma:float = 0.1):
-            temp_image = img_as_float64(image)
-            filtered_image = gaussian(temp_image, sigma = sigma, output = None, mode = 'nearest', cval = 0, multichannel = None, preserve_range = True, truncate = 4.0)
-            return img_as_uint(filtered_image)
-        def log_filter(image: np.ndarray, sigma=1):
-            temp_image = img_as_float64(image)
-            temp_vid = gaussian_laplace(temp_image, sigma=sigma)
-            temp_vid = np.clip(-temp_vid, a_min=0, a_max=None)
-            return img_as_uint(temp_vid)
-        # Function to convert the video to uint
-        def img_uint(image):
-            temp_vid = img_as_uint(image)
-            return temp_vid
-        ini_video = np.asarray(Parallel(n_jobs = self.NUMBER_OF_CORES)(delayed(img_uint)(video[i, :, :, self.selected_channel]) for i in range(0, self.time_points)) )
+        ini_video = np.asarray(Parallel(n_jobs = self.NUMBER_OF_CORES)(delayed(Utilities.img_uint)(video[i, :, :, self.selected_channel]) for i in range(0, self.time_points)) )
         def filter_video(video, tracking_filter,frames_to_track):
             # function that remove outliers from the video
-            #if video.ndim == 4:
-            #video = RemoveExtrema(video[:, :, :, self.selected_channel], min_percentile = 0.5, max_percentile = 99.9,format_video='TYX').remove_outliers()
             video = RemoveExtrema(video, min_percentile = 0.5, max_percentile = 99.9,format_video='TYX').remove_outliers()
-            #else:
-            #     raise ValueError (' Please reformat your video to the following format [T,Y,X,C]')
             # selecting the filter to apply
             if tracking_filter == 'bandpass_filter':
-                temp_vid_dif_filter = Parallel(n_jobs = self.NUMBER_OF_CORES)(delayed(bandpass_filter)(video[i, :, :], self.low_pass_filter, self.highpass_filter) for i in range(0, frames_to_track))
+                temp_vid_dif_filter = Parallel(n_jobs = self.NUMBER_OF_CORES)(delayed(Utilities.bandpass_filter)(video[i, :, :], self.low_pass_filter, self.highpass_filter) for i in range(0, frames_to_track))
             elif tracking_filter == 'log_filter':       
-                temp_vid_dif_filter = Parallel(n_jobs = self.NUMBER_OF_CORES)(delayed(log_filter)(video[i, :, :], sigma=1.5) for i in range(0, frames_to_track))
+                temp_vid_dif_filter = Parallel(n_jobs = self.NUMBER_OF_CORES)(delayed(Utilities.log_filter)(video[i, :, :], sigma=1.5) for i in range(0, frames_to_track))
             elif tracking_filter == 'all':  
-                temp_vid_filter = Parallel(n_jobs = self.NUMBER_OF_CORES)(delayed(bandpass_filter)(video[i, :, :], self.low_pass_filter, self.highpass_filter) for i in range(0, frames_to_track))
+                temp_vid_filter = Parallel(n_jobs = self.NUMBER_OF_CORES)(delayed(Utilities.bandpass_filter)(video[i, :, :], self.low_pass_filter, self.highpass_filter) for i in range(0, frames_to_track))
                 temp_vid = np.asarray(temp_vid_filter)
-                temp_vid_dif_filter = Parallel(n_jobs = self.NUMBER_OF_CORES)(delayed(log_filter)(temp_vid[i, :, :], sigma=1.5) for i in range(0, frames_to_track))
+                temp_vid_dif_filter = Parallel(n_jobs = self.NUMBER_OF_CORES)(delayed(Utilities.log_filter)(temp_vid[i, :, :], sigma=1.5) for i in range(0, frames_to_track))
             video_filtered = np.asarray(temp_vid_dif_filter)
             return video_filtered
         self.image_name=image_name
@@ -1992,9 +1286,6 @@ class Trackpy():
                 trackpy_dataframe = tp.filter_stubs(dataframe_linked_particles, self.minimal_frames)  
                 number_particles = trackpy_dataframe['particle'].nunique()            
             return trackpy_dataframe, number_particles        
-        
-        
-        
         # Tracking using a given intensity_threshold_tracking
         if not (self.intensity_threshold_tracking is None):
             trackpy_dataframe, number_particles = video_tracking(video=self.video_filtered, mask=self.mask, min_int= self.intensity_threshold_tracking)
@@ -2121,7 +1412,7 @@ class Intensity():
     show_plot : bool, optional
         Allows the user to show a plot for the optimization process. The default is True.
     '''
-    def __init__(self, video:np.ndarray, particle_size:int = 5, trackpy_dataframe: Union[object , None ] = None, spot_positions_movement: Union[np.ndarray, None] = None,dataframe_format:str = 'short',   method:str = 'disk_donut', step_size:float = 1, show_plot:bool = True,cell_counter:int=0):
+    def __init__(self, video:np.ndarray, particle_size:int = 5, trackpy_dataframe: Union[object , None ] = None, spot_positions_movement: Union[np.ndarray, None] = None,dataframe_format:str = 'short',   method:str = 'disk_donut', step_size:float = 1, show_plot:bool = True,cell_counter:int=0,image_index:int=0):
         if particle_size < 3:
             particle_size = 3 # minimal size allowed for detection
         if (particle_size % 2) == 0:
@@ -2156,6 +1447,7 @@ class Intensity():
             self.NUMBER_OF_CORES =1
             
         self.cell_counter = cell_counter
+        self.image_index=image_index
     
     def calculate_intensity(self):
         '''
@@ -2203,9 +1495,12 @@ class Intensity():
             crop_image = image[y+spot_range[0]:y+(spot_range[-1]+1), x+spot_range[0]:x+(spot_range[-1]+1)].copy()
             return crop_image
 
-        def reduce_dataframe(df):
+        def reduce_dataframe(df,number_channels):
+            # This function creates a list with the column names for the dataframe. This list values with the number_channels.
+            list_columns_to_drop = ['ch'+str(c)+'_int_std' for c in range(0, number_channels)] + ['ch'+str(c)+'_SNR' for c in range(0, number_channels)]  + ['ch'+str(c)+'_bg_int_mean' for c in range(0, number_channels)] + ['ch'+str(c)+'_bg_int_std' for c in range(0, number_channels)]
             # This function is intended to reduce the columns that are not used in the ML process.
-            return df.drop(['ch0_int_std', 'ch1_int_std','ch2_int_std','ch0_SNR', 'ch1_SNR', 'ch2_SNR','ch0_bg_int_mean','ch1_bg_int_mean','ch2_bg_int_mean','ch0_bg_int_std','ch1_bg_int_std','ch2_bg_int_std'], axis = 1)
+            return df.drop(list_columns_to_drop, axis = 1)  
+            #return df.drop(['ch0_int_std', 'ch1_int_std','ch2_int_std','ch0_SNR', 'ch1_SNR', 'ch2_SNR','ch0_bg_int_mean','ch1_bg_int_mean','ch2_bg_int_mean','ch0_bg_int_std','ch1_bg_int_std','ch2_bg_int_std'], axis = 1)
         
         def return_donut(image, spot_size):
             tem_img = image.copy().astype('float')
@@ -2216,21 +1511,13 @@ class Intensity():
             tem_img[min_index: max_index , min_index: max_index] *= np.nan
             removed_center_flat = tem_img.copy().flatten()
             donut_values = removed_center_flat[~np.isnan(removed_center_flat)]
-            # if donut_values.shape[0] == 169:
-            #     print(donut_values)
-            #     print(image)
-            #     print('r',min_index,max_index )
             return donut_values.astype('uint16')
         
         def signal_to_noise_ratio(values_disk,values_donut):
             mean_intensity_disk = np.mean(values_disk.flatten().astype('float'))            
             mean_intensity_donut = np.mean(values_donut.flatten().astype('float')) # mean calculation ignoring zeros
             std_intensity_donut = np.std(values_donut.flatten().astype('float')) # mean calculation ignoring zeros
-            #print('s',values_disk.shape,values_donut.shape)
-            #if std_intensity_donut >0:
             SNR = (mean_intensity_disk-mean_intensity_donut) / std_intensity_donut
-            #else:
-            #    SNR = 0
             mean_background_int = mean_intensity_donut
             std_background_int = std_intensity_donut
             return SNR, mean_background_int,std_background_int
@@ -2326,35 +1613,55 @@ class Intensity():
         #std_intensities_normalized = np.nan_to_num(std_intensities_normalized)
         time_vector = np.arange(0, time_points, 1)*self.step_size
         
-        if (self.show_plot == True) and not ( self.trackpy_dataframe is None):
+        if (self.show_plot == True) and not(self.trackpy_dataframe is None):
             Plots.plot_tracking_spots(self.trackpy_dataframe, mean_intensities, mean_intensities_normalized, array_intensities_mean, std_intensities, std_intensities_normalized, self.step_size,time_points)
-                
+            
         # Initialize a dataframe
-        init_dataFrame = {'image_number': [], 
-            'cell_number': [], 
-            'particle': [], 
-            'frame': [], 
-            'x': [], 
-            'y': [],
-            'ch0_int_mean': [], 
-            'ch1_int_mean': [], 
-            'ch2_int_mean': [], 
-            'ch0_int_std': [], 
-            'ch1_int_std': [], 
-            'ch2_int_std': [], 
-            'ch0_SNR':[],
-            'ch1_SNR':[],
-            'ch2_SNR':[],
-            'ch0_bg_int_mean':[],
-            'ch1_bg_int_mean':[],
-            'ch2_bg_int_mean':[],
-            'ch0_bg_int_std':[],
-            'ch1_bg_int_std':[],
-            'ch2_bg_int_std':[] }
-        dataframe_particles = pd.DataFrame(init_dataFrame)
+        # init_constant_dataframe = {'image_number': [], 
+        #     'cell_number': [], 
+        #     'particle': [], 
+        #     'frame': [], 
+        #     'x': [], 
+        #     'y': []}
+        # dataframe_particles_constant = pd.DataFrame(init_constant_dataframe)
+        
+        list_constant_fields = ['image_number', 'cell_number', 'particle', 'frame', 'x', 'y']
+        dataframe_particles_constant = pd.DataFrame(columns=list_constant_fields)
+        number_constant_columns = len(list_constant_fields)
+        
+        list_variable_fields =  ['ch'+str(c)+'_int_mean' for c in range(0, number_channels)] + \
+                                        ['ch'+str(c)+'_int_std' for c in range(0, number_channels)] + \
+                                        ['ch'+str(c)+'_SNR' for c in range(0, number_channels)] + \
+                                        ['ch'+str(c)+'_bg_int_mean' for c in range(0, number_channels)] + \
+                                        ['ch'+str(c)+'_bg_int_std' for c in range(0, number_channels)]
+        dataframe_particles_variable = pd.DataFrame(columns=list_variable_fields)
+        number_variable_columns = len(list_variable_fields) 
+        
+        complete_dataframe = pd.concat([dataframe_particles_constant, dataframe_particles_variable], axis=1)        
+        number_total_columns = number_constant_columns + number_variable_columns    
+    
+        
+        #array_complete = np.zeros((1,number_total_columns))
+        #init_variable_dataframe ={
+        #    'ch0_int_mean': [], 
+        #     'ch1_int_mean': [], 
+        #     'ch2_int_mean': [], 
+        #     'ch0_int_std': [], 
+        #     'ch1_int_std': [], 
+        #     'ch2_int_std': [], 
+        #     'ch0_SNR':[],
+        #     'ch1_SNR':[],
+        #     'ch2_SNR':[],
+        #     'ch0_bg_int_mean':[],
+        #     'ch1_bg_int_mean':[],
+        #     'ch2_bg_int_mean':[],
+        #     'ch0_bg_int_std':[],
+        #     'ch1_bg_int_std':[],
+        #     'ch2_bg_int_std':[]
+        # }
+        #dataframe_particles_variable = pd.DataFrame(init_variable_dataframe)
+        dataframe_particles = complete_dataframe.copy()
         # Iterate for each spot and save time courses in the data frame
-        
-        
         counter = 0
         for id in range (0, self.n_particles):
             # Loop that populates the dataframes
@@ -2371,63 +1678,80 @@ class Intensity():
                 temporal_frames_vector = np.array([1])
                 temporal_x_position_vector = 0
                 temporal_y_position_vector = 0
-                
-            temporal_spot_number_vector = [counter] * len(temporal_frames_vector)
-            temporal_image_number_vector = [0] * len(temporal_frames_vector)
+            
+            temporal_image_number_vector = [self.image_index] * len(temporal_frames_vector)
             temporal_cell_number_vector = [self.cell_counter] * len(temporal_frames_vector)
+            temporal_spot_number_vector = [counter] * len(temporal_frames_vector)
+            
+            # Prealocating memory
+            array_complete = np.zeros((len(temporal_frames_vector),number_total_columns)).astype(float)    
+            array_complete[:,0] = temporal_image_number_vector # image_number' 
+            array_complete[:,1] = temporal_cell_number_vector # cell_number
+            array_complete[:,2] = temporal_spot_number_vector # particle
+            array_complete[:,3] = temporal_frames_vector*self.step_size # 'frame'
+            array_complete[:,4] = temporal_x_position_vector #     'x'
+            array_complete[:,5] = temporal_y_position_vector #     'y'
             
             # Populating fields for all colors
+            for c in range(0, number_channels):
+                array_complete[:,number_constant_columns+c]   = array_intensities_mean[id, temporal_frames_vector, c]   # mean intensities
+                array_complete[:,number_constant_columns+number_channels+c] = array_intensities_std[id, temporal_frames_vector, c]   # std intensities
+                array_complete[:,number_constant_columns+number_channels*2+c] = array_intensities_snr[id, temporal_frames_vector, c]   # SNR 
+                array_complete[:,number_constant_columns+number_channels*3+c] = array_intensities_background_mean[id, temporal_frames_vector, c]   # BG mean intensities
+                array_complete[:,number_constant_columns+number_channels*4+c] = array_intensities_background_std[id, temporal_frames_vector, c]   # BG std 
             
-            temporal_ch0_vector =  array_intensities_mean[id, temporal_frames_vector, 0]  # ch0
-            temporal_ch1_vector = array_intensities_mean[id, temporal_frames_vector, 1]  # ch1
-            temporal_ch2_vector =  array_intensities_mean[id, temporal_frames_vector, 2]  # ch2
+            # temporal_ch0_vector =  array_intensities_mean[id, temporal_frames_vector, 0]  # ch0
+            # temporal_ch1_vector = array_intensities_mean[id, temporal_frames_vector, 1]  # ch1
+            # temporal_ch2_vector =  array_intensities_mean[id, temporal_frames_vector, 2]  # ch2
             
-            temporal_ch0_vector_std =  array_intensities_std[id, temporal_frames_vector, 0]  # ch0
-            temporal_ch1_vector_std =  array_intensities_std[id, temporal_frames_vector, 1]  # ch1
-            temporal_ch2_vector_std =  array_intensities_std[id, temporal_frames_vector, 2]  # ch2
+            # temporal_ch0_vector_std =  array_intensities_std[id, temporal_frames_vector, 0]  # ch0
+            # temporal_ch1_vector_std =  array_intensities_std[id, temporal_frames_vector, 1]  # ch1
+            # temporal_ch2_vector_std =  array_intensities_std[id, temporal_frames_vector, 2]  # ch2
             
-            temporal_ch0_SNR =  array_intensities_snr[id, temporal_frames_vector, 0] # ch0
-            temporal_ch1_SNR =  array_intensities_snr[id, temporal_frames_vector, 1]  # ch1
-            temporal_ch2_SNR =  array_intensities_snr[id, temporal_frames_vector, 2]  # ch2
+            # temporal_ch0_SNR =  array_intensities_snr[id, temporal_frames_vector, 0] # ch0
+            # temporal_ch1_SNR =  array_intensities_snr[id, temporal_frames_vector, 1]  # ch1
+            # temporal_ch2_SNR =  array_intensities_snr[id, temporal_frames_vector, 2]  # ch2
             
-            temporal_ch0_bg_int_mean  = array_intensities_background_mean [id, temporal_frames_vector, 0]  # ch0
-            temporal_ch1_bg_int_mean = array_intensities_background_mean [id, temporal_frames_vector, 1]  # ch1
-            temporal_ch2_bg_int_mean=  array_intensities_background_mean [id, temporal_frames_vector, 2]  # ch2
+            # temporal_ch0_bg_int_mean  = array_intensities_background_mean [id, temporal_frames_vector, 0]  # ch0
+            # temporal_ch1_bg_int_mean = array_intensities_background_mean [id, temporal_frames_vector, 1]  # ch1
+            # temporal_ch2_bg_int_mean=  array_intensities_background_mean [id, temporal_frames_vector, 2]  # ch2
             
-            temporal_ch0_bg_int_std  = array_intensities_background_std[id, temporal_frames_vector, 0]  # ch0
-            temporal_ch1_bg_int_std = array_intensities_background_std[id, temporal_frames_vector, 1]  # ch1
-            temporal_ch2_bg_int_std = array_intensities_background_std[id, temporal_frames_vector, 2]  # ch2
+            # temporal_ch0_bg_int_std  = array_intensities_background_std[id, temporal_frames_vector, 0]  # ch0
+            # temporal_ch1_bg_int_std = array_intensities_background_std[id, temporal_frames_vector, 1]  # ch1
+            # temporal_ch2_bg_int_std = array_intensities_background_std[id, temporal_frames_vector, 2]  # ch2
             
             
             # Section that append the information for each spots
-            temp_data_frame = {'image_number': temporal_image_number_vector, 
-                'cell_number': temporal_cell_number_vector, 
-                'particle': temporal_spot_number_vector, 
-                'frame': temporal_frames_vector*self.step_size, 
-                'x': temporal_x_position_vector, 
-                'y': temporal_y_position_vector,
-                'ch0_int_mean': np.round( temporal_ch0_vector ,2), 
-                'ch1_int_mean': np.round( temporal_ch1_vector ,2), 
-                'ch2_int_mean': np.round( temporal_ch2_vector ,2), 
-                'ch0_int_std': np.round( temporal_ch0_vector_std ,2), 
-                'ch1_int_std': np.round( temporal_ch1_vector_std ,2), 
-                'ch2_int_std': np.round( temporal_ch2_vector_std, 2), 
-                'ch0_SNR' : np.round( temporal_ch0_SNR ,2),
-                'ch1_SNR': np.round( temporal_ch1_SNR ,2),
-                'ch2_SNR': np.round( temporal_ch2_SNR ,2),
-                'ch0_bg_int_mean': np.round( temporal_ch0_bg_int_mean ,2),
-                'ch1_bg_int_mean': np.round( temporal_ch1_bg_int_mean ,2),
-                'ch2_bg_int_mean': np.round( temporal_ch2_bg_int_mean ,2),
-                'ch0_bg_int_std': np.round( temporal_ch0_bg_int_std ,2),
-                'ch1_bg_int_std': np.round( temporal_ch1_bg_int_std ,2),
-                'ch2_bg_int_std': np.round( temporal_ch2_bg_int_std ,2) }
+            # temp_data_frame = {'image_number': temporal_image_number_vector, 
+            #     'cell_number': temporal_cell_number_vector, 
+            #     'particle': temporal_spot_number_vector, 
+            #     'frame': temporal_frames_vector*self.step_size, 
+            #     'x': temporal_x_position_vector, 
+            #     'y': temporal_y_position_vector,
+            #     'ch0_int_mean': np.round( temporal_ch0_vector ,2), 
+            #     'ch1_int_mean': np.round( temporal_ch1_vector ,2), 
+            #     'ch2_int_mean': np.round( temporal_ch2_vector ,2), 
+            #     'ch0_int_std': np.round( temporal_ch0_vector_std ,2), 
+            #     'ch1_int_std': np.round( temporal_ch1_vector_std ,2), 
+            #     'ch2_int_std': np.round( temporal_ch2_vector_std, 2), 
+            #     'ch0_SNR' : np.round( temporal_ch0_SNR ,2),
+            #     'ch1_SNR': np.round( temporal_ch1_SNR ,2),
+            #     'ch2_SNR': np.round( temporal_ch2_SNR ,2),
+            #     'ch0_bg_int_mean': np.round( temporal_ch0_bg_int_mean ,2),
+            #     'ch1_bg_int_mean': np.round( temporal_ch1_bg_int_mean ,2),
+            #     'ch2_bg_int_mean': np.round( temporal_ch2_bg_int_mean ,2),
+            #     'ch0_bg_int_std': np.round( temporal_ch0_bg_int_std ,2),
+            #     'ch1_bg_int_std': np.round( temporal_ch1_bg_int_std ,2),
+            #     'ch2_bg_int_std': np.round( temporal_ch2_bg_int_std ,2) }
             counter += 1
-            temp_DataFrame = pd.DataFrame(temp_data_frame)
-            dataframe_particles = dataframe_particles.append(temp_DataFrame, ignore_index = True)
+            # temp_DataFrame = pd.DataFrame(temp_data_frame)
+            
+            dataframe_particles = dataframe_particles.append(pd.DataFrame(array_complete, columns=complete_dataframe.columns), ignore_index=True)
+            #dataframe_particles = dataframe_particles.append(temp_DataFrame, ignore_index = True)
             dataframe_particles = dataframe_particles.astype({"image_number": int, "cell_number": int, "particle": int, "frame": int, "x": int, "y": int}) # specify data type as integer for some columns
 
         if self.dataframe_format == 'short':
-            dataframe_particles = reduce_dataframe(dataframe_particles)
+            dataframe_particles = reduce_dataframe(dataframe_particles,number_channels)
         return dataframe_particles, array_intensities_mean, time_vector, mean_intensities, std_intensities, mean_intensities_normalized, std_intensities_normalized
 
 
@@ -3066,7 +2390,7 @@ class SimulatedCell():
         spot_positions_movement_int = np.round(spot_positions_movement).astype('int')
         dataframe_particles, _, _, _, _, _, _ = Intensity(tensor_video, particle_size = self.size_spot_ch0, spot_positions_movement = spot_positions_movement_int, method = self.intensity_calculation_method, step_size = self.step_size, show_plot = 0,dataframe_format =self.dataframe_format ).calculate_intensity()
         # Adding SSA Channels
-        number_elements = np.prod(self.simulated_trajectories_ch0.shape)
+        #number_elements = np.prod(self.simulated_trajectories_ch0.shape)
         if not (self.simulated_trajectories_ch0 is None):
             ssa_ch0 = self.simulated_trajectories_ch0.flatten(order='C')
         else:
@@ -3559,14 +2883,14 @@ class PipelineTracking():
                 # Intensity calculation
                 
                 if not ( Dataframe_trajectories is None):
-                    dataframe_particles, array_intensities, time_vector, mean_intensities, std_intensities, mean_intensities_normalized, std_intensities_normalized = Intensity(self.video, self.particle_size, Dataframe_trajectories, method = self.intensity_calculation_method, show_plot = 0, dataframe_format=self.dataframe_format,cell_counter=i-1).calculate_intensity()
+                    dataframe_particles, array_intensities, time_vector, mean_intensities, std_intensities, mean_intensities_normalized, std_intensities_normalized = Intensity(self.video, self.particle_size, Dataframe_trajectories, method = self.intensity_calculation_method, show_plot = 0, dataframe_format=self.dataframe_format,cell_counter=i-1,image_index=self.image_index).calculate_intensity()
                     # This flag makes segmentation_succesful flase if less than 4 particles are detected in the dataframe_particles.
                     # This option avoids problem while calculating the next steps.
                     if array_intensities.shape[0]<1:
                         segmentation_succesful =False
                         tracking_succesful =False
                 else:
-                    dataframe_particles =Intensity(self.video, self.particle_size, Dataframe_trajectories, method = self.intensity_calculation_method, show_plot = 0, dataframe_format=self.dataframe_format,cell_counter=i-1).calculate_intensity()[0]
+                    dataframe_particles =Intensity(self.video, self.particle_size, Dataframe_trajectories, method = self.intensity_calculation_method, show_plot = 0, dataframe_format=self.dataframe_format,cell_counter=i-1,image_index=self.image_index).calculate_intensity()[0]
                     #dataframe_particles = None
                     array_intensities = None
                     time_vector = None
@@ -3586,8 +2910,6 @@ class PipelineTracking():
             if self.print_process_times == True:
                 end = timer()
                 print('tracking time:', round(end - start), ' sec')
-        
-        
         else:
             dataframe_particles_all_cells = None
             array_intensities = None
@@ -3596,8 +2918,6 @@ class PipelineTracking():
             std_intensities = None
             mean_intensities_normalized = None
             std_intensities_normalized = None
-
-
         return dataframe_particles_all_cells,selected_mask, array_intensities, time_vector, mean_intensities, std_intensities, mean_intensities_normalized, std_intensities_normalized, segmentation_succesful
 
 
@@ -4041,7 +3361,618 @@ class MetadataImageProcessing():
         create_data_file(self.metadata_filename_ip)
         write_data_in_file(self.metadata_filename_ip)
         return None
-    
+
+
+
+class VisualizerImage():
+    '''
+    This class is intended to visualize videos as 2D images. This class has the option to mark the particles that previously were selected by trackPy.
+
+    Parameters
+
+    list_videos : List of NumPy arrays or a single NumPy array
+        Images or videos to visualize. The format is a list of Numpy arrays where each array follows the convention [T, Y, X, C] or an image array with format [Y, X].
+    list_videos_filtered : List of NumPy arrays or a single NumPy array or None
+        Images or videos to visualize. The format is a list of Numpy arrays where each array follows the convention [T, Y, X, C]. The default is None.
+    list_selected_particles_dataframe : pandas data frame, optional
+        A pandas data frame containing the position of each spot in the image. The default is None.
+    list_files_names : List of str or str, optional
+        List of file names to display as the title on the image. The default is None.
+    list_mask_array : List of NumPy arrays or a single NumPy array, with Boolean values, where 1 represents the masked area, and 0 represents the area outside the mask.
+        An array of images with dimensions [Y, X].
+    selected_channel : int, optional
+        Allows the user to define the channel to visualize in the plotted images. The default is 0.
+    selected_time_point : int, optional
+        Allows the user to define the time point or frame to display on the image. The default is 0.
+    normalize : bool, optional
+        Option to normalize the data by removing outliers. The code removes the 1 and 99 percentiles from the image. The default is False.
+    individual_figure_size : float, optional
+        Allows the user to change the size of each image. The default is 5.
+    list_real_particle_positions : List of Pandas dataframes or a single dataframe, optional.
+        A pandas data frame containing the position of each spot in the image. This dataframe is generated with class SimulatedCell, and it contains the true position for each spot. This option is only intended to be used to train algorithms for tracking and visualize real vs detected spots. The default is None.
+    image_name : str, optional.
+        Name for the image. The default is 'temp_image.png'.
+    show_plot: bool, optional
+        Flag to display the image to screen. The default is True.
+    save_image_as_file : bool, optional,
+        Flag to save image as png. The default is False.
+    '''
+    def __init__(self, list_videos: list, list_videos_filtered: Union[list, None] = None, list_selected_particles_dataframe: Union[list, None] = None, list_files_names: Union[list, None] = None, list_mask_array: Union[list, None] = None, list_real_particle_positions: Union[list, None] = None, selected_channel:int = 0, selected_time_point:int = 0, normalize:bool = False, individual_figure_size:float = 5,image_name:str='temp_image.png',show_plot:bool=True,save_image_as_file:bool=False,colormap='plasma'):
+        self.particle_size = 7
+        self.selected_time_point = selected_time_point
+        self.selected_channel = selected_channel
+        self.individual_figure_size = individual_figure_size
+        self.image_name =image_name
+        self.show_plot=show_plot
+        self.save_image_as_file=save_image_as_file
+        self.colormap= colormap
+        
+        # Checking if the video is a list or a single video.
+        if not (type(list_videos) is list):
+            list_videos = [list_videos]
+            self.list_videos = list_videos
+            self.number_videos = 1
+        else:
+            self.list_videos = list_videos
+            self.number_videos = len(list_videos)
+        if not (type(list_mask_array) is list):
+            list_mask_array = [list_mask_array]
+            self.list_mask_array = list_mask_array
+        else:
+            self.list_mask_array = list_mask_array
+        #### LIST REAL PARTICLES TO SHOW ON THE IMAGE
+        if not (type(list_real_particle_positions) is list):
+            list_real_particle_positions = [list_real_particle_positions]
+            self.list_real_particle_positions = list_real_particle_positions
+        else:
+            self.list_real_particle_positions = list_real_particle_positions
+        if not (type(list_files_names) is list):
+            list_files_names = [list_files_names]
+            self.list_files_names = list_files_names
+        else:
+            self.list_files_names = list_files_names
+        if not (type(list_videos_filtered) is list):
+            list_videos_filtered = [list_videos_filtered]
+            self.list_videos_filtered = list_videos_filtered
+        else:
+            self.list_videos_filtered = list_videos_filtered
+        if not (type(list_selected_particles_dataframe) is list):
+            list_selected_particles_dataframe = [list_selected_particles_dataframe]
+            self.list_selected_particles_dataframe = list_selected_particles_dataframe
+        else:
+            self.list_selected_particles_dataframe = list_selected_particles_dataframe
+        self.list_number_frames = [list_videos[i].shape[0] for i in range(0, self.number_videos)]
+        maximum_time_point_video =  min ( self.list_number_frames ) # Minimum of maximum size in the list of videos.
+        if selected_time_point > maximum_time_point_video:
+            self.selected_time_point = maximum_time_point_video
+        # remove the 1 and 99 percentile if normalize == True
+        if normalize == True:
+            list_videos_normalized = []
+            for index_video in range(0, self.number_videos):
+                number_time_points, _, _, number_channels = list_videos[index_video].shape
+                temp_video = np.copy(list_videos[index_video])
+                for index_channels in range (number_channels):
+                    for index_time in range (number_time_points):
+                        temp_video[index_time, :, :, index_channels] = RemoveExtrema(temp_video[index_time, :, :, index_channels],format_video='YX').remove_outliers()
+                list_videos_normalized.append(temp_video)
+            self.list_videos = list_videos_normalized
+        else:
+            self.list_videos = list_videos
+        # This section converts an image [Y, X] into a video with dimensions. [T, Y, X, C].
+        if len(list_videos[0].shape) == 2:
+            list_videos_4D = []
+            for index_video in range(0, self.number_videos):
+                temp_video_shape = np.zeros((1, list_videos[index_video].shape[0], list_videos[index_video].shape[1], 1), dtype = np.float32)
+                temp_video_shape[0, :, :, 0] = list_videos[index_video]
+                list_videos_4D.append(temp_video_shape)
+            list_videos = list_videos_4D
+            self.selected_channel = 0
+            self.selected_time_point = 0
+    def plot(self):
+        '''
+        This method plots a list of images as a grid.
+
+        Returns
+
+        None.
+        '''
+        # Plotting only the cells
+        NUM_COLUMNS = 8
+        if ( self.list_selected_particles_dataframe[0] is None):
+            NUM_ROWS = int(math.ceil(len(self.list_videos) / NUM_COLUMNS))
+            # Loop to plot multiple cells in a grid
+            gs = gridspec.GridSpec(NUM_ROWS, NUM_COLUMNS)
+            gs.update(wspace = 0.1, hspace = 0.1) # set the spacing between axes.
+            fig = plt.figure(figsize = (self.individual_figure_size*NUM_COLUMNS, self.individual_figure_size*NUM_ROWS))
+            for index_video in range(0, self.number_videos):
+                ax = fig.add_subplot(gs[index_video])
+                ax.imshow(self.list_videos[index_video][self.selected_time_point, :, :, self.selected_channel], cmap = 'gray')
+                ax.set_xticks([])
+                ax.set_yticks([])
+                if not ( self.list_files_names[0] is None):
+                    ax.set(title = self.list_files_names[index_video][0:-4])
+                else:
+                    ax.set(title = 'Cell_'+str(index_video))
+        # Plotting the cells and the detected spots
+        if not ( self.list_selected_particles_dataframe[0] is None) and ( ( self.list_videos_filtered[0] is None)):
+            NUM_ROWS = int(math.ceil(len(self.list_videos) / NUM_COLUMNS))
+            # Loop to plot multiple cells in a grid
+            gs = gridspec.GridSpec(NUM_ROWS, NUM_COLUMNS)
+            gs.update(wspace = 0.1, hspace = 0.1) # set the spacing between axes.
+            fig = plt.figure(figsize = (self.individual_figure_size*NUM_COLUMNS, self.individual_figure_size*NUM_ROWS))
+            counter = 0
+            for index_video in range(0, self.number_videos):
+                ax = fig.add_subplot(gs[index_video])
+                ax.imshow(self.list_videos[index_video][self.selected_time_point, :, :, self.selected_channel], cmap = 'gray')
+                ax.set_xticks([])
+                ax.set_yticks([])
+                if not ( self.list_files_names[0] is None):
+                    ax.set(title = self.list_files_names[index_video][0:-4])
+                else:
+                    ax.set(title = 'Cell_'+str(index_video))
+                # main loop to mark spots
+                number_particles  = None
+                frames_part = None
+                x_pos = None
+                y_pos = None
+                if not (self.list_selected_particles_dataframe[0] is None):
+                    selected_particles_dataframe = self.list_selected_particles_dataframe[counter]
+                    if not len (self.list_selected_particles_dataframe[counter]) == 0:
+                        number_particles = selected_particles_dataframe['particle'].nunique()
+                        for k in range (0, number_particles):
+                            frames_part = selected_particles_dataframe.loc[selected_particles_dataframe['particle'] == selected_particles_dataframe['particle'].unique()[k]].frame.values
+                            index_time = self.selected_time_point
+                            if index_time in frames_part: # plotting the circles for each detected particle at a given time point
+                                index_val = np.where(frames_part == index_time)
+                                x_pos = int(selected_particles_dataframe.loc[selected_particles_dataframe['particle'] == selected_particles_dataframe['particle'].unique()[k]].x.values[index_val])
+                                y_pos = int(selected_particles_dataframe.loc[selected_particles_dataframe['particle'] == selected_particles_dataframe['particle'].unique()[k]].y.values[index_val])
+                            try:
+                                circle = plt.Circle((x_pos, y_pos), self.particle_size/2, color = 'yellow', fill = False)
+                                ax.add_artist(circle)
+                            except:
+                                pass
+                # main loop to mark spots ==  > REAL SPOTS. USE FOR SIMULATED CELL
+                number_particles  = None
+                frames_part = None
+                x_pos = None
+                y_pos = None
+                if not (self.list_real_particle_positions[0] is None):
+                    selected_particles_dataframe = self.list_real_particle_positions[counter]
+                    if not len (self.list_real_particle_positions[counter]) == 0:
+                        number_particles = selected_particles_dataframe['particle'].nunique()
+                        for k in range (0, number_particles):
+                            frames_part = selected_particles_dataframe.loc[selected_particles_dataframe['particle'] == selected_particles_dataframe['particle'].unique()[k]].frame.values
+                            index_time = self.selected_time_point
+                            if index_time in frames_part: # plotting the circles for each detected particle at a given time point
+                                index_val = np.where(frames_part == index_time)
+                                x_pos = int(selected_particles_dataframe.loc[selected_particles_dataframe['particle'] == selected_particles_dataframe['particle'].unique()[k]].x.values[index_val])
+                                y_pos = int(selected_particles_dataframe.loc[selected_particles_dataframe['particle'] == selected_particles_dataframe['particle'].unique()[k]].y.values[index_val])
+                            try:
+                                circle = plt.Circle((x_pos, y_pos), 2, color = 'orangered', fill = False)
+                                ax.add_artist(circle)
+                            except:
+                                pass
+                # Plots the mask contour on the video
+                if not ( self.list_mask_array[0] is None):
+                    mask_array = self.list_mask_array[index_video]
+                    if len(mask_array.shape) == 3:
+                        contuour_position = find_contours(mask_array[index_time, :, :], 0.8)
+                    elif len(mask_array.shape) == 2:
+                        contuour_position = find_contours(mask_array[:, :], 0.8)
+                    temp = contuour_position[0][:, 1]
+                    temp2 = contuour_position[0][:, 0]
+                    plt.fill(temp, temp2, facecolor = 'none', edgecolor = 'yellow')
+                counter += 1
+        # Plotting the cells and the detected spots and the filtered video.
+        if (not ( self.list_selected_particles_dataframe[0] is None)) and (not ( self.list_videos_filtered[0] is None)) :
+            NUM_ROWS = self.number_videos
+            gs = gridspec.GridSpec(NUM_ROWS, NUM_COLUMNS)
+            gs.update(wspace = 0.1, hspace = 0.1) # set the spacing between axes.
+            fig = plt.figure(figsize = (self.individual_figure_size*NUM_COLUMNS, self.individual_figure_size*NUM_ROWS))
+            counter = 0
+            for index_video in range(0, self.number_videos*3, 3):
+                if not ( self.list_files_names[0] is None):
+                    title_str = self.list_files_names[counter][0:-4]
+                else:
+                    title_str = 'Cell_'+str(counter)
+                # Figure with raw video
+                ax = fig.add_subplot(gs[index_video])
+                ax.imshow(self.list_videos[counter][self.selected_time_point, :, :, self.selected_channel], cmap = self.colormap, vmax = np.max(self.list_videos[counter][self.selected_time_point, :, :, self.selected_channel])*0.95)
+                ax.set_xticks([])
+                ax.set_yticks([])
+                ax.set(title = title_str + ' Original')
+                # Figure with filtered video
+                ax = fig.add_subplot(gs[index_video+1])
+                ax.imshow(self.list_videos_filtered[counter][self.selected_time_point, :, :, self.selected_channel], cmap = self.colormap )
+                #ax.imshow(self.list_videos_filtered[counter][self.selected_time_point, :, :, self.selected_channel], cmap = 'Greys', vmin = 0 ,vmax = np.max(self.list_videos[counter][self.selected_time_point, :, :, self.selected_channel]))
+                ax.set_xticks([])
+                ax.set_yticks([])
+                ax.set(title = title_str + ' Filtered' )
+                # Figure with original video and marking the spots
+                ax = fig.add_subplot(gs[index_video+2])
+                ax.imshow(self.list_videos[counter][self.selected_time_point, :, :, self.selected_channel], cmap = self.colormap, vmax = np.max(self.list_videos[counter][self.selected_time_point, :, :, self.selected_channel])*0.95)
+                ax.set_xticks([])
+                ax.set_yticks([])
+                ax.set(title = title_str + ' Detected Spots' )
+                # main loop to mark spots
+                number_particles  = None
+                frames_part = None
+                x_pos = None
+                y_pos = None
+                # Section that plots the spots
+                selected_particles_dataframe = self.list_selected_particles_dataframe[counter]
+                if not len (self.list_selected_particles_dataframe[counter]) == 0:
+                    number_particles = selected_particles_dataframe['particle'].nunique()
+                    for k in range (0, number_particles):
+                        frames_part = selected_particles_dataframe.loc[selected_particles_dataframe['particle'] == selected_particles_dataframe['particle'].unique()[k]].frame.values
+                        index_time = self.selected_time_point
+                        if index_time in frames_part: # plotting the circles for each detected particle at a given time point
+                            index_val = np.where(frames_part == index_time)
+                            x_pos = int(selected_particles_dataframe.loc[selected_particles_dataframe['particle'] == selected_particles_dataframe['particle'].unique()[k]].x.values[index_val])
+                            y_pos = int(selected_particles_dataframe.loc[selected_particles_dataframe['particle'] == selected_particles_dataframe['particle'].unique()[k]].y.values[index_val])
+                        try:
+                            circle = plt.Circle((x_pos, y_pos), self.particle_size/2, color = 'w', fill = False)
+                            ax.add_artist(circle)
+                        except:
+                            pass
+                # main loop to mark spots ==  > REAL SPOTS. USE FOR SIMULATED CELL
+                number_particles  = None
+                frames_part = None
+                x_pos = None
+                y_pos = None
+                if not ( self.list_real_particle_positions[0] is None):
+                    selected_particles_dataframe = self.list_real_particle_positions[counter]
+                    if not len (self.list_real_particle_positions[counter]) == 0:
+                        number_particles = selected_particles_dataframe['particle'].nunique()
+                        for k in range (0, number_particles):
+                            frames_part = selected_particles_dataframe.loc[selected_particles_dataframe['particle'] == selected_particles_dataframe['particle'].unique()[k]].frame.values
+                            index_time = self.selected_time_point
+                            if index_time in frames_part: # plotting the circles for each detected particle at a given time point
+                                index_val = np.where(frames_part == index_time)
+                                x_pos = int(selected_particles_dataframe.loc[selected_particles_dataframe['particle'] == selected_particles_dataframe['particle'].unique()[k]].x.values[index_val])
+                                y_pos = int(selected_particles_dataframe.loc[selected_particles_dataframe['particle'] == selected_particles_dataframe['particle'].unique()[k]].y.values[index_val])
+                            try:
+                                circle = plt.Circle((x_pos, y_pos), 2, color = 'yellow', fill = True)
+                                ax.add_artist(circle)
+                            except:
+                                pass
+                # Plots the mask contour on the video
+                if not ( self.list_mask_array[0] is None):
+                    mask_array = self.list_mask_array[index_video]
+                    if len(mask_array.shape) == 3:
+                        contuour_position = find_contours(mask_array[index_time, :, :], 0.8)
+                    elif len(mask_array.shape) == 2:
+                        contuour_position = find_contours(mask_array[:, :], 0.8)
+                    temp = contuour_position[0][:, 1]
+                    temp2 = contuour_position[0][:, 0]
+                    plt.fill(temp, temp2, facecolor = 'none', edgecolor = 'yellow')
+                counter += 1
+        fig.tight_layout()
+        if self.save_image_as_file == True:
+            plt.savefig(self.image_name,bbox_inches='tight')
+        if self.show_plot ==True:
+            plt.show()
+        else:
+            plt.close()
+        return None
+
+
+class VisualizerVideo():
+    '''
+    This class is intended to visualize videos as interactive widgets. This class has the option to mark the particles that previously were selected by trackPy.
+
+    Parameters
+
+    list_videos : List of NumPy arrays or a single NumPy array
+        Images or videos to visualize. The format is a list of Numpy arrays where each array follows the convention [T, Y, X, C] or an image array with format [Y, X].
+    dataframe_particles : pandas data frame, optional
+        A pandas data frame containing the position of each spot in the image. The default is None.
+    list_mask_array : List of NumPy arrays or a single NumPy array, with Boolean values, where 1 represents the masked area, and 0 represents the area outside the mask.
+        An array of images with dimensions [Y, X].
+    show_time_projection_spots : int, optional
+        Allows the user to display the projection of all detected spots for all time points on the current image. The default is False.
+    normalize : bool, optional
+        Option to normalize the data by removing outliers. The code removes the 1 and 99 percentiles from the image. The default is False.
+    step_size_in_sec : float, optional
+        Step size in seconds. The default is 1.
+    '''
+    def __init__(self, list_videos:list, dataframe_particles = None, list_mask_array:list = None, show_time_projection_spots:bool = False, normalize:bool = False, step_size_in_sec:float = 1):
+        self.particle_size = 7
+        self.show_time_projection_spots = show_time_projection_spots
+        # Checking if the video is a list or a single video.
+        if not (type(list_videos) is list):
+            list_videos = [list_videos]
+            self.list_videos = list_videos
+            self.number_videos = 1
+        else:
+            self.number_videos = len(list_videos)
+        if not (type(list_mask_array) is list):
+            list_mask_array = [list_mask_array]
+            self.list_mask_array = list_mask_array
+        else:
+            self.list_mask_array = list_mask_array
+        if not (type(dataframe_particles) is list):
+            dataframe_particles = [dataframe_particles]
+            self.dataframe_particles = dataframe_particles
+        else:
+            self.dataframe_particles = dataframe_particles
+        self.list_number_frames = [list_videos[i].shape[0] for i in range(0, self.number_videos)]
+        self.min_time_all_cells = min(self.list_number_frames)
+        # remove the 1 and 99 percentile if normalize == True
+        if normalize == True:
+            list_videos_normalized = []
+            for index_video in range(0, self.number_videos):
+                number_time_points, _, _, number_channels = list_videos[index_video].shape
+                temp_video = np.copy(list_videos[index_video])
+                for index_channels in range (number_channels):
+                    for index_time in range (number_time_points):
+                        temp_video[index_time, :, :, index_channels] = RemoveExtrema(temp_video[index_time, :, :, index_channels],format_video='YX').remove_outliers()
+                list_videos_normalized.append(temp_video)
+            self.list_videos = list_videos_normalized
+        else:
+            self.list_videos = self.list_videos
+        n_channels = [self.list_videos[i].shape[3] for i in range(0, self.number_videos)][0]
+        self.min_num_channels = np.min((n_channels))
+        self.step_size_in_sec = step_size_in_sec
+    def make_video_app(self):
+        '''
+        This method returns two objects (controls and output) that can be used to display a widget.
+
+        Returns
+
+        controls : object
+            Controls from interactive to use with ipywidgets **display**.
+        output : object
+            Output values from from interactive to use with ipywidgets **display**.
+        '''
+        def figure_viewer(drop_cell:int, index_time_slider:int, drop_channel:int):
+            video = self.list_videos[drop_cell]
+            selected_particles_dataframe = self.dataframe_particles[drop_cell]
+            drop_size = self.particle_size
+            index_time = int(index_time_slider/self.step_size_in_sec)
+            plt.figure(1)
+            ax = plt.gca()
+            if drop_channel == 'Ch_0':
+                channel = 0
+                plt.imshow(video[index_time, :, :, channel], cmap = 'gray', vmax = np.max(video[index_time, :, :, channel])*0.95)
+            elif drop_channel == 'Ch_1':
+                channel = 1
+                plt.imshow(video[index_time, :, :, channel], cmap = 'gray', vmax = np.max(video[index_time, :, :, channel])*0.95)
+            elif drop_channel == 'Ch_2':  # vmax = np.mean(video[index_time, :, :, channel])+3*np.std(video[index_time, :, :, channel])
+                channel = 2
+                plt.imshow(video[index_time, :, :, channel], cmap = 'gray', vmax = np.max(video[index_time, :, :, channel])*0.95)
+            elif drop_channel == 'Ch_3':
+                channel = 3
+                plt.imshow(video[index_time, :, :, channel], cmap = 'gray', vmax = np.max(video[index_time, :, :, channel])*0.95)
+            else :
+                # Converting a np.uint16 array into float.
+                image = np.copy(video[index_time, :, :, :])
+                min_image, max_image = np.min(image), np.max(image)
+                image -= min_image
+                image_float = np.array(image, 'float32')
+                image_float *= 255./(max_image-min_image)
+                image = np.asarray(np.round(image_float), 'uint8')
+                plt.imshow(image, vmax = np.max(image)*0.95)
+            # Plots the detected spots.
+            if not ( self.dataframe_particles[0] is None):
+                n_particles = selected_particles_dataframe['particle'].nunique()
+                for k in range (0, n_particles):
+                    frames_part = selected_particles_dataframe.loc[selected_particles_dataframe['particle'] == selected_particles_dataframe['particle'].unique()[k]].frame.values
+                    if index_time in frames_part: # plotting the circles for each detected particle at a given time point
+                        index_val = np.where(frames_part == index_time)
+                        x_pos = int(selected_particles_dataframe.loc[selected_particles_dataframe['particle'] == selected_particles_dataframe['particle'].unique()[k]].x.values[index_val])
+                        y_pos = int(selected_particles_dataframe.loc[selected_particles_dataframe['particle'] == selected_particles_dataframe['particle'].unique()[k]].y.values[index_val])
+                    elif self.show_time_projection_spots == True: # In case the spot is not detected in a given time point, plot the closest the point
+                        index_closest = np.abs(frames_part - index_time).argmin()
+                        x_pos = int(selected_particles_dataframe.loc[selected_particles_dataframe['particle'] == selected_particles_dataframe['particle'].unique()[k]].x.values[index_closest])
+                        y_pos = int(selected_particles_dataframe.loc[selected_particles_dataframe['particle'] == selected_particles_dataframe['particle'].unique()[k]].y.values[index_closest])
+                    try:
+                        circle = plt.Circle((x_pos, y_pos), drop_size/2, color = 'yellow', fill = False)
+                        ax.add_artist(circle)
+                    except:
+                        pass
+            # Plots the mask contour on the video
+            if not ( self.list_mask_array[0] is None):
+                mask_array = self.list_mask_array[drop_cell]
+                if len(mask_array.shape) == 3:
+                    contuour_position = find_contours(mask_array[index_time, :, :], 0.8)
+                elif len(mask_array.shape) == 2:
+                    contuour_position = find_contours(mask_array[:, :], 0.8)
+                temp = contuour_position[0][:, 1]
+                temp2 = contuour_position[0][:, 0]
+                plt.fill(temp, temp2, facecolor = 'none', edgecolor = 'yellow')
+            plt.show()
+        # This section defines the drop menu for the number of channels in the video.
+        if self.min_num_channels == 1:
+            options_channels = ['Ch_0']
+        if self.min_num_channels == 2:
+            options_channels = ['Ch_0', 'Ch_1']
+        if self.min_num_channels == 3:
+            options_channels = ['Ch_0', 'Ch_1', 'Ch_2', 'All_Channels']
+        if self.min_num_channels == 4:
+            options_channels = ['Ch_0', 'Ch_1', 'Ch_2', 'Ch_3', 'All_Channels']
+        options_cells = list(range(0, self.number_videos))
+        interactive_plot = interactive(figure_viewer, drop_cell = widgets.Dropdown(options = options_cells, description = 'Cell'), 
+                                        index_time_slider = widgets.IntSlider(min = 0, max = (self.min_time_all_cells-1)*self.step_size_in_sec , step = self.step_size_in_sec, value = 0, description = 'Time'), 
+                                        drop_channel = widgets.Dropdown(options = options_channels, description = 'Channel'))
+        controls = HBox(interactive_plot.children[:-1], layout = Layout(flex_flow = 'row wrap'))
+        output = interactive_plot.children[-1]
+        return controls, output
+
+
+class VisualizerVideo3D():
+    '''
+    This class is intended to visualize 3d videos as interactive widgets.
+
+    Parameters
+
+    list_videos : List of NumPy arrays or a single NumPy array
+        Images or videos to visualize. The format is a list of Numpy arrays where each array follows the convention [T, Y, X, C] or an image array with format [Y, X].
+    '''
+    def __init__(self, list_videos:list):
+        # Checking if the video is a list or a single video.
+        if not (type(list_videos) is list):
+            list_videos = [list_videos]
+            self.list_videos = list_videos
+            self.number_videos = 1
+        else:
+            self.number_videos = len(list_videos)
+        self.list_number_frames = [list_videos[i].shape[0] for i in range(0, self.number_videos)]
+        self.min_time_all_cells = min(self.list_number_frames)
+        list_number_z_slices = [list_videos[i].shape[1] for i in range(0, self.number_videos)]
+        self.min_z_slices = min(list_number_z_slices)
+        n_channels = [list_videos[i].shape[3] for i in range(0, self.number_videos)][0]
+        self.min_num_channels = np.min((n_channels))
+    def make_video_app(self):
+        '''
+        This method returns two objects (controls and output) that can be used to display a widget.
+
+        Returns
+
+        controls : object
+            Controls from interactive to use with ipywidgets **display**.
+        output : object
+            Output values from from interactive to use with ipywidgets **display**.
+        '''
+        def figure_viewer(drop_cell:int, drop_channel:int, index_z_axis:int, index_time:int):
+            plt.figure(1)
+            video = self.list_videos[drop_cell]
+            if drop_channel == 'Ch_0':
+                channel = 0
+                plt.imshow(video[index_time, index_z_axis, :, :, channel], cmap = 'gray')
+            elif drop_channel == 'Ch_1':
+                channel = 1
+                plt.imshow(video[index_time, index_z_axis, :, :, channel], cmap = 'gray')
+            elif drop_channel == 'Ch_2':
+                channel = 2
+                plt.imshow(video[index_time, index_z_axis, :, :, channel], cmap = 'gray')
+            elif drop_channel == 'Ch_3':
+                channel = 3
+                plt.imshow(video[index_time, index_z_axis, :, :, channel], cmap = 'gray')
+            elif drop_channel == 'All_Channels' :
+                # Converting a np.uint16 array into float.
+                image = np.copy(video[index_time, index_z_axis:, :, 0:int(np.min((3, self.min_num_channels)))])
+                min_image, max_image = np.min(image), np.max(image)
+                image -= min_image
+                image_float = np.array(image, 'float32')
+                image_float *= 255./(max_image-min_image)
+                image = np.asarray(np.round(image_float), 'uint8')
+                plt.imshow(image)
+            plt.axis('off')
+            plt.show()
+        options_cell = list(range(0, self.number_videos))
+        if self.min_num_channels == 1:
+            options_ch = ['Ch_0']
+        if self.min_num_channels == 2:
+            options_ch = ['Ch_0', 'Ch_1']
+        if self.min_num_channels == 3:
+            options_ch = ['Ch_0', 'Ch_1', 'Ch_2', 'All_Channels']
+        if self.min_num_channels == 4:
+            options_ch = ['Ch_0', 'Ch_1', 'Ch_2', 'Ch_3', 'All_Channels']
+        interactive_plot = interactive(figure_viewer,   drop_cell = widgets.Dropdown(options = options_cell, description = 'Cell'), 
+                                                        drop_channel = widgets.Dropdown(options = options_ch, description = 'Channel', value = 'Ch_0'), 
+                                                        index_z_axis =  widgets.IntSlider(min = 0, max = self.min_z_slices-1, step = 1, value = 0, description = 'z-slice'), 
+                                                        index_time = widgets.IntSlider(min = 0, max = self.min_time_all_cells-1, step = 1, value = 0, description = 'time') )
+        controls = HBox(interactive_plot.children[:-1], layout = Layout(flex_flow = 'row wrap'))
+        output = interactive_plot.children[-1]
+        return controls, output
+
+
+class VisualizerCrops():
+    '''
+    This class is intended to visualize the spots detected b trackPy as crops in an interactive widget.
+
+    Parameters
+
+    list_videos : List of NumPy arrays or a single NumPy array.
+        Images or videos to visualize. The format is a list of Numpy arrays where each array follows the convention [T, Y, X, C].
+    list_selected_particles_dataframe : pandas data frame.
+        A pandas data frame containing the position of each spot in the image.
+    particle_size : int, optional
+        Average particle size. The default is 5.
+    '''
+    def __init__(self, list_videos:list, list_selected_particles_dataframe:list, particle_size:int = 5):
+        if (particle_size % 2) == 0:
+            self.particle_size = particle_size + 1
+            print('Warning! Particle_size must be an odd number, this was automatically changed to: ', particle_size)
+        else:
+            self.particle_size = particle_size
+        self.disk_size = int(particle_size/2) # size of the half of the crop
+        self.crop_size = int(particle_size/2)+2
+        # Checking if the video is a list or a single video.
+        if not (type(list_videos) is list):
+            list_videos = [list_videos]
+            self.list_videos = list_videos
+            self.number_videos = 1
+        else:
+            self.number_videos = len(list_videos)
+        if not (type(list_selected_particles_dataframe) is list):
+            list_selected_particles_dataframe = [list_selected_particles_dataframe]
+            self.list_selected_particles_dataframe = list_selected_particles_dataframe
+        self.list_number_frames = [list_videos[i].shape[0] for i in range(0, self.number_videos)]
+        self.min_time_all_cells = min(self.list_number_frames)
+    def make_video_app(self):
+        '''
+        This method returns two objects (controls and output) to display a widget.
+
+        Returns
+
+        controls : object
+            Controls from interactive to use with ipywidgets **display**.
+        output : object
+            Output values from from interactive to use with ipywidgets **display**.
+        '''
+        def figure_viewer(drop_cell:int, track:int, index_time:int):
+            video = self.list_videos[drop_cell]
+            selected_particles_dataframe = self.list_selected_particles_dataframe[drop_cell]
+            n_particles = selected_particles_dataframe['particle'].nunique()
+            frames_vector = np.zeros((n_particles, 2))
+            for index_particle in range(0, n_particles):
+                frames_part = selected_particles_dataframe.loc[selected_particles_dataframe['particle'] == selected_particles_dataframe['particle'].unique()[index_particle]].frame.values
+                frames_vector[index_particle, :] = frames_part[0], frames_part[-1]
+            def return_crop(image:np.ndarray, x_pos:int, y_pos:int, crop_size:int):
+                # function that recenter the spots
+                crop_image = image[y_pos-(crop_size):y_pos+(crop_size+1), x_pos-(crop_size):x_pos+(crop_size+1)]
+                return crop_image
+            number_channels  = video.shape[3]
+            size_cropped_image = (100+(self.crop_size+1)) - (100-(self.crop_size)) # true size of crop in image
+            ch0_image  = np.zeros((size_cropped_image, size_cropped_image))
+            ch1_image  = np.zeros((size_cropped_image, size_cropped_image))
+            ch2_image  = np.zeros((size_cropped_image, size_cropped_image))
+            frames_part = selected_particles_dataframe.loc[selected_particles_dataframe['particle'] == selected_particles_dataframe['particle'].unique()[track]].frame.values
+            if index_time in frames_part: # detecting the position for the crop
+                index_val = np.where(frames_part == index_time)
+                x_pos = int(selected_particles_dataframe.loc[selected_particles_dataframe['particle'] == selected_particles_dataframe['particle'].unique()[track]].x.values[index_val])
+                y_pos = int(selected_particles_dataframe.loc[selected_particles_dataframe['particle'] == selected_particles_dataframe['particle'].unique()[track]].y.values[index_val])
+            else: #in case the code doesn't find a position it uses the closes time point value.
+                index_closest = np.abs(frames_part - index_time).argmin()
+                x_pos = int(selected_particles_dataframe.loc[selected_particles_dataframe['particle'] == selected_particles_dataframe['particle'].unique()[track]].x.values[index_closest])
+                y_pos = int(selected_particles_dataframe.loc[selected_particles_dataframe['particle'] == selected_particles_dataframe['particle'].unique()[track]].y.values[index_closest])
+            ch0_image[:, :] = return_crop(video[index_time, :, :, 0], x_pos, y_pos, self.crop_size)
+            ch1_image[:, :] = return_crop(video[index_time, :, :, 1], x_pos, y_pos, self.crop_size)
+            ch2_image[:, :] = return_crop(video[index_time, :, :, 2], x_pos, y_pos, self.crop_size)
+            _, ax = plt.subplots(1, number_channels, figsize = (10, 5))
+            for index_channels in range(0, number_channels):
+                if index_channels == 0:
+                    ax[index_channels].imshow(ch0_image[index_time, :, :], origin = 'bottom', cmap = 'gray')
+                    ax[index_channels].set_axis_off()
+                    ax[index_channels].set(title = 'Channel_0 (Red)')
+                elif index_channels == 1:
+                    ax[index_channels].imshow(ch1_image[index_time, :, :], origin = 'bottom', cmap = 'gray')
+                    ax[index_channels].set_axis_off()
+                    ax[index_channels].set(title = 'Channel_1 (Green)')
+                else:
+                    ax[index_channels].imshow(ch2_image[index_time, :, :], origin = 'bottom', cmap = 'gray')
+                    ax[index_channels].set_axis_off()
+                    ax[index_channels].set(title = 'Channel_2 (Blue)')
+            print('For track '+ str(track) + ' a spot is detected between time points : '+ str(int(frames_vector[track, 0])) + ' and ' + str(int(frames_vector[track, 1])) )
+        options_cells = list(range(0, self.number_videos))
+        interactive_plot = interactive(figure_viewer, drop_cell = widgets.Dropdown(options = options_cells, description = 'Cell'), 
+                                        track = widgets.IntSlider(min = 0, max = self.selected_particles_dataframe['particle'].nunique()-1, step = 1, value = 0, description = 'track'), 
+                                        index_time = widgets.IntSlider(min = 0, max = self.video.shape[0]-1, step = 1, value = 0, description = 'time'))
+        controls = HBox(interactive_plot.children[:-1], layout = Layout(flex_flow = 'row wrap'))
+        output = interactive_plot.children[-1]
+        return controls, output
     
 class Plots():
     '''
@@ -4049,6 +3980,28 @@ class Plots():
     '''
     def __init__(self):
         pass
+    
+    def plot_beads_alignment(first_image_beads,filtered_first_image_beads,positions_in_first_image, second_image_beads,filtered_second_image_beads,positions_in_second_image,spot_size ):
+        _, ax = plt.subplots(2,2, figsize=(10, 10))
+        ax[0,0].imshow(first_image_beads,cmap='Greys_r')
+        ax[0,0].set_xticks([]); ax[0,0].set_yticks([])
+        ax[0,0].set_title('Original first image')
+        ax[0,1].imshow(filtered_first_image_beads,cmap='Greys_r')
+        ax[0,1].set_xticks([]); ax[0,1].set_yticks([])
+        ax[0,1].set_title('Filtered image')
+        for i in range(0, positions_in_first_image.shape[0]):
+            circle1=plt.Circle((positions_in_first_image[i,0], positions_in_first_image[i,1]), spot_size, color = 'yellow', fill = False)
+            ax[0,1].add_artist(circle1)        
+        ax[1,0].imshow(second_image_beads,cmap='Greys_r')
+        ax[1,0].set_xticks([]); ax[1,0].set_yticks([])
+        ax[1,0].set_title('Original second image')
+        ax[1,1].imshow(filtered_second_image_beads,cmap='Greys_r')
+        ax[1,1].set_xticks([]); ax[1,1].set_yticks([])
+        ax[1,1].set_title('Filtered image')
+        for i in range(0, positions_in_second_image.shape[0]):
+            circle2=plt.Circle((positions_in_second_image[i,0], positions_in_second_image[i,1]), spot_size, color = 'yellow', fill = False)
+            ax[1,1].add_artist(circle2)
+        plt.show()
     
     def plot_tracking_spots(trackpy_dataframe, mean_intensities, mean_intensities_normalized, array_intensities_mean, std_intensities, std_intensities_normalized, step_size,time_points):
         n_particles = trackpy_dataframe['particle'].nunique()
@@ -4364,26 +4317,33 @@ class Utilities():
             image_uint8 = image_uint8[:,:,:,0:3]
         return image_uint8
     
+    
+        # Function to convert the video to uint
+    def img_uint(image):
+        temp_vid = img_as_uint(image)
+        return temp_vid
+
+    # temporal function that converts uint to float
+    def img_float(image):
+        temp_vid = img_as_float64(image)
+        return temp_vid
+
     # Functions with the bandpass and gaussian filters
     def bandpass_filter (image: np.ndarray, lowfilter, highpass):
         temp_vid = difference_of_gaussians(image, lowfilter, highpass, truncate = 3.0)
         return img_as_uint(temp_vid)
-    
+
     def gaussian_filter(image: np.ndarray, sigma:float = 0.1):
         temp_image = img_as_float64(image)
         filtered_image = gaussian(temp_image, sigma = sigma, output = None, mode = 'nearest', cval = 0, multichannel = None, preserve_range = True, truncate = 4.0)
         return img_as_uint(filtered_image)
-    
+
     def log_filter(image: np.ndarray, sigma=1):
         temp_image = img_as_float64(image)
         temp_vid = gaussian_laplace(temp_image, sigma=sigma)
         temp_vid = np.clip(-temp_vid, a_min=0, a_max=None)
         return img_as_uint(temp_vid)
-    # Function to convert the video to uint
-    def img_uint(image):
-        temp_vid = img_as_uint(image)
-        return temp_vid
-    
+
     def extract_field_from_dataframe(dataframe_path=None, dataframe=None,selected_time=None,selected_field='ch1_int_mean',use_nan_for_padding=True):
         '''
         This function extracts the selected_field as a vector for a given frame. If selected_time is None, the code will return the extracted 
