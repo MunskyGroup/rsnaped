@@ -964,7 +964,7 @@ class Cellpose():
     selection_method : str, optional
         Option to use the optimization algorithm to maximize the number of cells or maximize the size options are 'max_area' or 'max_cells' or 'max_cells_and_area'. The default is 'max_cells_and_area'.
     '''
-    def __init__(self, video:np.ndarray, num_iterations:int = 5, channels:list = [0, 0], diameter:float = 120, model_type:str = 'cyto', selection_method:str = 'max_cells_and_area'):
+    def __init__(self, video:np.ndarray, num_iterations:int = 5, channels:list = [0, 0], diameter:float = 120, model_type:str = 'cyto', selection_method:str = 'max_cells_and_area',minimum_cell_area=1000):
         #self.video = video
         self.num_iterations = num_iterations
         self.minimum_probability = 0
@@ -974,6 +974,7 @@ class Cellpose():
         self.model_type = model_type # options are 'cyto' or 'nuclei'
         self.selection_method = selection_method # options are 'max_area' or 'max_cells'
         self.optimization_parameter = np.round(np.linspace(self.minimum_probability, self.maximum_probability, self.num_iterations), 2)
+        self.minimum_cell_area =minimum_cell_area
         # removing pixels that over the 98 percentile. This operation is only performed for cell segmentation.
         if len(video.shape) > 3:  
             raise ValueError ('A multicolor image is passed for segmentation. Please select a color channel for segmentation and pass the image with one of the following formats [T, Y, X] or [Y, X]')
@@ -998,7 +999,8 @@ class Cellpose():
         # Loop that test multiple probabilities in cell pose and returns the masks with the longest area.
         def cellpose_max_area( optimization_threshold):
             try:
-                masks, _, _, _ = model.eval(self.video, normalize = True, cellprob_threshold = optimization_threshold, diameter = self.diameter, min_size = 1000, channels = self.channels, progress = None)
+                masks, _, _, _ = model.eval(self.video, normalize = True, cellprob_threshold = optimization_threshold, diameter = self.diameter, channels = self.channels, progress = None)
+                masks=Utilities().remove_artifacts_from_mask_image(masks,minimal_mask_area_size=self.minimum_cell_area)
             except:
                 masks =0
             n_masks = np.max(masks)
@@ -1014,13 +1016,15 @@ class Cellpose():
                 return np.sum(masks)
         def cellpose_max_cells(optimization_threshold):
             try:
-                masks, _, _, _ = model.eval(self.video, normalize = True, cellprob_threshold = optimization_threshold, diameter =self.diameter, min_size = 1000, channels = self.channels, progress = None)
+                masks, _, _, _ = model.eval(self.video, normalize = True, cellprob_threshold = optimization_threshold, diameter =self.diameter, channels = self.channels, progress = None)
+                masks=Utilities().remove_artifacts_from_mask_image(masks,minimal_mask_area_size=self.minimum_cell_area)
             except:
                 masks =0
             return np.max(masks)
         def cellpose_max_cells_and_area( optimization_threshold):
             try:
-                masks, _, _, _ = model.eval(self.video, normalize = True, cellprob_threshold = optimization_threshold, diameter = self.diameter, min_size = 1000, channels = self.channels, progress = None)
+                masks, _, _, _ = model.eval(self.video, normalize = True, cellprob_threshold = optimization_threshold, diameter = self.diameter, channels = self.channels, progress = None)
+                masks=Utilities().remove_artifacts_from_mask_image(masks,minimal_mask_area_size=self.minimum_cell_area)
             except:
                 masks =0
             n_masks = np.max(masks)
@@ -1044,9 +1048,11 @@ class Cellpose():
         if self.selection_method == 'max_cells_and_area':
             list_metrics_masks = [cellpose_max_cells_and_area(optimization_probability ) for i,optimization_probability in enumerate(self.optimization_parameter)]
             evaluated_metric_for_masks = np.asarray(list_metrics_masks)
+        
         if np.max(evaluated_metric_for_masks) >0:
             selected_conditions = self.optimization_parameter[np.argmax(evaluated_metric_for_masks)]
             selected_masks, _, _, _ = model.eval(self.video, normalize = True, cellprob_threshold = selected_conditions, diameter = self.diameter, min_size = -1, channels = self.channels, progress = None)
+            selected_masks=Utilities().remove_artifacts_from_mask_image(selected_masks,minimal_mask_area_size=self.minimum_cell_area)
             selected_masks[0:10, :] = 0;selected_masks[:, 0:10] = 0;selected_masks[selected_masks.shape[0]-10:selected_masks.shape[0]-1, :] = 0; selected_masks[:, selected_masks.shape[1]-10: selected_masks.shape[1]-1 ] = 0#This line of code ensures that the corners are zeros.
         else:
             selected_masks = None
@@ -4194,6 +4200,36 @@ class Utilities():
     '''
     def __init__(self):
         pass
+    
+    # Function that reorder the index to make it continuos 
+    def reorder_mask_image(self,mask_image_tested):
+        number_masks = np.max(mask_image_tested)
+        mask_new =np.zeros_like(mask_image_tested)
+        if number_masks>0:
+            counter = 0
+            for index_mask in range(1,number_masks+1):
+                if index_mask in mask_image_tested:
+                    counter = counter + 1
+                    if counter ==1:
+                        mask_new = np.where(mask_image_tested == index_mask, -counter, mask_image_tested)
+                    else:
+                        mask_new = np.where(mask_new == index_mask, -counter, mask_new)
+            reordered_mask = np.absolute(mask_new)
+        else:
+            reordered_mask = mask_new
+        return reordered_mask  
+    # Function that reorder the index to make it continuos 
+    def remove_artifacts_from_mask_image(self,mask_image_tested, minimal_mask_area_size = 5000):
+        number_masks = np.max(mask_image_tested)
+        if number_masks>0:
+            for index_mask in range(1,number_masks+1):
+                mask_size = np.sum(mask_image_tested == index_mask)
+                if mask_size <= minimal_mask_area_size:
+                    mask_image_tested = np.where(mask_image_tested == index_mask,0,mask_image_tested )
+            reordered_mask = Utilities().reorder_mask_image(mask_image_tested)
+        else:
+            reordered_mask=mask_image_tested
+        return reordered_mask 
     
     def log_LL_fun(real_data,simulation_data,nbins=30):
         hist_exp_data, hist_exp_bins = np.histogram( real_data , bins=nbins)
