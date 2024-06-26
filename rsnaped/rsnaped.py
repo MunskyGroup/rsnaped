@@ -169,7 +169,7 @@ class SSA_rsnapsim():
 
     Outputs:
     '''  
-    def __init__(self,gene_file,ke=10,ki=0.03,frames=300,frame_rate=1,n_traj=20,t_burnin=1000,use_Harringtonin=False,use_FRAP=False, perturbation_time_start=0,perturbation_time_stop=None):
+    def __init__(self,gene_file,mrna_object=None, ke=10,ki=0.03,frames=300,frame_rate=1,n_traj=20,t_burnin=1000,use_Harringtonin=False,use_FRAP=False, perturbation_time_start=0,perturbation_time_stop=None):
         self.gene_file=gene_file
         self.ke=ke
         self.ki=ki
@@ -182,6 +182,7 @@ class SSA_rsnapsim():
         self.perturbation_time_start=perturbation_time_start
         self.perturbation_time_stop=perturbation_time_stop
         self.NUMBER_OF_CORES = multiprocessing.cpu_count()
+        self.mrna_object = mrna_object
 
     def simulate(self):
         '''
@@ -196,6 +197,9 @@ class SSA_rsnapsim():
         time_vector: NumPy array with dimensions [1, Time_points].
             Time vector used in the simulation.
         '''
+        
+        ##TODO ADD THE MRNA OBJECT SOLVER VERSION
+        
         t = np.linspace(0,self.t_burnin+self.frames,(self.t_burnin+self.frames+1)*(self.frame_rate))
         _, _, tagged_pois,raw_seq = rss.seqmanip.open_seq_file(str(self.gene_file))
         try:
