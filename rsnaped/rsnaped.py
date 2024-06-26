@@ -22,7 +22,8 @@ from numpy import unravel_index
 try:
     import rsnapsim as rss
 except:
-    print('Problems importing rsnapsim')
+    pass
+    #print('Problems importing rsnapsim')
 try:
     import cv2
 except:
@@ -3655,6 +3656,7 @@ class VisualizerImage():
                 counter += 1
         fig.tight_layout()
         if self.save_image_as_file == True:
+            print(self.image_name)
             plt.savefig(self.image_name,bbox_inches='tight')
         if self.show_plot ==True:
             plt.show()
