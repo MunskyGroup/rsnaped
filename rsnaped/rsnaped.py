@@ -2298,14 +2298,14 @@ class SimulatedCell():
                         if isfloat_D:
                             temp_Position_y[i_p] = newPosition_y[i_p] + brownian_movement * np.random.randn(1)
                             temp_Position_x[i_p] = newPosition_x[i_p] + brownian_movement * np.random.randn(1)
-                            
-                        if not isnot_overtimeD:
-                            temp_Position_y[i_p] = newPosition_y[i_p] + brownian_movement[i_p] * np.random.randn(1)
-                            temp_Position_x[i_p] = newPosition_x[i_p] + brownian_movement[i_p] * np.random.randn(1)
-                            
-                        if isnot_overtimeD:
-                            temp_Position_y[i_p] = newPosition_y[i_p] + brownian_movement[i_p,t_p] * np.random.randn(1)
-                            temp_Position_x[i_p] = newPosition_x[i_p] + brownian_movement[i_p,t_p] * np.random.randn(1)                          
+                        else:
+                            if not isnot_overtimeD:
+                                temp_Position_y[i_p] = newPosition_y[i_p] + brownian_movement[i_p] * np.random.randn(1)
+                                temp_Position_x[i_p] = newPosition_x[i_p] + brownian_movement[i_p] * np.random.randn(1)
+                                
+                            if isnot_overtimeD:
+                                temp_Position_y[i_p] = newPosition_y[i_p] + brownian_movement[i_p,t_p] * np.random.randn(1)
+                                temp_Position_x[i_p] = newPosition_x[i_p] + brownian_movement[i_p,t_p] * np.random.randn(1)                          
                         
                     while path.contains_point((temp_Position_y[i_p], temp_Position_x[i_p])) == 0:
                         temp_Position_y[i_p] = newPosition_y[i_p]
