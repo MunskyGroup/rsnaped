@@ -2020,7 +2020,7 @@ class SimulatedCell():
                 number_spots:int = 10, 
                 number_frames:int = 20, 
                 step_size:float = 1, 
-                diffusion_coefficient_pixel_per_second:float = 0.01, 
+                diffusion_coefficient_pixel_per_second:Union[np.ndarray, float] = 0.01, 
                 simulated_trajectories_ch0:Union[np.ndarray, None]  = None, 
                 size_spot_ch0:int = 5, 
                 spot_sigma_ch0:int = 1, 
@@ -2196,8 +2196,8 @@ class SimulatedCell():
             for point_index in range(0, len(center_positions_vector)):
                 # creating a position for each spot
                 center_position = center_positions_vector[point_index]
-                #kernel=gaussian_subpixel_erf(point=center_position, size_spot=size_spot, spot_sigma=spot_sigma)
-                kernel=pdf_pixel_resolution( ax=spots_range_to_replace, spot_sigma=spot_sigma)
+                kernel=gaussian_subpixel_erf(point=center_position, size_spot=size_spot, spot_sigma=spot_sigma)
+                #kernel=pdf_pixel_resolution( ax=spots_range_to_replace, spot_sigma=spot_sigma)
                 if using_ssa == True :
                     int_ssa = simulated_trajectories_time_point[point_index] #- min_SSA_value) / (max_SSA_value-min_SSA_value) # intensity normalized to min and max values in the SSA
                     int_tp = int_ssa* intensity_scale 
@@ -2247,9 +2247,22 @@ class SimulatedCell():
                     initial_points_in_polygon[counter_number_spots-1, :] = np.asarray(test_points)
                 if conter_security > MAX_ITERATIONS:
                     print('error generating spots')
+
             ## Brownian motion
             # scaling factor for Brownian motion.
-            brownian_movement = math.sqrt(2*diffusion_coefficient*step_size)
+            # here we check if the user passed a single float as a diffusion coefficent, 
+            # if they did, use that value as the diffusion for all spots
+            # if they passed an array, then each spot has its own diffusion rate
+            # this array could be over time or not, if its only size of number of spots fill it 
+            # in over time.
+            isfloat_D = False
+            if isinstance(diffusion_coefficient, float):
+                brownian_movement = math.sqrt(2*diffusion_coefficient*step_size)
+                isfloat_D = True
+            else:
+                brownian_movement = np.sqrt(2*diffusion_coefficient*step_size)
+                #brownian_movement = np.random.pareto(1.2)*np.sqrt(2*diffusion_coefficient*step_size)
+              
             # Preallocating memory
             y_positions = np.array(initial_points_in_polygon[:, 0], dtype = np.single) #  x_position for selected spots inside the polygon , dtype = 'int'
             x_positions = np.array(initial_points_in_polygon[:, 1], dtype = np.single) #  y_position for selected spots inside the polygon
@@ -2259,21 +2272,49 @@ class SimulatedCell():
             newPosition_x = np.zeros_like(x_positions, dtype = np.single)
             spot_positions_movement = np.zeros((len(time_vector), number_spots, 2))
             # Main loop that computes the random motion and new spot positions
+            
+            #check if the motion array is over time or not
+            
+            #TODO THIS IS UGLY FIX POTENTIALLY IN THE FUTURE
+            isnot_overtimeD = False
+            if not isfloat_D:
+                if brownian_movement.ndim > 1:
+                    if brownian_movement.shape[1] == len(time_vector):
+                        isnot_overtimeD = False
+                    else:
+                        brownian_movement = brownian_movement[0]
+                        isnot_overtimeD = True
+                else:
+                    if brownian_movement.shape[0] == number_spots:
+                        isnot_overtimeD = True
+                    
+            
             for t_p, _ in enumerate(time_vector):
                 for i_p in range (0, number_spots):
                     if t_p == 0:
                         temp_Position_y[i_p] = y_positions[i_p]
                         temp_Position_x[i_p] = x_positions[i_p]
                     else:
-                        temp_Position_y[i_p] = newPosition_y[i_p] + brownian_movement * np.random.randn(1)
-                        temp_Position_x[i_p] = newPosition_x[i_p] + brownian_movement * np.random.randn(1)
+                        if isfloat_D:
+                            temp_Position_y[i_p] = newPosition_y[i_p] + brownian_movement * np.random.randn(1)
+                            temp_Position_x[i_p] = newPosition_x[i_p] + brownian_movement * np.random.randn(1)
+                            
+                        if not isnot_overtimeD:
+                            temp_Position_y[i_p] = newPosition_y[i_p] + brownian_movement[i_p] * np.random.randn(1)
+                            temp_Position_x[i_p] = newPosition_x[i_p] + brownian_movement[i_p] * np.random.randn(1)
+                            
+                        if isnot_overtimeD:
+                            temp_Position_y[i_p] = newPosition_y[i_p] + brownian_movement[i_p,t_p] * np.random.randn(1)
+                            temp_Position_x[i_p] = newPosition_x[i_p] + brownian_movement[i_p,t_p] * np.random.randn(1)                          
+                        
                     while path.contains_point((temp_Position_y[i_p], temp_Position_x[i_p])) == 0:
                         temp_Position_y[i_p] = newPosition_y[i_p]
                         temp_Position_x[i_p] = newPosition_x[i_p]
                     newPosition_y[i_p] = temp_Position_y[i_p]
                     newPosition_x[i_p] = temp_Position_x[i_p]
                 spot_positions_movement [t_p, :, :] = np.vstack((newPosition_y, newPosition_x)).T
-            return np.round(spot_positions_movement,3) # vector with dimensions (time, spot, y_x )
+                #print(spot_positions_movement)
+            return spot_positions_movement # vector with dimensions (time, spot, y, x )
             
         def make_simulation(base_video_selected_channel:np.ndarray, masked_video_selected_channel:np.ndarray, spot_positions_movement:np.ndarray, time_vector:np.ndarray, polygon_array, image_size:np.ndarray, size_spot:int, spot_sigma:int, simulated_trajectories, frame_selection_empty_video,ignore_trajectories,intensity_scale):
             
