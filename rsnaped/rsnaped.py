@@ -2042,7 +2042,9 @@ class SimulatedCell():
                 intensity_scale_ch0:float = 1,
                 intensity_scale_ch1:float = 1,
                 intensity_scale_ch2:float = 1,
-                dataframe_format:str = 'short' ):
+                dataframe_format:str = 'short',
+                photobleaching_parameters:Union[np.ndarray, None] = None,
+                photobleaching_model:Union[str, None] = None ):
         if (perform_video_augmentation == True) and (video_for_mask is None):
             preprocessed_base_video,selected_angle = AugmentationVideo(base_video).random_rotation()
             if not(mask_image is None):
@@ -2087,6 +2089,8 @@ class SimulatedCell():
         self.time_vector = np.linspace(0, number_frames*step_size, num = number_frames)
         self.frame_selection_empty_video = frame_selection_empty_video
         self.dataframe_format =dataframe_format
+        self.photobleaching_parameters = photobleaching_parameters
+        self.photobleaching_model = photobleaching_model
         self.MAX_VALUE_uint16 = int(65535*0.8)
         # The following two constants are weights used to define a range of intensities for the simulated spots.
         self.MAX_STD_INT_IMAGE = 4 # maximum number of standard deviations above the mean that are allowed to draw an spot.
@@ -2390,12 +2394,31 @@ class SimulatedCell():
                 tensor_image_ch2 = make_simulation(self.base_video[:, :, :, 2], self.video_removed_mask[:, :, :, 2], spot_positions_movement, self.time_vector, self.polygon_array, self.image_size, self.size_spot_ch2, self.spot_sigma_ch2, self.simulated_trajectories_ch2, self.frame_selection_empty_video,self.ignore_trajectories_ch2,self.intensity_scale_ch2)
         else:
             tensor_image_ch2 = np.zeros((self.number_frames, self.image_size[0], self.image_size[1]), dtype = np.uint16)
+        
         # Creating a tensor with the final video as a tensor with 4D the order TXYC
         tensor_video =  np.zeros((len(self.time_vector), self.image_size[0], self.image_size[1], self.n_channels), dtype = np.uint16)
         tensor_video [:, :, :, 0] =  tensor_image_ch0
         tensor_video [:, :, :, 1] =  tensor_image_ch1
         tensor_video [:, :, :, 2] =  tensor_image_ch2
         
+        # APPLICATION OF PHOTOBLEACHING POST VIDEO GENERATION
+        if isinstance(self.photobleaching_model,str): #if theres a photobleaching model selected
+            for channel in range(self.n_channels):
+                mu = self.photobleaching_parameters[channel,0]
+                sigma = self.photobleaching_parameters[channel,1]
+                print(mu)
+                print(sigma)
+                if sigma != 0:
+                    photobleaching_array = PhotobleachScaler(model=self.photobleaching_model, shape=[self.image_size[0], self.image_size[1]], t=self.time_vector, mu=mu, sigma=sigma,).generate_bleaching_array()
+                    print(photobleaching_array.shape)
+                    print(np.swapaxes(photobleaching_array,-1,0).shape)
+                    tensor_video [:, :, :, channel] =  tensor_video [:, :, :, channel]*photobleaching_array #*np.swapaxes(photobleaching_array,-1,0) 
+                else:
+                    photobleaching_array = PhotobleachScaler(model=self.photobleaching_model, shape=[], t=self.time_vector, mu=mu, sigma=0,).generate_bleaching_array()
+                    tensor_video [:, :, :, channel] = np.swapaxes(np.swapaxes(tensor_video [:, :, :, channel] ,0,-1)*photobleaching_array,-1,0) #apply to video
+
+                
+
         # Creating dataframes.
         # converting spot position to int
         spot_positions_movement_int = np.round(spot_positions_movement).astype('int')
@@ -2492,6 +2515,10 @@ class SimulatedCellDispatcher():
         Time to start the inhibition. The default is 0.
     perturbation_time_stop : int, opt.
         Time to start the inhibition. The default is None.
+    photobleaching_parameters : ndarray, opt.
+        Numpy array of photobleaching parameters Nchannels x Npars (min 2 parameters, mu and sigma). The default is None.
+    perturbation_time_stop : str, opt.
+        Type of photobleaching model to use, loss or exponential. The default is None.
     '''
     def __init__(self, 
                 initial_video:np.ndarray, 
@@ -2524,7 +2551,9 @@ class SimulatedCellDispatcher():
                 use_Harringtonin= False,
                 perturbation_time_start=0,
                 perturbation_time_stop=None,
-                use_FRAP=False):
+                use_FRAP=False,
+                photobleaching_parameters=None,
+                photobleaching_model=None):
         if perform_video_augmentation == True:
             preprocessed_base_video,selected_angle = AugmentationVideo(initial_video).random_rotation()
             if not(mask_image is None):
@@ -2574,7 +2603,10 @@ class SimulatedCellDispatcher():
         self.use_Harringtonin = use_Harringtonin
         self.use_FRAP=use_FRAP
         self.perturbation_time_start = perturbation_time_start
-        self.perturbation_time_stop=perturbation_time_stop
+        self.perturbation_time_stop = perturbation_time_stop
+        self.photobleaching_parameters = photobleaching_parameters
+        self.photobleaching_model = photobleaching_model
+        
     def make_simulation (self):
         '''
         Method that runs the simulations for the multiplexing experiment.
@@ -2651,7 +2683,9 @@ class SimulatedCellDispatcher():
                                                                             dataframe_format =self.dataframe_format,
                                                                             ignore_ch0 = self.ignore_ch0,
                                                                             ignore_ch1 = self.ignore_ch1,
-                                                                            ignore_ch2 = self.ignore_ch2).make_simulation()
+                                                                            ignore_ch2 = self.ignore_ch2,
+                                                                            photobleaching_parameters = self.photobleaching_parameters,
+                                                                            photobleaching_model = self.photobleaching_model).make_simulation()
             DataFrame_particles_intensities['cell_number'] = DataFrame_particles_intensities['cell_number'].replace([0], self.image_number)
             DataFrame_particles_intensities['image_number'] = DataFrame_particles_intensities['image_number'].replace([0], self.image_number)
 
@@ -2930,6 +2964,77 @@ class PipelineTracking():
             mean_intensities_normalized = None
             std_intensities_normalized = None
         return dataframe_particles_all_cells,selected_mask, array_intensities, time_vector, mean_intensities, std_intensities, mean_intensities_normalized, std_intensities_normalized, segmentation_succesful
+
+
+class PhotobleachScaler():
+    '''
+    This class is intended to provide a photobleaching array to any size array
+    
+    Model_options:
+        
+        exponential - I0*np.exp(-alpha*t)
+        loss - I0*(1-alpha)^(nframes)
+
+    Parameters
+
+    model : str
+        type of photobleaching model to use. Options are 'exponential' or 'loss' corresponding to an exponential curve or percentage lost per frame.
+            exponential: $I_0*e^(-\alpha*t)$
+            loss:  $I_0*(1-\alpha)^(len(t))$
+    shape : list
+        shape of the corresponding photobleaching array to generate neglecting time axis. Providing no shape provides one photobleaching curve. Providing [512,512] 
+        generates a photobleaching curve of size (512,512,len(t)) for a per pixel bleaching rate.
+    t : np.ndarray
+        Time vector to generate photobleaching over.
+    mu : float
+        photobleaching average, $\alpha$ for each model
+    sigma : float
+        photobleaching standard deviation, if left as 0, mu is used for every photobleaching curve.
+
+    Usage
+
+    To generate a per pixel normally distributed N(.001,.0001^2) %loss for a video of shape [100,512,512], T, X, Y:
+        bleaching_array = PhotobleachScaler(model='loss', shape=[512,512], t=np.linspace(0,100,100), mu=0.001, sigma=.0001 ).generate_bleaching_array()
+        bleaching_array.shape = (100,512,512)
+
+    To generate a single consistent %loss curve to use for an entire video:
+        bleaching_array = PhotobleachScaler(model='loss', shape=[], t=np.linspace(0,100,100), mu=0.001, sigma=0).generate_bleaching_array()
+        bleaching_array.shape = (100,)
+
+    '''
+    def __init__(self, model:str = 'loss', shape:list = [], t:np.ndarray = np.array([]), mu:float = 0.001, sigma:float = 0.0001,  ):
+        self.model = model
+        self.photobleaching_array = np.zeros(shape)
+        self.t = t
+        self.shape = shape
+        self.mu = mu
+        self.sigma = sigma
+        self.ntimes = len(t)
+    
+    def generate_bleaching_array(self):
+        # generate the bleaching array for a percentage loss per frame model
+        if self.model.lower() == 'loss':
+            if self.sigma != 0: #if the user included a sigma, simulate a random normal
+                # this is the cumulative product of a normally distributed random % loss (clipped to avoid negatives)
+                bleaching_array = np.cumprod(1-(np.random.normal(loc=self.mu,
+                                                                scale=self.sigma,
+                                                                size=([self.ntimes] + self.shape ))).clip(min=0),axis=0)
+            else:
+                bleaching_array = (1-self.mu)**np.arange(self.ntimes) #just a single curve is needed if theres no noise
+        
+        if self.model.lower() in ['exponential','exp']:
+            
+            if self.sigma != 0: #if the user included a sigma, simulate a random normal
+                # use the e ^ -alpha * t  model
+                bleaching_array = np.swapaxes(np.swapaxes(np.exp(-np.random.normal(loc=self.mu,
+                                                                scale=self.sigma,
+                                                                size=(self.shape + [self.ntimes] )).clip(min=0)*self.t),-1,0),-1,1)
+                
+            else:
+                bleaching_array = np.exp(-self.mu*self.t)  #just a single curve is needed if theres no noise
+                    
+        return bleaching_array
+        
 
 
 class PhotobleachingCalculation():
@@ -4517,7 +4622,9 @@ def simulate_cell ( video_dir,
                     perturbation_time_start = 0,
                     perturbation_time_stop = None,
                     save_metadata=False,
-                    name_folder=None):
+                    name_folder=None,
+                    photobleaching_parameters = None, #N channels x N pars
+                    photobleaching_model = None): #loss or exponential
 
     '''
     This function is intended to simulate single-molecule translation dynamics in a cell. The result of this simultion is a .tif video and a dataframe containing the transation spot characteristics.
@@ -4725,7 +4832,9 @@ def simulate_cell ( video_dir,
                                                                                     use_Harringtonin = use_Harringtonin,
                                                                                     perturbation_time_start = perturbation_time_start,
                                                                                     use_FRAP=use_FRAP,
-                                                                                    perturbation_time_stop=perturbation_time_stop).make_simulation()
+                                                                                    perturbation_time_stop=perturbation_time_stop,
+                                                                                    photobleaching_parameters=photobleaching_parameters,
+                                                                                    photobleaching_model=photobleaching_model).make_simulation()
         if save_as_tif == True:
             tifffile.imwrite(str(save_to_path_video.joinpath(saved_file_name+'.tif')), video)
         if save_as_gif == True:
