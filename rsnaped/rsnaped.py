@@ -2036,6 +2036,7 @@ class SimulatedCell():
                 intensity_calculation_method :str = 'disk_donut', 
                 perform_video_augmentation: bool = 0, 
                 frame_selection_empty_video:str = 'shuffle',
+                frame_generation_parameters:Union[np.ndarray, list, None] = None,
                 ignore_trajectories_ch0:bool =False, 
                 ignore_trajectories_ch1:bool =False, 
                 ignore_trajectories_ch2:bool =False,
@@ -2044,7 +2045,7 @@ class SimulatedCell():
                 intensity_scale_ch2:float = 1,
                 dataframe_format:str = 'short',
                 photobleaching_parameters:Union[np.ndarray, None] = None,
-                photobleaching_model:Union[str, None] = None ):
+                photobleaching_model:Union[str, None] = None,):
         if (perform_video_augmentation == True) and (video_for_mask is None):
             preprocessed_base_video,selected_angle = AugmentationVideo(base_video).random_rotation()
             if not(mask_image is None):
@@ -2088,6 +2089,7 @@ class SimulatedCell():
         self.z_slices = 1
         self.time_vector = np.linspace(0, number_frames*step_size, num = number_frames)
         self.frame_selection_empty_video = frame_selection_empty_video
+        self.frame_generation_parameters = frame_generation_parameters
         self.dataframe_format =dataframe_format
         self.photobleaching_parameters = photobleaching_parameters
         self.photobleaching_model = photobleaching_model
@@ -2334,6 +2336,9 @@ class SimulatedCell():
                 return generated_video_gaussian
 
             def generate_gaussian_tau_video(original_video, num_requested_frames, quantile=.95, scale=1.0, shot_noise_percent=.4, tau=10):
+                if self.frame_generation_parameters is not None:
+                    shot_noise_percent, tau = self.frame_generation_parameters[0], self.frame_generation_parameters[1]
+                
                 # shot noise percent, alpha, is the percent that each frame is only shot noise
                 # tau is how long each pixel is correlated with itself in frames
                 
