@@ -2333,6 +2333,36 @@ class SimulatedCell():
                         generated_video_gaussian[:,j,k] = np.random.randn(num_requested_frames)*video_std[j,k]*scale + video_means[j,k]
                 return generated_video_gaussian
 
+            def generate_gaussian_tau_video(original_video, num_requested_frames, quantile=.95, scale=1.0, shot_noise_percent=.4, tau=10):
+                # shot noise percent, alpha, is the percent that each frame is only shot noise
+                # tau is how long each pixel is correlated with itself in frames
+                
+                # Take a given video and approximate its per pixel Gaussian distribution for the shot noise
+                # in this case just take the means and std over all pixels for generating the new frame
+                #frames_in_orginal_video = original_video.shape[0]
+                x_dim = original_video.shape[2]
+                y_dim = original_video.shape[1]
+                video_means = np.mean(original_video,axis=0) #per_pixel_mean per time
+                video_std = np.std(original_video,axis=0) #per_pixel_std per time
+                video_std[video_std > np.quantile(video_std, .95)] = np.quantile(video_std, quantile)
+                generated_video = np.zeros((num_requested_frames,y_dim,x_dim), dtype=np.uint16)
+                
+                log_window = np.logspace(0,1,tau)/np.sum(np.logspace(0,1,tau))
+                for j in range(x_dim):
+                    for k in range(y_dim):
+                            
+                        N0 = np.random.randn(num_requested_frames)*video_std[j,k]*scale + video_means[j,k]
+                        N1 = np.random.randn(num_requested_frames+tau)*video_std[j,k]*scale + video_means[j,k]
+                        z = num_requested_frames+tau
+                        N1_sliding_average = np.sum((N1[np.arange(num_requested_frames)[None, :] + np.arange(num_requested_frames)[:, None]] )*log_window,axis=1)
+                        
+                        generated_video[:,j,k] = np.uint16(N0*shot_noise_percent + (1-shot_noise_percent)*N1_sliding_average)
+                
+                
+                
+                return generated_video
+
+
             def generate_poisson_video(original_video, num_requested_frames):
                 # Take a given video and approximate its per pixel poission distribution
                 # in this case just take the means of each pixel over all time frames as the lambda for poission dist
@@ -2390,6 +2420,13 @@ class SimulatedCell():
                 generated_video = generate_gaussian_video(original_video=base_video_selected_channel.copy(), num_requested_frames=len(time_vector))
                 index_frame_selection = range(0, len(time_vector))
                 base_video_selected_channel_copy = generated_video
+
+            elif frame_selection_empty_video ==  'gaussian_w_tau_correlation': # selects the first time point
+                generated_video = generate_gaussian_tau_video(original_video=base_video_selected_channel.copy(), num_requested_frames=len(time_vector))
+                index_frame_selection = range(0, len(time_vector))
+                base_video_selected_channel_copy = generated_video
+                                
+             
             elif frame_selection_empty_video ==  'constant': # selects the first time point
                 index_frame_selection = np.zeros((len(time_vector)), dtype = np.int32)
             elif frame_selection_empty_video ==  'loop':
@@ -4644,7 +4681,7 @@ def simulate_cell ( video_dir,
                     save_as_tif = True, 
                     save_dataframe = True, 
                     save_as_gif=False,
-                    frame_selection_empty_video='gaussian',
+                    frame_selection_empty_video='gaussian_tau',
                     spot_size = 7 ,
                     spot_sigma=1,
                     intensity_scale_ch0 = None,
