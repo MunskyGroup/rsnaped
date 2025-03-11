@@ -177,12 +177,87 @@ class SSA_rsnapsim():
         self.frame_rate=frame_rate
         self.n_traj=n_traj
         self.t_burnin=t_burnin
+        # perturbations are deprecated, use a custom model
         self.use_Harringtonin=use_Harringtonin
         self.use_FRAP=use_FRAP
         self.perturbation_time_start=perturbation_time_start
         self.perturbation_time_stop=perturbation_time_stop
+        
+        self.cplus = False
         self.NUMBER_OF_CORES = multiprocessing.cpu_count()
         self.mrna_object = mrna_object
+
+    def simulate(self):
+        '''
+        Method runs rSNAPsim and simulates the single molecule translation dynamics.
+
+        Returns
+
+        ssa_int : NumPy array.
+            Contains the SSA trajectories with dimensions [Time_points, simulated_trajectories].
+        ssa_ump : NumPy array.
+            SSA trajectories in UMP(units of mature protein). SSA trajectories normalized by the number of probes in the sequence.  Array with dimensions [Time_points, simulated_trajectories].
+        time_vector: NumPy array with dimensions [1, Time_points].
+            Time vector used in the simulation.
+        '''
+        
+        ##TODO ADD THE MRNA OBJECT SOLVER VERSION
+        
+        t = np.linspace(0,self.t_burnin+self.frames,(self.t_burnin+self.frames+1)*(self.frame_rate))
+        _, _, tagged_pois,raw_seq = rss.seqmanip.open_seq_file(str(self.gene_file))
+        try:
+            gene_obj = tagged_pois['0'][0]
+        except:
+            gene_obj = tagged_pois['1'][0]
+        gene_obj.ke_mu = self.ke
+        number_probes = [np.sum(gene_obj.probe_vec == x) for x in range(1,np.max(gene_obj.probe_vec))]
+        
+        probe_list = list(gene_obj.tag_epitopes.values())
+        gene_length = len(raw_seq)
+
+
+
+        #unneeded
+        #perturbation_list = [self.use_FRAP, self.use_Harringtonin,self.perturbation_time_start+self.t_burnin,t_stop_perturbation]
+        #rss.solver.protein = gene_obj #pass the protein object
+        
+        ssa_solution = rss.solver.solve_ssa(gene_obj.kelong, t, kt=10, ki=self.ki, n_traj=self.n_traj,
+                                            burnin=self.t_burnin, cplus=self.cplus, cores=self.NUMBER_OF_CORES, probe_list=probe_list )
+        
+        ssa = ssa_solution.I # np.transpose( ssa_solution.intensity_vec[:,self.t_burnin*self.frame_rate:-1,:]) [:,:,0]
+        ssa_ump = ssa/np.array(number_probes)
+        return ssa, ssa_ump, t, gene_length
+
+
+class SSA_rsnapsim_custom_model():
+    '''
+    This class uses rsnapsim to simulate the single-molecule translation dynamics of any gene.
+    
+    Parameters
+
+    gene_file : str, 
+        Path to the location of a FASTA file.
+    ke : float, optional.
+        Elongation rate. The default is 10.0.
+    ki: float, optional.
+        Initiation rate. The default is 0.03.
+    frames: int, optional.
+        Total number of simulation frames in seconds. The default is 300.
+    n_traj: int, optional.
+        Number of trajectories to simulate. The default is 20.
+    frame_rate : int, optional.
+        Frame rate per second. The default is 1.
+    t_burnin : int , optional
+        time of burnin. The default is 1000
+    Outputs:
+    '''  
+    def __init__(self, mRNA_model, parameters, frames=300, frame_rate=1, n_traj=20, t_burnin=1000):
+        self.mRNA_model=mRNA_model
+        self.frames=frames
+        self.frame_rate=frame_rate
+        self.n_traj=n_traj
+        self.t_burnin=t_burnin
+        self.NUMBER_OF_CORES = multiprocessing.cpu_count()
 
     def simulate(self):
         '''
@@ -218,7 +293,9 @@ class SSA_rsnapsim():
         ssa_solution = rss.solver.solve_ssa(gene_obj.kelong,t, perturb=perturbation_list, ki=self.ki, low_memory=True, n_traj=self.n_traj )
         ssa = np.transpose( ssa_solution.intensity_vec[:,self.t_burnin*self.frame_rate:-1,:]) [:,:,0]
         ssa_ump = ssa/number_probes
-        return ssa, ssa_ump, t,gene_length
+        return ssa, ssa_ump, t, gene_length
+
+
 
 
 class ReadImages():
@@ -3051,7 +3128,10 @@ class PipelineTracking():
 
 class PhotobleachScaler():
     '''
-    This class is intended to provide a photobleaching array to any size array
+    This class is intended to provide a photobleaching array to multiply a final video by.
+    
+    Per-pixel or a consistent loss value can be used across time, as such this class will return either
+    an array of shape [timepoints, X, Y] or just [timepoints].
     
     Model_options:
         
@@ -3087,7 +3167,7 @@ class PhotobleachScaler():
     '''
     def __init__(self, model:str = 'loss', shape:list = [], t:np.ndarray = np.array([]), mu:float = 0.001, sigma:float = 0.0001,  ):
         self.model = model
-        self.photobleaching_array = np.zeros(shape)
+        self.photobleaching_array = np.zeros(shape) # final array to multiply a color channel by
         self.t = t
         self.shape = shape
         self.mu = mu
@@ -4460,6 +4540,7 @@ class Utilities():
     def test_if_directory_exist_if_not_create(path_to_test, remove_if_already_exist = False):
         # making sure the path is a pathlib object
         path_to_test=Utilities.convert_str_to_path(path_to_test)
+        print(path_to_test)
         # Test if the file or folder exist exist
         if Path.exists(path_to_test):
             if remove_if_already_exist == True:
@@ -4831,6 +4912,8 @@ def simulate_cell ( video_dir,
     else:
         ignore_ch2 = False        
     # creating the folder name
+    
+    # TODO THIS IS TOO LONG FOR SOME OS's FIX 
     if name_folder is None:
         name_folder = 'bg_' + frame_selection_empty_video 
         name_folder+='_rna_' + simulated_RNA_intensities_method
@@ -4847,6 +4930,30 @@ def simulate_cell ( video_dir,
         name_folder = name_folder.replace(".", "_")
     else:
         name_folder = name_folder
+
+    metadata_name = 'metadata.txt'
+    folder_dataframe = 'dataframe_' + name_folder
+    folder_video = 'videos_'  + name_folder
+    folder_video_int_8 = 'videos_int8' 
+    # Functions to create folder to save simulated cells
+    current_dir = pathlib.Path().absolute()
+    save_to_path_df =  current_dir.joinpath('temp_simulation' ,name_folder, folder_dataframe )
+    save_to_path_video =  current_dir.joinpath('temp_simulation',name_folder , folder_video )
+    save_to_path_video_int8 =  current_dir.joinpath('temp_simulation',name_folder , folder_video_int_8 )
+    
+    #this is a patch to deal with too long path names, problem for most OSes especially windows
+    #this will hash the long folder name into something more managable but still long (it could be halved)
+    if any([len(str(x)) > 255 for x in [save_to_path_video_int8, save_to_path_video, save_to_path_df]]): 
+        name_folder = str(abs(hash(frozenset([frame_selection_empty_video, simulated_RNA_intensities_method, ]
+                                     + [str(list_elongation_rates[j])+'_' for j in range(len(list_gene_sequences))]
+                                     + [str(list_initiation_rates[j])+'_' for j in range(len(list_gene_sequences))]
+                                     + [str(list_diffusion_coefficients[j])+'_' for j in range(len(list_gene_sequences))]
+                                     + [str(list_number_spots[j])+'_' for j in range(len(list_gene_sequences))]
+                                     + [str(simulation_time_in_sec)]
+                                     + [str(number_cells)] 
+                                     + [str(intensity_scale_ch0), str(intensity_scale_ch1), str(intensity_scale_ch2)]))))
+        
+          
     metadata_name = 'metadata.txt'
     folder_dataframe = 'dataframe_' + name_folder
     folder_video = 'videos_'  + name_folder
