@@ -2021,6 +2021,522 @@ class SimulateRNA():
         return rna_intensities
 
 
+class Diffusion2D():
+    
+    '''
+    This class handles all particle diffusion in 2D coordinates with geometry constraints
+    
+    Defaults to reflecting boundary conditions. TODO: add more boundary interactions?
+    '''
+
+    def __init__(self, vertices, max_value_uint16=int(65535*0.8), resolution = (512,512)):
+        self.MAX_VALUE_uint16 = max_value_uint16
+        self.vertices = vertices
+        self.resolution = resolution
+        self.geometry = mpltPath.Path(vertices)
+        pass
+    
+    def initialize_spots(self, number_spots, parameters=[], start='uniform'):
+        
+        # parameters for uniform: 
+        # parameters for gaussian_point: [(x,y), (sigma_x, sigma_y)]    
+
+        
+        if start.lower() == 'uniform':
+            distx = lambda: np.random.uniform(0+20, self.resolution[0]-20, size=(number_spots*2))
+            disty = lambda: np.random.uniform(0+20, self.resolution[1]-20, size=(number_spots*2))
+
+        if start.lower() == 'guassian_point':
+            distx = lambda: np.random.normal(parameters[0][0], parameters[1][0], size=(number_spots*2)).clip(min=0, max=self.resolution[0])
+            disty = lambda: np.random.normal(parameters[0][1], parameters[1][1], size=(number_spots*2)).clip(min=0, max=self.resolution[1])
+            
+
+        collected_spots = 0
+        max_iter = 1e6
+        it = 0
+        valid_points = -1*np.ones([number_spots,2])
+        while collected_spots < number_spots and it < max_iter:
+            xs = distx()
+            ys = disty()
+            test_points = np.vstack((xs,ys)).T
+            for i in range(number_spots):
+                if self.geometry.contains_point(test_points[i]):
+                    valid_points[collected_spots] = test_points[i]
+                    collected_spots += 1
+                    if collected_spots >= number_spots:
+                        break
+            it += 1
+        return valid_points.T
+
+        
+    def pad_D(self, diffusion_coefficient, n_times, n_spots):
+        # convert and pad diffusion coefficients into an array of n_times x n_spots
+    
+        if isinstance(diffusion_coefficient, float | int):
+            D = np.ones([n_times, n_spots])*diffusion_coefficient
+        if isinstance(diffusion_coefficient, list):
+            if len(diffusion_coefficient) == n_spots:  # constant D for each particle
+                D = np.vstack([diffusion_coefficient]*n_times)
+            if len(diffusion_coefficient) == n_times:  # same D over time for each particle
+                D = np.hstack([diffusion_coefficient]*n_times)                
+        if isinstance(diffusion_coefficient, np.ndarray):
+            if len(diffusion_coefficient.shape) == 2:
+                D = diffusion_coefficient
+            if len(diffusion_coefficient.shape) == 1:
+                if len(diffusion_coefficient) == n_spots:  # constant D for each particle
+                    D = np.vstack([diffusion_coefficient.tolist()]*n_times)
+                if len(diffusion_coefficient) == n_times:  # same D over time for each particle
+                    D = np.hstack([diffusion_coefficient.tolist()]*n_times)    
+        return D
+            
+
+    def gen(self, initial_points, diffusion_coefficients, t, step_size,):
+            # Function that creates the simulated spots inside a given polygon
+            D = self.pad_D(diffusion_coefficients, len(t), initial_points.shape[-1])
+            D = np.array([D, D])
+            brownian_movement = np.sqrt(2*D*step_size)
+            movement = np.random.randn(*brownian_movement.shape)*brownian_movement
+            trajs = initial_points[:,np.newaxis,:] + np.cumsum(movement,axis=1) # (2,t,n)
+            
+            # reflect each trajectory when it crosses a boundary
+            for i in range(initial_points.shape[-1]):
+                for j in range(1,len(t)):
+                    if not self.geometry.contains_point(trajs[:,j,i]):
+                        pt1 = trajs[:,j-1,i] # point before being outside geometry
+                        pt2 = trajs[:,j,i]  # first point outside geometry
+                        
+                        # get the closest two vertices to each point
+                        vert1, vert2 = self.vertices[np.argsort(np.sqrt(np.sum(((self.vertices - pt1)**2),axis=1)))[:2]]
+                        vert3, vert4 = self.vertices[np.argsort(np.sqrt(np.sum(((self.vertices - pt2)**2),axis=1)))[:2]]
+                        
+                        # now get the segement the trajectory left the geometry over and its 
+                        # intersection
+                        s1, i1 = self.line_segment_intersect(pt1,pt2,vert1,vert2)
+                        s2, i2 = self.line_segment_intersect(pt1,pt2,vert3,vert4)
+                        if s1:
+                            segment = (vert1, vert2)
+                            intersect = i1
+                        elif s2:
+                            segment = (vert3, vert4)
+                            intersect = i2
+                        else:
+                            1/0
+                            return # something has gone horribly wrong
+                        
+                        
+                        dist_outside_geometry = self.distance(i1, pt2)
+                        
+                        # reflect the part outside geometry back in (perfect elastic)
+                        v1 = pt2 - i1 #vector that "left" the geometry
+                        
+                        # normal of the geometry it left
+                        normal = (vert2[0] - vert1[0], vert2[1] - vert1[1] )/self.distance(vert1,vert2)
+                        
+                        #calculate new bounce vector and its endpoint
+                        u = (v1@normal)*normal
+                        r = v1-2*(u)
+                        new_pt = i1-r 
+                        
+                        m1 = self.get_slope(pt1,pt2)
+                        m2 = self.get_slope(*segment)
+                        if m2 == 0:
+                        
+                        if np.isinf(m2):
+                            m3 = 
+                            
+
+                        # now reflect the entire trajectory over this 
+                        
+                        # check if new point is outside geometry and reflect again using segment intersect as point
+                        
+                        # continue
+                    
+                
+            return trajs
+    
+    @staticmethod
+    def line_segment_intersect(pt1, pt2, vert1, vert2):
+        # THIS DOES NOT WORK FOR COLINEAR SEGMENTS (in a line or touching)
+        # but I dont expect colinearity to arise in this problem ever.
+        # for more see: https://www.cs.cmu.edu/~quake/robust.html
+        # and https://stackoverflow.com/questions/3838329/how-can-i-check-if-two-segments-intersect
+        dx0 = pt2[0]-pt1[0]
+        dx1 = vert2[0]-vert1[0]
+        xdiff = (dx0, dx1)
+        dy0 = pt2[1]-pt1[1]
+        dy1 = vert2[1]-vert1[1]
+        ydiff = (dy0, dy1)
+        
+        def det(a, b):
+            return a[0] * b[1] - a[1] * b[0]
+        
+        p0 = dy1*(vert2[0]-pt1[0]) - dx1*(vert2[1]-pt1[1])
+        p1 = dy1*(vert2[0]-pt2[0]) - dx1*(vert2[1]-pt2[1])
+        p2 = dy0*(pt2[0]-vert1[0]) - dx0*(pt2[1]-vert1[1])
+        p3 = dy0*(pt2[0]-vert2[0]) - dx0*(pt2[1]-vert2[1])
+        
+    
+        
+        if (p0*p1<=0) & (p2*p3<=0):
+            div = det(xdiff, ydiff)
+            d = det(pt1,pt2), det(vert1,vert2)
+            intersect = -det(d, xdiff)/ div, -det(d,ydiff)/div
+            return (p0*p1<=0) & (p2*p3<=0), intersect
+        else:
+            return (p0*p1<=0) & (p2*p3<=0), None
+    
+    @staticmethod
+    def get_slope(pt1,pt2):
+        return (pt1[1] - pt2[1] ) / (pt1[0] - pt2[0])
+    @staticmethod
+    def distance(pt1,pt2):
+        return np.sqrt((pt1[0] - pt2[0])**2 + (pt1[1] - pt2[1])**2)
+
+class Frame2D():
+    '''
+    this class makes a new single channel frame given the following:
+        
+        RNA spot locations in 2D shape (Nspots x 2)
+        spot intensities (Nspots x 2)
+        spot_sigmas  (Nspots x 1)
+        spot_kernels (Nspots x 1)
+        background_video (X by Y)
+
+    '''
+    
+    
+    def __init__(self, max_value_uint16=int(65535*0.8)):
+        self.MAX_VALUE_uint16 = max_value_uint16
+        pass
+
+    
+    def make(self, spots_xy, values_xy, sizes_xy, sigma_xy,
+             baseimage_xy, intensity_scale, poisson_sample_spot=False, photon_count=1000):
+        
+        n_spots = len(spots_xy)
+        
+        # pad values by number of spots if the values/sizes/spots are single values per
+        # spots
+        if not isinstance(values_xy, np.ndarray|list):
+            values_xy = [values_xy]*n_spots
+        if not isinstance(sizes_xy, np.ndarray|list):
+            sizes_xy = [sizes_xy]*n_spots
+        if not isinstance(sigma_xy, np.ndarray|list):
+            sigma_xy = [sigma_xy]*n_spots
+
+        
+        for spot in range(n_spots):
+            center_position = spots_xy[spot]
+            spot_sigma = sigma_xy[spot]
+            size_spot = sizes_xy[spot]
+            value_spot = values_xy[spot]
+            
+            spots_range_to_replace = np.linspace(-(size_spot - 1) / 2, (size_spot - 1) / 2, size_spot,dtype=int)
+            
+            kernel=self.gaussian_subpixel_erf(point=center_position, size_spot=size_spot, spot_sigma=spot_sigma)
+            
+            spot_intensity = value_spot*intensity_scale
+            if not poisson_sample_spot:
+                kernel_value_intensity = (kernel*spot_intensity).astype(np.uint16)
+                
+            # If the user wants to sample poisson shot noise from the underlying gaussian, there is an option for this    
+            else:
+                sampled_poisson_process_spot = np.array([np.random.poisson(x*photon_count) for x in kernel])
+                kernel_value_intensity = ((sampled_poisson_process_spot/np.max(sampled_poisson_process_spot))*spot_intensity).astype(np.uint16) 
+            
+            center_position = np.round(center_position).astype(int)
+            #selected_area = pixelated_image[center_position[0]-half_spot_size: center_position[0]+half_spot_size+1 , center_position[1]-half_spot_size: center_position[1]+half_spot_size+1 ]
+            selected_area = baseimage_xy[center_position[0]+spots_range_to_replace[0]: center_position[0]+spots_range_to_replace[-1]+1 , center_position[1]+spots_range_to_replace[0]: center_position[1]+spots_range_to_replace[-1]+1 ].copy()
+            selected_area += kernel_value_intensity
+            selected_area[selected_area>self.MAX_VALUE_uint16] = self.MAX_VALUE_uint16  # maxximum range for int uint16 = 65535
+            baseimage_xy[center_position[0]+spots_range_to_replace[0]: (center_position[0]+spots_range_to_replace[-1])+1 , center_position[1]+spots_range_to_replace[0]: center_position[1]+(spots_range_to_replace[-1])+1 ] = selected_area
+        return baseimage_xy
+
+    # Section that creates the Gaussian Kernel Matrix
+    @staticmethod
+    def pdf_pixel_resolution(ax, spot_sigma=2):
+        xx, yy = np.meshgrid(ax, ax)
+        kernel = np.exp(-0.5 * (np.square(xx) + np.square(yy)) / np.square(spot_sigma))
+        return kernel #kernel/np.max(kernel)
+    
+    @staticmethod
+    def gaussian_subpixel_erf(point, size_spot=5, spot_sigma=2):
+        '''
+        get a gaussian kernel from a point in a subpixel of the center
+
+        point: iterable of x and y e.g. [x,y]
+        size_spot: size of the kernel to generate **MUST BE ODD** to use the center pixel - consider adding check
+        spot_sigma: std of the point spread function
+
+        returns: size_spot x size_spot gaussian kernel with subpixel of frac(point) in the center
+        '''
+        x,y = point # get the point
+        x_p = x - int(x) # get the fraction value, subpixel value of center pixel
+        y_p = y - int(y) 
+        # generate the N+1 x N+1 pixel grid with N/2 x N/2 as the center pixel
+        pixelgrid = np.array([np.linspace( -(size_spot+1)/2+1, (size_spot+1)/2 , size_spot+1)])
+        xbar = pixelgrid-x_p #subtract the subpixel value
+        ybar = pixelgrid-y_p
+        # get the gaussian cdf sum of this bin
+        Fx = .5*(1+erf(xbar /(spot_sigma*np.sqrt(2))) ) 
+        Fy = .5*(1+erf(ybar /(spot_sigma*np.sqrt(2))) )
+        dFx = Fx[:,1:] - Fx[:,:-1] #subtract the differences of the cdfs in each direction
+        dFy = Fy[:,1:] - Fy[:,:-1]
+        K = dFx.T @ dFy # dot together to generate the NxN kernel
+        return K*(1/np.sum(K))  #/np.max(K) # (K-np.min(K))/(np.max(K)-np.min(K))
+
+
+class BackgroundGen2D():
+    '''
+    this class generates a new background image from a base video and a method
+    
+    Given a base video, generate a new 2d frame via a given method
+    
+    framegen = BackgroundGen2d(tensor_video, quantile)
+    framegen.make(parameter_list, number_requested_frames, method)
+    
+    Usage: 
+        framegen = BackgroundGen2d(tensor_video, quantile)
+        framegen.make([scale], 1, method='gaussian')
+    
+    Available methods:
+        Gaussian - each pixel of the generated video is drawn from a per-pixel fitted
+        gaussian distribution of the pixel mean / pixel std of the real video. 
+        Pixel std is capped at a default of the 95th quantile of intensity to
+        avoid fitting "problem pixels" that have one frame of blown out intensity.
+        
+        parameters = [scale,] scale is used to scale the standard deviation larger or smaller.
+        
+        .. math::
+            generated pixel = \mathcal{N}(\mu_{real pixel}, scale*\sigma_{real pixel}^2)
+
+        Poisson - each pixel of the generated video is drawn from a per-pixel fitted
+        poisson distribution of the pixel mean / pixel std of the real video. 
+        Pixel std is capped at a default of the 95th quantile of intensity to
+        avoid fitting "problem pixels" that have one frame of blown out intensity.        
+        
+        parameters = []
+        
+        .. math::
+            generated pixel = Pois(\mu_{real pixel})
+        
+        Gaussian_w_tau_correlation - each pixel of the generated video is created from 
+        two elements: Shot noise, and a window of previous frames denoted by "tau"
+
+        parameters = [\alpha, \tau, scale] 
+        
+        .. math::
+            shot noise = \mathcal{N}(\mu_{real pixel}, scale*\sigma_{real pixel}^2)*alpha  
+            correlated_noise = \sum{[shot noise_-tau, shot noise_{1-tau} ...  shot noise_{0}]}*(logspace(0,1,tau)/\sum{logspace(0,1,tau)})
+            generated_pixel = shot_noise*\alpha  + (1-\alpha)*correlated_noise
+
+
+        Gaussian_w_tau_correlation2 - use the previous frame and new gaussian
+        noise to make a new frame of \alpha percent shot noise.
+
+        parameters = [\alpha, scale, previous_frame (2D IMAGE)] 
+        
+        .. math::
+            shot noise = \mathcal{N}(\mu_{real pixel}, scale*\sigma_{real pixel}^2)*alpha  
+            generated_pixel = shot noise*\alpha  + (1-\alpha)*previous frame pixel
+
+
+        Loop - loop the base video, uses parameters[n], which value in the loop to use
+        
+        shuffle - give a random frame of the base video
+    
+    '''
+    def __init__(self, original_video: np.ndarray, quantile: float = .95):
+
+        self.video_means = np.mean(original_video,axis=0) #per_pixel_mean per time
+        self.video_std = np.std(original_video,axis=0) #per_pixel_std per time
+        self.video_std[self.video_std > np.quantile(self.video_std, quantile)] = np.quantile(self.video_std, quantile)
+        self.x_dim = original_video.shape[2]
+        self.y_dim = original_video.shape[1]   
+        self.original_video = original_video         
+        pass
+    
+    def make(self, parameters: list, num_requested_frames: int, method: str = 'gaussian', verbose: int = 0):
+        '''
+        Generates N new 2D frames from the stored original video.
+        
+        current methods to generate a new frame(s) are listed below
+        
+        Gaussian - each pixel of the generated video is drawn from a per-pixel fitted
+        gaussian distribution of the pixel mean / pixel std of the real video. 
+        Pixel std is capped at a default of the 95th quantile of intensity to
+        avoid fitting "problem pixels" that have one frame of blown out intensity.
+        
+        parameters = [scale,] scale is used to scale the standard deviation larger or smaller.
+        
+        .. math::
+            generated pixel = \mathcal{N}(\mu_{real pixel}, scale*\sigma_{real pixel}^2)
+
+        Poisson - each pixel of the generated video is drawn from a per-pixel fitted
+        poisson distribution of the pixel mean / pixel std of the real video. 
+        Pixel std is capped at a default of the 95th quantile of intensity to
+        avoid fitting "problem pixels" that have one frame of blown out intensity.        
+        
+        parameters = []
+        
+        .. math::
+            generated pixel = Pois(\mu_{real pixel})
+        
+        Gaussian_w_tau_correlation - each pixel of the generated video is created from 
+        two elements: Shot noise, and a window of previous frames denoted by "tau"
+
+        parameters = [\alpha, \tau, scale] 
+        
+        .. math::
+            shot noise = \mathcal{N}(\mu_{real pixel}, scale*\sigma_{real pixel}^2)*alpha  
+            correlated_noise = \sum{[shot noise_-tau, shot noise_{1-tau} ...  shot noise_{0}]}*(logspace(0,1,tau)/\sum{logspace(0,1,tau)})
+            generated_pixel = shot_noise*\alpha  + (1-\alpha)*correlated_noise
+
+
+        Gaussian_w_tau_correlation2 - use the previous frame and new gaussian
+        noise to make a new frame of \alpha percent shot noise.
+
+        parameters = [\alpha, scale, previous_frame (2D IMAGE)] 
+        
+        .. math::
+            shot noise = \mathcal{N}(\mu_{real pixel}, scale*\sigma_{real pixel}^2)*alpha  
+            generated_pixel = shot noise*\alpha  + (1-\alpha)*previous frame pixel
+
+
+        Loop - loop the base video, uses parameters[n], which value in the loop to use
+        
+        shuffle - give a random frame of the base video
+        
+
+        Parameters
+        ----------
+        parameters : list
+            list containing parameters for the generation method (see above).
+        num_requested_frames : int
+            number of frames to generate at once.
+        method : str, optional
+            method of generating the new frame (see above). The default is 'gaussian'.
+
+        Returns
+        -------
+        np.ndarray
+            2D (X,Y) image of a background cell generated via a requested method.
+
+        '''
+        x_dim = self.x_dim
+        y_dim = self.y_dim
+        method = method.lower()
+        
+        if method == 'gaussian':
+            scale = parameters[0]
+            x_dim = self.x_dim
+            y_dim = self.y_dim
+            generated_video_gaussian = np.zeros((num_requested_frames,y_dim,x_dim), dtype=np.uint16)
+            if verbose > 0:
+                with tqdm(total=x_dim*y_dim, desc='generating background video of %s new frames via Gaussian...'%num_requested_frames) as pbar:
+                    for j in range(x_dim):
+                        for k in range(y_dim):
+                            generated_video_gaussian[:,j,k] = np.random.randn(num_requested_frames)*self.video_std[j,k]*scale + self.video_means[j,k]
+                            pbar.update(1)
+            else:
+                for j in range(x_dim):
+                    for k in range(y_dim):
+                        generated_video_gaussian[:,j,k] = np.random.randn(num_requested_frames)*self.video_std[j,k]*scale + self.video_means[j,k]
+                         
+            return generated_video_gaussian  
+        
+        if method == 'possion':
+            # Take a given video and approximate its per pixel poission distribution
+            # in this case just take the means of each pixel over all time frames as the lambda for poission dist
+            #frames_in_orginal_video = original_video.shape[0]
+            generated_video = np.zeros((num_requested_frames,y_dim,x_dim), dtype=np.uint16)
+            if verbose > 0:
+                with tqdm(total=x_dim*y_dim, desc='generating background video of %s new frames via Poisson...'%num_requested_frames) as pbar:
+                    for j in range(x_dim):
+                        for k in range(y_dim):
+                            generated_video[:,j,k] = np.random.poisson(lam= self.video_means[j,k], size=(num_requested_frames,))
+                            pbar.update(1)
+            else:
+                for j in range(x_dim):
+                    for k in range(y_dim):
+                        generated_video[:,j,k] = np.random.poisson(lam= self.video_means[j,k], size=(num_requested_frames,))
+                                         
+            return generated_video
+        
+        if method == 'gaussian_w_tau_correlation':
+
+            # TODO this should be changed for single frame generation, to keep % of previous noise
+            shot_noise_percent, tau, scale = parameters
+            
+            # shot noise percent, alpha, is the percent that each frame is only shot noise
+            # tau is how long each pixel is correlated with itself in frames
+            
+            # Take a given video and approximate its per pixel Gaussian distribution for the shot noise
+            # in this case just take the means and std over all pixels for generating the new frame
+            #frames_in_orginal_video = original_video.shape[0]
+
+            generated_video = np.zeros((num_requested_frames,y_dim,x_dim), dtype=np.uint16)
+            
+            log_window = (np.logspace(0,1,tau)/np.sum(np.logspace(0,1,tau)))[::-1]
+            if verbose > 0:
+                with tqdm(total=x_dim*y_dim, desc='generating background video of %s new frames via Correlated Gaussian...'%num_requested_frames) as pbar:
+                    
+                    for j in range(x_dim):
+                        for k in range(y_dim):
+                                
+                            N0 = np.random.randn(num_requested_frames)*self.video_std[j,k]*scale + self.video_means[j,k]
+                            N1 = np.random.randn(num_requested_frames+tau)*self.video_std[j,k]*scale + self.video_means[j,k]
+                            N1_sliding_average = np.sum((N1[np.arange(num_requested_frames)[None, :] + np.arange(num_requested_frames)[:, None]] )*log_window,axis=1)
+                            generated_video[:,j,k] = np.uint16(N0*shot_noise_percent + (1-shot_noise_percent)*N1_sliding_average)
+                            pbar.update(1)
+            else:
+                for j in range(x_dim):
+                    for k in range(y_dim):
+                            
+                        N0 = np.random.randn(num_requested_frames)*self.video_std[j,k]*scale + self.video_means[j,k]
+                        N1 = np.random.randn(num_requested_frames+tau)*self.video_std[j,k]*scale + self.video_means[j,k]
+                        N1_sliding_average = np.sum((N1[np.arange(num_requested_frames)[None, :] + np.arange(num_requested_frames)[:, None]] )*log_window,axis=1)
+                        generated_video[:,j,k] = np.uint16(N0*shot_noise_percent + (1-shot_noise_percent)*N1_sliding_average)
+                        
+
+            return generated_video
+
+
+        if method == 'gaussian_w_tau_correlation2':
+
+            # TODO this should be changed for single frame generation, to keep % of previous noise
+            shot_noise_percent, scale, previous_frame = parameters
+            
+            # shot noise percent, alpha, is the percent that each frame is only shot noise
+            # tau is how long each pixel is correlated with itself in frames
+            
+            # Take a given video and approximate its per pixel Gaussian distribution for the shot noise
+            # in this case just take the means and std over all pixels for generating the new frame
+            #frames_in_orginal_video = original_video.shape[0]
+
+            generated_video = np.zeros((num_requested_frames,y_dim,x_dim), dtype=np.uint16)
+            if verbose > 0:
+                with tqdm(total=x_dim*y_dim, desc='generating background video of %s new frames via Correlated Gaussian (subsequent)...'%num_requested_frames) as pbar:
+                    
+                    for j in range(x_dim):
+                        for k in range(y_dim):
+                            N0 = np.random.randn(num_requested_frames)*self.video_std[j,k]*scale + self.video_means[j,k]
+                            generated_video[:,j,k] = np.uint16(N0*shot_noise_percent + (1-shot_noise_percent)*previous_frame[j,k])
+                            pbar.update(1)
+            else:
+                    for j in range(x_dim):
+                        for k in range(y_dim):
+                            N0 = np.random.randn(num_requested_frames)*self.video_std[j,k]*scale + self.video_means[j,k]
+                            generated_video[:,j,k] = np.uint16(N0*shot_noise_percent + (1-shot_noise_percent)*previous_frame[j,k])                
+
+            return generated_video        
+        
+        if method == 'loop':
+            return self.original_video[parameters[0]%len(self.original_video.shape[0])]
+        if method == 'shuffle':
+            return self.original_video[np.random.randint(self.original_video.shape[0])]
+    
+    
 class SimulatedCell():
     '''
     This class takes a base video, and it draws simulated spots on top of the image. The intensity for each simulated spot is proportional to the stochastic simulation given by the user.
