@@ -10,5 +10,5 @@ name = 'rsnaped'
 #Package version
 __version__ = "0.1.0"
 
-from . import Frame2D
-Frame2D = Frame2D.Frame2D()
+# from . import Frame2D
+# Frame2D = Frame2D.Frame2D()

@@ -2021,6 +2021,8 @@ class SimulateRNA():
         return rna_intensities
 
 
+
+
 class Diffusion2D():
     
     '''
@@ -2046,7 +2048,7 @@ class Diffusion2D():
             distx = lambda: np.random.uniform(0+20, self.resolution[0]-20, size=(number_spots*2))
             disty = lambda: np.random.uniform(0+20, self.resolution[1]-20, size=(number_spots*2))
 
-        if start.lower() == 'guassian_point':
+        if start.lower() == 'gaussian_point':
             distx = lambda: np.random.normal(parameters[0][0], parameters[1][0], size=(number_spots*2)).clip(min=0, max=self.resolution[0])
             disty = lambda: np.random.normal(parameters[0][1], parameters[1][1], size=(number_spots*2)).clip(min=0, max=self.resolution[1])
             
@@ -2069,7 +2071,7 @@ class Diffusion2D():
         return valid_points.T
 
         
-    def pad_D(self, diffusion_coefficient, n_times, n_spots):
+    def pad_D(self, diffusion_coefficient, n_times, n_spots, by_spot=True):
         # convert and pad diffusion coefficients into an array of n_times x n_spots
     
         if isinstance(diffusion_coefficient, float | int):
@@ -2083,76 +2085,102 @@ class Diffusion2D():
             if len(diffusion_coefficient.shape) == 2:
                 D = diffusion_coefficient
             if len(diffusion_coefficient.shape) == 1:
-                if len(diffusion_coefficient) == n_spots:  # constant D for each particle
-                    D = np.vstack([diffusion_coefficient.tolist()]*n_times)
-                if len(diffusion_coefficient) == n_times:  # same D over time for each particle
-                    D = np.hstack([diffusion_coefficient.tolist()]*n_times)    
+                if n_spots != n_times:
+                    if len(diffusion_coefficient) == n_spots:  # constant D for each particle
+                        D = np.vstack([diffusion_coefficient.tolist()]*n_times)
+                    if len(diffusion_coefficient) == n_times:  # same D over time for each particle
+                        D = np.vstack([diffusion_coefficient.tolist()]*n_spots).T   
+                else:
+                    if by_spot:
+                        if len(diffusion_coefficient) == n_spots:  # constant D for each particle
+                            D = np.vstack([diffusion_coefficient.tolist()]*n_times)
+                    else:
+                        if len(diffusion_coefficient) == n_times:  # same D over time for each particle
+                            D = np.vstack([diffusion_coefficient.tolist()]*n_spots).T   
         return D
             
 
-    def gen(self, initial_points, diffusion_coefficients, t, step_size,):
+    def gen(self, initial_points, diffusion_coefficients, t, step_size, elasticity = 1):
             # Function that creates the simulated spots inside a given polygon
             D = self.pad_D(diffusion_coefficients, len(t), initial_points.shape[-1])
             D = np.array([D, D])
             brownian_movement = np.sqrt(2*D*step_size)
             movement = np.random.randn(*brownian_movement.shape)*brownian_movement
+            movement[:,0,:] = 0 # blank first time point to use initial points
             trajs = initial_points[:,np.newaxis,:] + np.cumsum(movement,axis=1) # (2,t,n)
             
             # reflect each trajectory when it crosses a boundary
             for i in range(initial_points.shape[-1]):
                 for j in range(1,len(t)):
-                    if not self.geometry.contains_point(trajs[:,j,i]):
-                        pt1 = trajs[:,j-1,i] # point before being outside geometry
-                        pt2 = trajs[:,j,i]  # first point outside geometry
+                    # FOR EACH LINE SEGMENT, check if it crosses the geometry
+                    # if it does, vert1, vert2, and intersection point
+                    pt1 = trajs[:,j-1,i] 
+                    pt2 = trajs[:,j,i] 
+                    left, vert1, vert2, i1, vert_id = self.check_if_segment_left_geometry(pt1,pt2)
                         
-                        # get the closest two vertices to each point
-                        vert1, vert2 = self.vertices[np.argsort(np.sqrt(np.sum(((self.vertices - pt1)**2),axis=1)))[:2]]
-                        vert3, vert4 = self.vertices[np.argsort(np.sqrt(np.sum(((self.vertices - pt2)**2),axis=1)))[:2]]
-                        
-                        # now get the segement the trajectory left the geometry over and its 
-                        # intersection
-                        s1, i1 = self.line_segment_intersect(pt1,pt2,vert1,vert2)
-                        s2, i2 = self.line_segment_intersect(pt1,pt2,vert3,vert4)
-                        if s1:
-                            segment = (vert1, vert2)
-                            intersect = i1
-                        elif s2:
-                            segment = (vert3, vert4)
-                            intersect = i2
-                        else:
-                            1/0
-                            return # something has gone horribly wrong
-                        
-                        
-                        dist_outside_geometry = self.distance(i1, pt2)
+                    new_point = pt2
+                    while left: #if the line segment left
                         
                         # reflect the part outside geometry back in (perfect elastic)
-                        v1 = pt2 - i1 #vector that "left" the geometry
+                        v1 = new_point - i1 #vector that "left" the geometry
                         
-                        # normal of the geometry it left
+                        #  FLIPPED normal of the geometry it left, this is not a normal normal.
                         normal = (vert2[0] - vert1[0], vert2[1] - vert1[1] )/self.distance(vert1,vert2)
                         
                         #calculate new bounce vector and its endpoint
                         u = (v1@normal)*normal
-                        r = v1-2*(u)
-                        new_pt = i1-r 
+                        r = (v1-2*(u))*elasticity
+                        new_point = i1-r 
                         
-                        m1 = self.get_slope(pt1,pt2)
-                        m2 = self.get_slope(*segment)
-                        if m2 == 0:
+                        #did the new line leave again??? reflect again from the first intersection point
+                        left, vert1, vert2, i1, vert_id = self.check_if_segment_left_geometry(i1, new_point, reflection=True, previous_vert=vert_id)
+            
                         
-                        if np.isinf(m2):
-                            m3 = 
-                            
-
-                        # now reflect the entire trajectory over this 
+                    trajs[:,j,i] =  new_point 
                         
-                        # check if new point is outside geometry and reflect again using segment intersect as point
+                    if j != len(t):
+                        trajs[:,j+1:,i] = np.array([new_point]).T + np.cumsum(movement[:,j+1:,i],axis=1)
                         
-                        # continue
-                    
                 
             return trajs
+    
+  
+    def check_if_segment_left_geometry(self, pt1, pt2, reflection = False, previous_vert = -1):
+        vertices_left = []
+        intersects = []
+        vert_ids = []
+    
+        
+        for i in range(len(self.vertices)-1):
+            b, i1 = self.line_segment_intersect(pt1, pt2, self.vertices[i], self.vertices[i+1])
+    
+            if b:
+                # IF WE ARE DOING AN ITERATIVE REFLECTION, ignore the vertex where the reflection
+                # is originating from, so we dont "find" the closest intersection point to be what we 
+                # are reflecting from
+                if reflection:
+                    if i != previous_vert:
+                        vertices_left.append(self.vertices[[i,i+1]])
+                        intersects.append(i1)
+                        vert_ids.append(i)
+                else:
+                    vertices_left.append(self.vertices[[i,i+1]])
+                    intersects.append(i1)
+                    vert_ids.append(i)                
+        
+        if len(vertices_left) == 0: # segment did not leave geometry
+            return False, None, None, None, None
+        
+        # segment did leave the geometry only once:
+        if len(vertices_left) == 1: 
+            return True, vertices_left[0][0], vertices_left[0][1], intersects[0], vert_ids[0]
+        
+        # segment left multiple times, find the closest segment intersection to first point
+        if len(vertices_left) > 1:
+            i = np.argmin([self.distance(pt1,i1) for i1 in intersects])
+            print(intersects)
+            return True, vertices_left[i][0], vertices_left[i][1], intersects[i], vert_ids[i]
+            
     
     @staticmethod
     def line_segment_intersect(pt1, pt2, vert1, vert2):
@@ -4990,6 +5018,34 @@ class Utilities():
     '''
     def __init__(self):
         pass
+    
+    def mask_to_vertices(mask_image, percentage_reduction:float = 0.2):
+        contours = np.array(find_contours(mask_image, 0.5), dtype = int)
+        try:
+            contours = np.array(find_contours(mask_image, 0.5), dtype = int)
+        except:
+            # this section extends the mask to connect isolated areas in the mask
+            dilated_image = dilation(mask_image, square(20))
+            dilated_image[0, :] = 0;dilated_image[:, 0] = 0;dilated_image[dilated_image.shape[0]-1, :] = 0;dilated_image[:, dilated_image.shape[1]-1] = 0#This line of code ensures that the corners are zeros.
+            contours = np.array(find_contours(dilated_image, 0.5), dtype = int)
+        polygon_array = contours[0]
+        
+        # Reducing the size of the mask to plot only inside the cell.
+        x_reduction = percentage_reduction+0.1
+        y_reduction = percentage_reduction+0.1
+        x_coord = [[i][0][1] for i in polygon_array]
+        y_coord = [[i][0][0] for i in polygon_array]
+        # Center of mask
+        center_value = 0.5
+        x_center = center_value* min(x_coord) + center_value * max(x_coord)
+        y_center = center_value* min(y_coord) + center_value* max(y_coord)
+        # Reducing the size of the mask
+        reduced_x = [(i - x_center) * (1 - x_reduction) + x_center for i in x_coord]
+        reduced_y = [(i - y_center) * (1 - y_reduction) + y_center for i in y_coord]
+        # create list of new coordinates
+        mask_coordinates =  np.vstack((reduced_y, reduced_x)).T
+        mask_coordinates.shape
+        return mask_coordinates
     
     # Function that reorder the index to make it continuos 
     def reorder_mask_image(self,mask_image_tested):
