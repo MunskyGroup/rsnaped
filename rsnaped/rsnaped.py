@@ -55,7 +55,7 @@ from skimage.filters.rank import entropy
 from skimage.morphology import disk
 from skimage.filters import threshold_minimum
 from skimage.morphology import binary_closing
-from skimage.measure import find_contours
+from skimage.measure import find_contours, approximate_polygon
 from skimage.draw import polygon2mask
 from skimage.draw import polygon
 from skimage.util import random_noise
@@ -2143,6 +2143,17 @@ class Diffusion2D():
                         
                 
             return trajs
+        
+    def jitter(self, trajs, N, parameters=[], method='gaussian'):
+        # jitter trajectories of (2,t,n) to (2,t,n,channels)
+        # intended to offset subpixel values of different probes in different channels
+        
+        # PARAMETERS: [sigma]
+        if method.lower() == 'gaussian':
+            offsets = parameters[0]*np.random.randn(*(*trajs.shape, N))
+            trajs_N = np.moveaxis(np.array([trajs]*3),0,-1) + offsets
+            
+        return trajs_N
     
   
     def check_if_segment_left_geometry(self, pt1, pt2, reflection = False, previous_vert = -1):
@@ -2564,7 +2575,80 @@ class BackgroundGen2D():
         if method == 'shuffle':
             return self.original_video[np.random.randint(self.original_video.shape[0])]
     
+class SimulatedCell2D():    
+    def __init__(self, base_video,  
+                 diffusion_initalization_parameters=[], diffusion_start='uniform',
+                 diffusion_rate = 2, diffusion_tstep=1, diffusion_elasticity=1, ):
+        
+        vertices = self.Utilities.mask_to_vertices(base_video[0])
+        vertices = approximate_polygon(vertices, tolerance=.5)
+        
+        ##### Diffusion
+        self.diffusion = self.Diffusion2D(vertices, max_value_uint16=int(65535*0.8),
+                                          resolution = (base_video.shape[1],base_video.shape[2]))
+        self.diffusion_initalization_parameters = diffusion_initalization_parameters
+        self.diffusion_start = diffusion_start
+        self.D = diffusion_rate
+        self.diffusion_tstep  =diffusion_tstep
+        self.diffusion_elasticity = diffusion_elasticity
+        
+        self.bg_frame_generator = self.BackgroundGen2D(base_video, quantile=0.95)
+        
+
+        self.mRNA_translation_model = 1
+        
+        #self, spots_xy, values_xy, sizes_xy, sigma_xy,
+                 #baseimage_xy, intensity_scale, poisson_sample_spot=False, photon_count=1000
     
+
+    
+    def generate_video(self, number_of_channels, number_of_frames, number_of_spots, t,
+                       disk_buffer=True, buffer_size=5):
+        
+        # generate all motion trajectories
+        spots_initial_points = self.diffusion.initialize_spots(number_of_spots,
+                                                parameters = self.diffusion_initalization_parameters,
+                                                start = self.diffusion_start)
+        spot_motion = self.diffusion.make(spots_initial_points, self.D, t, self.tstep, elasticity=self.diffusion_elasticity)
+        # 
+        
+        
+        if disk_buffer:
+            # delete any previous buffer file
+            tmp_path = pathlib.Path('./tmp.bin')
+            if tmp_path.exists():
+                tmp_path.unlink()         
+            
+            
+            
+            for i in range(number_of_channels):
+                for j in range(number_of_spots):
+                    
+                        frame_count = frames
+                        i = 0
+                        
+                        
+                        with open('./tmp.bin', "ab") as f:
+                            while frame_count > 0:
+                                if buffersize <= frame_count:
+                                    vid = make_random_video(buffersize)
+                                else:
+                                    vid = make_random_video(frame_count%buffersize)
+                                
+                                np.save(f, vid)
+                                frame_count -= buffersize
+                                i += 1
+                                if i > 1000:
+                                    break
+                            
+                        
+                            
+                    
+            return np.memmap('./tmp.bin', dtype=np.uint16, shape=(frames,512,512,4))
+    
+
+
+
 class SimulatedCell():
     '''
     This class takes a base video, and it draws simulated spots on top of the image. The intensity for each simulated spot is proportional to the stochastic simulation given by the user.
