@@ -88,47 +88,47 @@ def buffer_video_ndstorage(frames, buffersize=5):
     return 
 
 
-# tracemalloc.start()
-# a = []
-# snapshot1 = tracemalloc.take_snapshot()
-# st = time.time()
-# a = make_random_video(1000)
-# t = time.time()-st
-# snapshot2 = tracemalloc.take_snapshot()
-# top_stats = snapshot2.compare_to(snapshot1, 'lineno')
-# tracemalloc.stop()
-# display_top(snapshot2)
-# print('Generated video without buffer in: %s seconds'%str(t))
+tracemalloc.start()
+a = []
+snapshot1 = tracemalloc.take_snapshot()
+st = time.time()
+a = make_random_video(1000)
+t = time.time()-st
+snapshot2 = tracemalloc.take_snapshot()
+top_stats = snapshot2.compare_to(snapshot1, 'lineno')
+tracemalloc.stop()
+display_top(snapshot2)
+print('Generated video without buffer in: %s seconds'%str(t))
 
 
-# print('################ Buffering with NPY ##################')
-
-# tracemalloc.start()
-# a = []
-# snapshot1 = tracemalloc.take_snapshot()
-# st = time.time()
-# a = buffer_video_npy(1000)
-# t = time.time()-st
-# snapshot2 = tracemalloc.take_snapshot()
-# top_stats = snapshot2.compare_to(snapshot1, 'lineno')
-# tracemalloc.stop()
-# display_top(snapshot2)
-# print('Generated video with numpy buffer in: %s seconds'%str(t))
-
-
-print('################ Buffering with H5py ##################')
+print('################ Buffering with NPY ##################')
 
 tracemalloc.start()
 a = []
 snapshot1 = tracemalloc.take_snapshot()
 st = time.time()
-a = buffer_video_h5(1000)
+a = buffer_video_npy(1000)
 t = time.time()-st
 snapshot2 = tracemalloc.take_snapshot()
 top_stats = snapshot2.compare_to(snapshot1, 'lineno')
 tracemalloc.stop()
 display_top(snapshot2)
 print('Generated video with numpy buffer in: %s seconds'%str(t))
+
+
+# print('################ Buffering with H5py ##################')
+
+# tracemalloc.start()
+# a = []
+# snapshot1 = tracemalloc.take_snapshot()
+# st = time.time()
+# a = buffer_video_h5(1000)
+# t = time.time()-st
+# snapshot2 = tracemalloc.take_snapshot()
+# top_stats = snapshot2.compare_to(snapshot1, 'lineno')
+# tracemalloc.stop()
+# display_top(snapshot2)
+# print('Generated video with h5 buffer in: %s seconds'%str(t))
 
 
 

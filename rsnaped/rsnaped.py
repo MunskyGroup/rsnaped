@@ -2109,6 +2109,9 @@ class Diffusion2D():
             movement[:,0,:] = 0 # blank first time point to use initial points
             trajs = initial_points[:,np.newaxis,:] + np.cumsum(movement,axis=1) # (2,t,n)
             
+            ## TODO: This would have to change for 3D, use random reflections back in, 
+            # true geometry is too hard
+            
             # reflect each trajectory when it crosses a boundary
             for i in range(initial_points.shape[-1]):
                 for j in range(1,len(t)):
@@ -2152,8 +2155,18 @@ class Diffusion2D():
         if method.lower() == 'gaussian':
             offsets = parameters[0]*np.random.randn(*(*trajs.shape, N))
             trajs_N = np.moveaxis(np.array([trajs]*3),0,-1) + offsets
+
+        # PARAMETERS: [(xshift_0, yshift_0), .... (xshift_N, yshift_N)]
+        if method.lower() == 'registration':
+            offsets = 1 #offset matrix
+            trajs_N = np.moveaxis(np.array([trajs]*3),0,-1) + offsets
             
         return trajs_N
+    
+    
+    def simulate_z(self, trajs, N, parameters=[], method='gaussian'):
+        # jitter spots along z, -.5 .5
+        return 
     
   
     def check_if_segment_left_geometry(self, pt1, pt2, reflection = False, previous_vert = -1):
