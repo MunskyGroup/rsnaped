@@ -13,6 +13,7 @@ Authors: Luis U. Aguilera, William Raymond, Brooke Silagy, Brian Munsky.
 # global_var_name, instance_var_name, function_parameter_name, local_var_name.
 
 # To manipulate arrays
+import custom_errors as ce
 import pkg_resources
 #pkg_resources.require("numpy >= `1.20.1")  #  to use specific numpy version
 import numpy as np
@@ -2029,49 +2030,160 @@ class Diffusion2D():
     This class handles all particle diffusion in 2D coordinates with geometry constraints
     
     Defaults to reflecting boundary conditions. TODO: add more boundary interactions?
+    
+    
+    Example Usage : 
+        
+        # Simple brownian motion
+        # get the geometry to diffuse within
+        vertices = rsp.Utilities.mask_to_vertices(mask_image)
+        vertices = skimage.measure.approximate_polygon(vertices, tolerance=.5)
+        
+        # initialize diffusion
+        diff = rsp.Diffusion2D(vertices)
+        initial_spot_locations = diff.initialize_spots(50)
+        
+        t = np.linspace(0,100,101)
+        tstep = 1
+        diffusion_rate = 5
+        trajs = diff.gen(initial_spot_locations, diffusion_rate, t, tstep)
+        
+        plt.plot(trajs[1], trajs[0], lw=1)
+        plt.plot(vertices.T[1], vertices.T[0])
+
+        
+
     '''
 
-    def __init__(self, vertices, max_value_uint16=int(65535*0.8), resolution = (512,512)):
-        self.MAX_VALUE_uint16 = max_value_uint16
+    def __init__(self, vertices: np.ndarray, resolution: tuple = (512,512)):
+        '''
+        
+        Parameters
+        ----------
+        vertices : np.ndarray
+            closed vertices array (end point and start point should connect). Vertices can be
+            generated via utilities.mask_to_vertices(mask_image). 
+        resolution : tuple, optional
+            resolution of the entire 2D image. The default is (512,512).
+
+        Returns
+        -------
+        None.
+
+        '''
         self.vertices = vertices
         self.resolution = resolution
         self.geometry = mpltPath.Path(vertices)
         pass
     
-    def initialize_spots(self, number_spots, parameters=[], start='uniform'):
+    def initialize_spots(self, n_spots: int, parameters: list = [], start: str = 'uniform'):
+        '''
+        This function generates initial points for the fluorescent spots in a 2D diffusion
+        problem. Currently, there are two options for initial points: uniform distribution,
+        where points are uniformly distributed across the 2D geometry, and gaussian_point,
+        where points are generated from a normal centered at x,y with sigma_x and sigma_y 
+        standard deviations.
+        
+        start = uniform, parameters = [] 
+        
+        start = gaussian_point, parameters = [(x,y),(sigma_x,sigma_y)]
+        where the normal is centered at x,y with a standard deviation sigma in x and y.
+
+        Parameters
+        ----------
+        n_spots : int
+            number of spots to initialize within the geometry.
+        parameters : list, optional
+            Optional parameter list for initialization, for gaussian_point, 
+            parameters are [(x,y),(sigma_x,sigma_y)] for the guassian to draw from.
+            The default is [].
+        start : str, optional
+            What type of distribution to initalize from, options are: uniform, gaussian_point. The default is 'uniform'.
+
+        Returns
+        -------
+        points : np.ndarray
+            locations of valid starting points of shape (2 x n_spots)
+
+        '''
         
         # parameters for uniform: 
         # parameters for gaussian_point: [(x,y), (sigma_x, sigma_y)]    
 
         
         if start.lower() == 'uniform':
-            distx = lambda: np.random.uniform(0+20, self.resolution[0]-20, size=(number_spots*2))
-            disty = lambda: np.random.uniform(0+20, self.resolution[1]-20, size=(number_spots*2))
+            distx = lambda: np.random.uniform(0+20, self.resolution[0]-20, size=(n_spots*2))
+            disty = lambda: np.random.uniform(0+20, self.resolution[1]-20, size=(n_spots*2))
 
         if start.lower() == 'gaussian_point':
-            distx = lambda: np.random.normal(parameters[0][0], parameters[1][0], size=(number_spots*2)).clip(min=0, max=self.resolution[0])
-            disty = lambda: np.random.normal(parameters[0][1], parameters[1][1], size=(number_spots*2)).clip(min=0, max=self.resolution[1])
+            distx = lambda: np.random.normal(parameters[0][0], parameters[1][0], size=(n_spots*2)).clip(min=0, max=self.resolution[0])
+            disty = lambda: np.random.normal(parameters[0][1], parameters[1][1], size=(n_spots*2)).clip(min=0, max=self.resolution[1])
             
-
+        # set up a while loop, keep pulling points from desired distribution
+        # until enough points are collected that are within the geometry
         collected_spots = 0
         max_iter = 1e6
         it = 0
-        valid_points = -1*np.ones([number_spots,2])
-        while collected_spots < number_spots and it < max_iter:
+        valid_points = -1*np.ones([n_spots,2])
+        while collected_spots < n_spots and it < max_iter:
             xs = distx()
             ys = disty()
             test_points = np.vstack((xs,ys)).T
-            for i in range(number_spots):
+            for i in range(n_spots):
                 if self.geometry.contains_point(test_points[i]):
                     valid_points[collected_spots] = test_points[i]
                     collected_spots += 1
-                    if collected_spots >= number_spots:
+                    if collected_spots >= n_spots:
                         break
+            
+            
             it += 1
+            if it == max_iter:
+                raise ce.MaxIterSpotInitializationReachedError('Error: maximum iterations have been reached'\
+                                                               ' while trying to generate points that'\
+                                                               ' satisfy geometry constraints, please'\
+                                                               ' ensure your geometry is valid.')
         return valid_points.T
 
         
-    def pad_D(self, diffusion_coefficient, n_times, n_spots, by_spot=True):
+    def pad_D(self, diffusion_coefficient: int | float | list | np.ndarray, n_times: int, n_spots: int,
+              by_spot: str = True):
+        '''
+        This function uses a given diffusion coefficient(s) and pads them to the correct size 
+        for brownian motion calculation (n_times x n_spots). The user can provide 4 types of diffusion
+        coefficients: 
+            * singular values that apply to all spots for all times (D = x)
+            * values for each time that change (D = F(t))
+            * values for each spot that change (D = F(spot))
+            * values that change over spots and times (D  = F(t,spot))
+        
+        Given these options, the function will consistently return the correct size
+        matrix for brownian motion, for example if the user gives spots that change over time,
+        this function will horizontally stack these values for each spot.
+        
+        If the n_times and n_spots are the same value, then "by_spot" will tell
+        the function what the diffusion rate varies over in the case of giving a 
+        1D set of values.
+        
+
+        Parameters
+        ----------
+        diffusion_coefficient : int | float | list | np.ndarray
+            diffusion coefficient(s), this can be a singular value or a (1 x n_spots) or (1 x n_times) list/array. It can also be
+            a 2D array of (n_times x n_spots).
+        n_times : int
+            number of time points.
+        n_spots : int
+            number of total spots.
+        by_spot : str, optional
+            If n_times and n_spots are true and a 1D set of values is given, are these values varying over the spots? The default is True.
+
+        Returns
+        -------
+        D : np.ndarray
+            padded diffusion coefficient array of shape (n_times x n_spots).
+
+        '''
         # convert and pad diffusion coefficients into an array of n_times x n_spots
     
         if isinstance(diffusion_coefficient, float | int):
@@ -2147,25 +2259,35 @@ class Diffusion2D():
                 
             return trajs
         
-    def jitter(self, trajs: np.ndarray, n_channels: int, parameters: list=[], method: str='gaussian'):
+    def jitter(self, trajs: np.ndarray, n_channels: int, parameters: list=[1], method: str='gaussian'):
         '''
-        
+        This function will take a spot trajectory array and "jitter" x,y locations out
+        to simulate probe distances in different channels. This retuns a trajectory array of shape
+        (2 x n_times x n_spots) and jitters it to shape (2 x n_times x n_spots, channels)
+
+        methods:
+            
+            'gaussian', parameters = [sigma]
+            jitters the colors in each channel based on a random gaussian from the original spot location. 
+            
+            'registration', parameters = [(xshift_0, yshift_0), .... (xshift_N_channels, yshift_N_channels)]
+            simulates a registration error where colors are shifted by a set amount in each channel.
 
         Parameters
         ----------
         trajs : np.ndarray
-            DESCRIPTION.
+            spot 2D motion trajectories of shape (2 x n_spots) or (2 x n_times x n_spots).
         n_channels : int
-            DESCRIPTION.
+            number of channels to add via jitter method.
         parameters : list, optional
-            DESCRIPTION. The default is [].
+            parameters for the jitter method (see above). The default is [1].
         method : str, optional
-            DESCRIPTION. The default is 'gaussian'.
+            method to use. The default is 'gaussian'.
 
         Returns
         -------
-        trajs_N : TYPE
-            DESCRIPTION.
+        trajs_N : np.ndarray
+            spot 2D motion array of shape (2 x n_spots x n_channels) or (2 x n_times x n_spots x n_channels).
 
         '''
         # jitter trajectories of (2,t,n) to (2,t,n,channels)
@@ -2188,7 +2310,7 @@ class Diffusion2D():
         return trajs_N
     
     
-    def simulate_z(self, n_spots: int, t: np.ndarray | list, D: np.ndarray | float | list, step_size: float, z_stack:float=130, min_dimming: float=0.5):
+    def simulate_z(self, n_spots: int, t: np.ndarray | list, diffusion_coefficients: np.ndarray | float | list, step_size: float, z_stack:float=130, min_dimming: float=0.5):
         '''
         Simulates intensity loss due to movement within a Z plane via brownian
         motion. The idea is that in the center of the Z plane the intensity
@@ -2201,7 +2323,7 @@ class Diffusion2D():
             number of spots to simulate z motion for.
         t : np.ndarray | list
             Time vector to simulate z motion over.
-        D : np.ndarray | float | list
+        diffusion_coefficients : np.ndarray | float | list
             Diffusion rate, can be a single value, (n_timepoints), (n_spots), or (n_timepoints x n_spots).
         step_size : float
             The step size to simulate brownian motion over.
@@ -2217,7 +2339,7 @@ class Diffusion2D():
 
         '''
         
-        D = self.pad_D(D, len(t), n_spots) #pad the diffusion rate
+        D = self.pad_D(diffusion_coefficients, len(t), n_spots) #pad the diffusion rate
         initial_points = np.random.randint(0,high=z_stack,size=(1,n_spots)) #initial points in z, uniform dist
         brownian_movement = np.sqrt(2*D*step_size)                          # brownian motion
         movement = np.random.randn(*brownian_movement.shape)*brownian_movement #generate movement values
@@ -2229,7 +2351,36 @@ class Diffusion2D():
         return intensity_mod
     
   
-    def check_if_segment_left_geometry(self, pt1, pt2, reflection = False, previous_vert = -1):
+    def check_if_segment_left_geometry(self, pt1: tuple, pt2: tuple,
+                                       reflection: bool = False, previous_vert:int = -1):
+        '''
+        
+
+        Parameters
+        ----------
+        pt1 : tuple
+            point 1 (x,y).
+        pt2 : tuple
+            point 2 (x,y).
+        reflection : bool, optional
+            is this a line segment that was already reflected? The default is False.
+        previous_vert : int, optional
+            if this is reflecting, what is the index of the vertex it was reflected from. The default is -1.
+
+        Returns
+        -------
+        bool
+            did this segment leave the geometry?.
+        list
+            vertex 1, [x,y], of the geometry segment that the line segment left out of
+        list
+            vertex 2, [x,y], of the geometry segment that the line segment left out of
+        tuple
+            interesection point (x,y) of the line segment and the geometry segment between vertex 1 and vertex 2.
+        int
+            vertex id (of vertex 1) of the geometry segment that the line segment left across.
+
+        '''
         vertices_left = []
         intersects = []
         vert_ids = []
@@ -2298,10 +2449,42 @@ class Diffusion2D():
             return (p0*p1<=0) & (p2*p3<=0), None
     
     @staticmethod
-    def get_slope(pt1,pt2):
+    def get_slope(pt1,pt2): 
+        '''
+        return the slope between two points 2D
+
+        Parameters
+        ----------
+        pt1 : tuple
+            point 1, (x,y).
+        pt2 : tuple
+            point 2, (x,y).
+
+        Returns
+        -------
+        float
+            slope of the line that contains point 1 and point 2.
+
+        '''
         return (pt1[1] - pt2[1] ) / (pt1[0] - pt2[0])
     @staticmethod
     def distance(pt1,pt2):
+        '''
+        return the distance between two points 2D
+
+        Parameters
+        ----------
+        pt1 : tuple
+            point 1, (x,y).
+        pt2 : tuple
+            point 2, (x,y).
+
+        Returns
+        -------
+        float
+            distance between point 1 and point 2.
+
+        '''
         return np.sqrt((pt1[0] - pt2[0])**2 + (pt1[1] - pt2[1])**2)
 
 class Frame2D():
