@@ -2147,26 +2147,86 @@ class Diffusion2D():
                 
             return trajs
         
-    def jitter(self, trajs, N, parameters=[], method='gaussian'):
+    def jitter(self, trajs: np.ndarray, n_channels: int, parameters: list=[], method: str='gaussian'):
+        '''
+        
+
+        Parameters
+        ----------
+        trajs : np.ndarray
+            DESCRIPTION.
+        n_channels : int
+            DESCRIPTION.
+        parameters : list, optional
+            DESCRIPTION. The default is [].
+        method : str, optional
+            DESCRIPTION. The default is 'gaussian'.
+
+        Returns
+        -------
+        trajs_N : TYPE
+            DESCRIPTION.
+
+        '''
         # jitter trajectories of (2,t,n) to (2,t,n,channels)
         # intended to offset subpixel values of different probes in different channels
         
         # PARAMETERS: [sigma]
         if method.lower() == 'gaussian':
-            offsets = parameters[0]*np.random.randn(*(*trajs.shape, N))
+            offsets = parameters[0]*np.random.randn(*(*trajs.shape, n_channels))
             trajs_N = np.moveaxis(np.array([trajs]*3),0,-1) + offsets
 
-        # PARAMETERS: [(xshift_0, yshift_0), .... (xshift_N, yshift_N)]
+        # PARAMETERS: [(xshift_0, yshift_0), .... (xshift_N_channels, yshift_N_channels)]
         if method.lower() == 'registration':
-            offsets = 1 #offset matrix
-            trajs_N = np.moveaxis(np.array([trajs]*3),0,-1) + offsets
+        
+            trajs_N = np.moveaxis(np.array([trajs]*3),0,-1)
+            while len(parameters) < trajs_N.shape[2]:  #if not as many given offsets as color channels, pad with 0 offsets
+                parameters = parameters + [(0,0)]
+            offsets = np.moveaxis(np.moveaxis(np.vstack(parameters*trajs_N.shape[1]).reshape(trajs_N.shape[1],trajs_N.shape[2],trajs_N.shape[0]),0,-1),0,-1)
+            trajs_N += offsets
             
         return trajs_N
     
     
-    def simulate_z(self, trajs, N, parameters=[], method='gaussian'):
-        # jitter spots along z, -.5 .5
-        return 
+    def simulate_z(self, n_spots: int, t: np.ndarray | list, D: np.ndarray | float | list, step_size: float, z_stack:float=130, min_dimming: float=0.5):
+        '''
+        Simulates intensity loss due to movement within a Z plane via brownian
+        motion. The idea is that in the center of the Z plane the intensity
+        modifier should be x1.0, and reverse near the edges of Z planes it 
+        should be some minimum such as x0.5.
+
+        Parameters
+        ----------
+        n_spots : int
+            number of spots to simulate z motion for.
+        t : np.ndarray | list
+            Time vector to simulate z motion over.
+        D : np.ndarray | float | list
+            Diffusion rate, can be a single value, (n_timepoints), (n_spots), or (n_timepoints x n_spots).
+        step_size : float
+            The step size to simulate brownian motion over.
+        z_stack : float, optional
+            Number of nanometers of height per z stack. The default is 130 nm.
+        min_dimming : float, optional
+            The minimum value to use as a modifier, for example, 0.5 will return a vector of intensity modifications from 0.5 to 1. The default is 0.5.
+
+        Returns
+        -------
+        intensity_mod : np.ndarray
+            Intensity modification array of shape (n_times x n_spots) ranging from min_dimming to 1.
+
+        '''
+        
+        D = self.pad_D(D, len(t), n_spots) #pad the diffusion rate
+        initial_points = np.random.randint(0,high=z_stack,size=(1,n_spots)) #initial points in z, uniform dist
+        brownian_movement = np.sqrt(2*D*step_size)                          # brownian motion
+        movement = np.random.randn(*brownian_movement.shape)*brownian_movement #generate movement values
+        movement[0,:] = 0 # blank first time point to use initial points
+        ztrajs_absolute = initial_points + np.cumsum(movement,axis=0) # (t,n) make the absolute values of z trajectories
+        ztrajs_relative = 1-(np.abs((ztrajs_absolute%z_stack) - (z_stack/2))/(z_stack/2)) # now modulus over the middle of the z_stacks so its the relative z positions to the stack
+        intensity_mod = ((ztrajs_relative - 0)*(1-min_dimming)/1) + min_dimming           # scale this value so 1 is the middle of the z stack and min_dimming is the edge.
+    
+        return intensity_mod
     
   
     def check_if_segment_left_geometry(self, pt1, pt2, reflection = False, previous_vert = -1):
