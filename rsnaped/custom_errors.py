@@ -21,3 +21,14 @@ class MaxIterSpotInitializationReachedError(Error):
 
     def __init__(self, message):
         self.message = message
+    
+class InvalidElasticityError(Error):
+    """Exception raised for spot initialization, while loop could not generate
+    enough points to satisfy geometry constraints within 1 million tries.
+
+    Attributes:
+        message -- explanation of the error
+    """
+
+    def __init__(self, message):
+        self.message = message

@@ -12,6 +12,8 @@ Authors: Luis U. Aguilera, William Raymond, Brooke Silagy, Brian Munsky.
 # ExceptionName, function_name, GLOBAL_CONSTANT_NAME,
 # global_var_name, instance_var_name, function_parameter_name, local_var_name.
 
+import yaml
+
 # To manipulate arrays
 import custom_errors as ce
 import pkg_resources
@@ -2302,10 +2304,18 @@ class Diffusion2D():
         if method.lower() == 'registration':
         
             trajs_N = np.moveaxis(np.array([trajs]*3),0,-1)
-            while len(parameters) < trajs_N.shape[2]:  #if not as many given offsets as color channels, pad with 0 offsets
+            while len(parameters) < trajs_N.shape[-1]:  #if not as many given offsets as color channels, pad with 0 offsets
                 parameters = parameters + [(0,0)]
-            offsets = np.moveaxis(np.moveaxis(np.vstack(parameters*trajs_N.shape[1]).reshape(trajs_N.shape[1],trajs_N.shape[2],trajs_N.shape[0]),0,-1),0,-1)
-            trajs_N += offsets
+            if len(trajs_N.shape) == 3: #not over time
+                offsets = np.moveaxis(np.moveaxis(np.vstack(parameters*trajs_N.shape[1]).reshape(trajs_N.shape[1],trajs_N.shape[2],trajs_N.shape[0]),0,-1),0,-1)
+                trajs_N += offsets
+            if len(trajs_N.shape) == 4: # over time
+                offset_mat = np.vstack(parameters*trajs_N.shape[1]).reshape(trajs_N.shape[1],trajs_N.shape[-1],trajs.shape[0])
+                offset_mat = np.moveaxis(offset_mat.T,-1,1)
+                for i in range(trajs_N.shape[2]): # per spot adjust over time
+                    trajs_N[:,:,i,:] = trajs_N[:,:,i,:] - offset_mat
+                
+            
             
         return trajs_N
     
@@ -2648,7 +2658,7 @@ class BackgroundGen2D():
         self.video_std[self.video_std > np.quantile(self.video_std, quantile)] = np.quantile(self.video_std, quantile)
         self.x_dim = original_video.shape[2]
         self.y_dim = original_video.shape[1]   
-        self.original_video = original_video         
+        #self.original_video = original_video         
         pass
     
     def make(self, parameters: list, num_requested_frames: int, method: str = 'gaussian', verbose: int = 0):
@@ -2831,78 +2841,300 @@ class BackgroundGen2D():
         if method == 'shuffle':
             return self.original_video[np.random.randint(self.original_video.shape[0])]
     
-class SimulatedCell2D():    
-    def __init__(self, base_video,  
-                 diffusion_initalization_parameters=[], diffusion_start='uniform',
-                 diffusion_rate = 2, diffusion_tstep=1, diffusion_elasticity=1, ):
+class SimCell2D():    
+    def __init__(self, base_video, mask_image, cell_config_yaml, mask_channel = 0):
         
-        vertices = self.Utilities.mask_to_vertices(base_video[0])
+        vertices = Utilities.mask_to_vertices(mask_image)
         vertices = approximate_polygon(vertices, tolerance=.5)
         
+        self.resolution = (base_video.shape[1],base_video.shape[2])
+        
+        with open(cell_config_yaml, 'r') as f:
+            config_dict = yaml.safe_load(f)
+        
+        self.config_dict = config_dict
+        
+        self.check_parameters(self.config_dict)
+        
+        # parse jitter par registration from string
+        if self.config_dict['diffusion']['jitter']['method'] == 'registration':
+            jitter_par = [tuple(x.replace('(','').replace(')','').split(',')) for x in self.config_dict['diffusion']['jitter']['parameters']]
+            self.config_dict['diffusion']['jitter']['parameters'] = [(int(x[0]),int(x[1])) for x in jitter_par]
+        
+        # initalize the bg_frame_generator
+        self.n_channels = len(config_dict['frame'])-2
+        self.bg_frame_generator = []*(len(config_dict['frame'])-2)
+        self.channel_pars = []
+        for i in range(self.n_channels):
+            self.bg_frame_generator.append(BackgroundGen2D(base_video[:,:,:,config_dict['frame']['channel %i'%i]['background']['source']]))
+            self.channel_pars.append(config_dict['frame']['channel %i'%i])
+            
+
+        self.D = self.config_dict['diffusion']['motion']['diffusion_coefficient']
+                    
+        
+        
+        #### Frame2D
+        self.f2D = Frame2D()
+        
         ##### Diffusion
-        self.diffusion = self.Diffusion2D(vertices, max_value_uint16=int(65535*0.8),
+        self.diffusion = Diffusion2D(vertices,
                                           resolution = (base_video.shape[1],base_video.shape[2]))
-        self.diffusion_initalization_parameters = diffusion_initalization_parameters
-        self.diffusion_start = diffusion_start
-        self.D = diffusion_rate
-        self.diffusion_tstep  =diffusion_tstep
-        self.diffusion_elasticity = diffusion_elasticity
-        
-        self.bg_frame_generator = self.BackgroundGen2D(base_video, quantile=0.95)
-        
 
-        self.mRNA_translation_model = 1
+
+        ##### Model
+        self.model_generator = 1
         
-        #self, spots_xy, values_xy, sizes_xy, sigma_xy,
-                 #baseimage_xy, intensity_scale, poisson_sample_spot=False, photon_count=1000
-    
+        
+        ##### Photo bleaching
+        self.photo_bleaching = 1
+        
+        # make the temporary folder if its not in the home dir
+        tmp_path = pathlib.Path().absolute().parents[0].joinpath('tmp')
+        tmp_path.mkdir(parents=False, exist_ok=True)
 
     
-    def generate_video(self, number_of_channels, number_of_frames, number_of_spots, t,
-                       disk_buffer=True, buffer_size=5):
+    def gen(self, number_of_spots, t,
+                       disk_buffer=True, buffer_size=5, verbose=0):
         
+        number_of_frames = len(t)
+    
+        if verbose:
+            print('Generating spot motion.....')
         # generate all motion trajectories
         spots_initial_points = self.diffusion.initialize_spots(number_of_spots,
-                                                parameters = self.diffusion_initalization_parameters,
-                                                start = self.diffusion_start)
-        spot_motion = self.diffusion.make(spots_initial_points, self.D, t, self.tstep, elasticity=self.diffusion_elasticity)
-        # 
+                                                                    parameters = self.config_dict['diffusion']['initialization']['parameters'],
+                                                                    start = self.config_dict['diffusion']['initialization']['start'])
         
+        # generate all motion
+        spot_motion = self.diffusion.gen(spots_initial_points, 
+                                          self.D,
+                                          t, 
+                                          self.config_dict['diffusion']['motion']['tstep'],
+                                          elasticity=self.config_dict['diffusion']['motion']['elasticity'])
+        # jitter the spots if needed
+        if self.config_dict['diffusion']['jitter']['use']:
+            spot_motion = self.diffusion.jitter(spot_motion, self.n_channels,
+                                                parameters = self.config_dict['diffusion']['jitter']['parameters'],
+                                                method = self.config_dict['diffusion']['jitter']['method'])
+        else:
+            spot_motion = np.dstack([spot_motion]*self.n_channels) # SHAPE: (2, t, n_spots, n_channels)
+            
+            
+        # simulate z if needed
+        if self.config_dict['diffusion']['simulate_z']['use']:
+            intensity_mod_z = self.diffusion.simulate_z( number_of_spots, t, 
+                                                     self.D, self.config_dict['diffusion']['motion']['tstep'],
+                                                     z_stack = self.config_dict['diffusion']['simulate_z']['z_stack'],
+                                                     min_dimming = self.config_dict['diffusion']['simulate_z']['min_dimming'])
+
+        else:
+            intensity_mod_z = np.ones([len(t), number_of_spots])
+            
+
         
-        if disk_buffer:
+        ######### mRNA model intensity simulation here
+        spot_intensity = np.random.randint(90,100, size=(len(t), number_of_spots, 3))
+        spot_intensity = np.multiply(spot_intensity.T,intensity_mod_z.T).T
+        color_to_channel_map = [0,1,2]
+        spot_diffusion_sim = None
+        
+        if not disk_buffer:
+            vid = np.zeros([len(t), *self.resolution, self.n_channels], dtype=np.uint16)
+
+            bg_frames = []
+            for i in range(self.n_channels):
+
+                
+                bg_frame = self.bg_frame_generator[i].make(self.channel_pars[i]['background']['parameters'], number_of_frames,
+                                                     method = self.channel_pars[i]['background']['method'],)
+                if self.config_dict['diffusion']['jitter']['method'] == 'registration' and self.config_dict['diffusion']['jitter']['use']:
+                    bg_frame = self.__offset_bg_for_registration_error(bg_frame,i)
+            
+                        
+                bg_frames.append(bg_frame)
+                
+            
+            
+            
+            for j in (tqdm(range(number_of_frames), desc='Generating video frames') if verbose else range(number_of_frames)):
+                for i in range(self.n_channels):
+                    
+
+                    frame = self.f2D.make(spot_motion[:,j,:,i].T, 
+                                          spot_intensity[j,:,color_to_channel_map[i]],
+                                          self.config_dict['frame']['spot_size'],
+                                          self.channel_pars[i]['spots']['sigma'],
+                                          bg_frames[i][j,:,:],
+                                          self.channel_pars[i]['spots']['intensity_scale'],
+                                          poisson_sample_spot=self.channel_pars[i]['spots']['poisson_sample_spot'],
+                                          photon_count=self.channel_pars[i]['spots']['photon_count'])
+
+                    vid[j,:,:,i] = frame
+            return vid
+                    
+                    
+        else:
             # delete any previous buffer file
-            tmp_path = pathlib.Path('./tmp.bin')
+            tmp_path = pathlib.Path().absolute().parents[0].joinpath('tmp','tmp.bin')
             if tmp_path.exists():
                 tmp_path.unlink()         
             
-            
-            
-            for i in range(number_of_channels):
-                for j in range(number_of_spots):
+            with open(tmp_path, "ab") as f:
+                frame_count = number_of_frames
+                j = 0
+                k = 0
+                chunk = np.zeros([buffer_size, *self.resolution, self.n_channels], dtype=np.uint16)
+                
+                if verbose:
+                    pbar = tqdm(total=number_of_frames, desc='Generating video frames')
+                
+                
+                while frame_count > 0:
                     
-                        frame_count = frames
-                        i = 0
-                        
-                        
-                        with open('./tmp.bin', "ab") as f:
-                            while frame_count > 0:
-                                if buffersize <= frame_count:
-                                    vid = make_random_video(buffersize)
-                                else:
-                                    vid = make_random_video(frame_count%buffersize)
-                                
-                                np.save(f, vid)
-                                frame_count -= buffersize
-                                i += 1
-                                if i > 1000:
-                                    break
-                            
-                        
-                            
-                    
-            return np.memmap('./tmp.bin', dtype=np.uint16, shape=(frames,512,512,4))
-    
+                    # generate bg frames of buffersize
+                    bg_frames = []
+                    for i in range(self.n_channels):
+                        bg_frame = self.bg_frame_generator[i].make(self.channel_pars[i]['background']['parameters'], number_of_frames,
+                                                             method = self.channel_pars[i]['background']['method'],)
+                        if self.config_dict['diffusion']['jitter']['method'] == 'registration' and self.config_dict['diffusion']['jitter']['use']:
+                            bg_frame = self.__offset_bg_for_registration_error(bg_frame,i)
+                        bg_frames.append(bg_frame)
 
+
+                    for m in range(buffer_size):
+                        # break the for loop if we are done with all frames
+                        if frame_count==0:
+                            break
+                        # generate a frame in each channel
+                        for i in range(self.n_channels):
+                            frame = self.f2D.make(spot_motion[:,j,:,i].T, 
+                                                  spot_intensity[j,:,color_to_channel_map[i]],
+                                                  self.config_dict['frame']['spot_size'],
+                                                  self.channel_pars[i]['spots']['sigma'],
+                                                  bg_frames[i][m],
+                                                  self.channel_pars[i]['spots']['intensity_scale'],
+                                                  poisson_sample_spot=self.channel_pars[i]['spots']['poisson_sample_spot'],
+                                                  photon_count=self.channel_pars[i]['spots']['photon_count'])
+                            chunk[m,:,:,i] = frame
+                                            
+                        # made one time point worth of frames
+                        j += 1
+                        frame_count -= 1
+                        if verbose:
+                            pbar.update(1)
+                    
+                    # filled one chunk, save it
+                    if frame_count > 0:
+                        np.save(f, chunk)
+                    if frame_count == 0: #finished, fill the rest with rest of chunk
+                        np.save(f, chunk[:m])
+                        frame_count = -1
+                        break
+                    
+                    
+                
+            return np.memmap(tmp_path, dtype=np.uint16, shape=(number_of_frames,512,512,self.n_channels))
+
+    @staticmethod
+    def check_parameters(config_dict):
+        if config_dict['diffusion']['motion']['elasticity'] < 0 or config_dict['diffusion']['motion']['elasticity'] > 1:
+            raise ce.InvalidElasticityError('Diffusion boundary elasticity is out of range, this value can only be between 0 and 1. '\
+                                            'Elasticity is the scale of momentum transfer after particles diffusions are reflected off '\
+                                            'a boundary.')
+
+    def __offset_bg_for_registration_error(self, bg_frame, i):
+        offset_x = self.config_dict['diffusion']['jitter']['parameters'][i][0]
+        offset_y = self.config_dict['diffusion']['jitter']['parameters'][i][1]
+        if offset_x > 0 and offset_y > 0:
+            bg_frame[:,:-offset_x,:-offset_y] = bg_frame[:,offset_x:,offset_y:]
+
+        if offset_x < 0 and offset_y < 0:
+            bg_frame[:,-offset_x:,-offset_y:]= bg_frame[:,:offset_x,:offset_y] 
+            
+        if offset_x > 0 and offset_y < 0:
+            bg_frame[:,:-offset_x,-offset_y:]=bg_frame[:,offset_x:,:offset_y]
+
+        if offset_x < 0 and offset_y > 0:
+            bg_frame[:,-offset_x:,:-offset_y] =bg_frame[:,:offset_x,offset_y:]
+            
+        if offset_x == 0 and offset_y > 0:
+            bg_frame[:,:,:-offset_y] = bg_frame[:,:,offset_y:]
+        if offset_x == 0 and offset_y < 0:
+            bg_frame[:,:,-offset_y:]= bg_frame[:,:,:offset_y]
+        if offset_x > 0 and offset_y == 0:
+            bg_frame[:,:-offset_x,:] =bg_frame[:,offset_x:,:]
+        if offset_x < 0 and offset_y == 0: 
+            bg_frame[:,:-offset_x,:] =bg_frame[:,offset_x:,:]      
+        return bg_frame
+
+
+               #while frame_count > 0:
+                   
+                   # bg_frames = []
+                   # for i in range(self.n_channels):
+                   #     bg_frames.append(self.bg_frame_generator[i].make(self.channel_pars[i]['background']['parameters'], buffer_size,
+                   #                                          method = self.channel_pars[i]['background']['method'],))
+                       
+                   # for m in range(buffer_size):
+                       
+                   #     if frame_count == 0:
+                   #         np.save(f, chunk[:m,:,:,:])    
+                   #         break
+                           
+                   #     for i in range(self.n_channels):
+                   #         frame = self.f2D.make(spot_motion[:,j,:,i].T, 
+                   #                               spot_intensity[j,:,color_to_channel_map[i]],
+                   #                               self.config_dict['frame']['spot_size'],
+                   #                               self.channel_pars[i]['spots']['sigma'],
+                   #                               bg_frames[i][m],
+                   #                               self.channel_pars[i]['spots']['intensity_scale'],
+                   #                               poisson_sample_spot=self.channel_pars[i]['spots']['poisson_sample_spot'],
+                   #                               photon_count=self.channel_pars[i]['spots']['photon_count'])
+                   #         chunk[m,:,:,i] = frame
+                           
+                       
+                   #     frame_count+=-1
+                   #     j+=1
+
+
+                   # np.save(f, chunk)
+                   # chunk *= 0
+
+
+               
+                   # for i in range(self.n_channels):
+                       
+                       
+                   #     # Make a new single frame in one channel
+                   #     bg_frame = self.bg_frame_generator[i].make(self.channel_pars[i]['background']['parameters'], buffer_size,
+                   #                                           method = self.channel_pars[i]['background']['method'],)
+                       
+                   #     frame = self.f2D.make(spot_motion[:,j,:,i].T, 
+                   #                           spot_intensity[j,:,color_to_channel_map[i]],
+                   #                           self.config_dict['frame']['spot_size'],
+                   #                           self.channel_pars[i]['spots']['sigma'],
+                   #                           bg_frame[0],
+                   #                           self.channel_pars[i]['spots']['intensity_scale'],
+                   #                           poisson_sample_spot=self.channel_pars[i]['spots']['poisson_sample_spot'],
+                   #                           photon_count=self.channel_pars[i]['spots']['photon_count'])
+                       
+                   #     chunk[frame_count%buffer_size,:,:,i] = frame
+                       
+                   # if frame_count == 0:
+                   #     np.save(f, chunk[:k,:,:,:])    
+                   #     break
+                   
+                   # if k == buffer_size:
+                   #     np.save(f, chunk)
+                   #     chunk *= 0
+                   #     k = 0
+
+                   # k += 1    
+                   # j += 1
+                   # frame_count -= 1
+                   # if verbose:
+                   #     pbar.update(1)
 
 
 class SimulatedCell():
@@ -4962,6 +5194,9 @@ class VisualizerVideo():
         controls = HBox(interactive_plot.children[:-1], layout = Layout(flex_flow = 'row wrap'))
         output = interactive_plot.children[-1]
         return controls, output
+    
+    def make_html5():
+        video = self.list_videos[drop_cell]
 
 
 class VisualizerVideo3D():
@@ -5359,6 +5594,10 @@ class Utilities():
     def __init__(self):
         pass
     
+    def video_to_html5():
+        return 
+
+
     def mask_to_vertices(mask_image, percentage_reduction:float = 0.2):
         contours = np.array(find_contours(mask_image, 0.5), dtype = int)
         try:

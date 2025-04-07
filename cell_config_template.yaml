@@ -1,0 +1,78 @@
+# This is a comment
+name: Test Cell
+
+# Diffusion and spot motion simulation options
+
+diffusion:
+
+    initialization:         # how to initalize the spots?
+        start: uniform      # uniform distribution start, no parameters
+        parameters: []
+        
+    motion:                             # brownian motion options
+        diffusion_coefficient: 1.0      # diffusion coefficient(s) for spots
+        tstep: 1.0                      # time step size for brownian motion
+        elasticity: 1.0                 # elastic boundary reflections, 1 = 100% elastic no momentum loss.
+        
+    jitter:                             # jitter the spot locations across channels (simulates probe subpixel changes)
+        use: True
+        n_channels: 3                   # number of channels to generate via jittering
+        method: registration            # method by which to jitter, gaussian is default with parameters = [sigma]
+        parameters: 
+            - (0,0)
+            - (2,2)
+            - (-2,-2)               # parameters to jitter
+        
+    simulate_z:                         # simulate intensity loss due to brownian motion in Z
+        use: False
+        z_stack: 130                    # z_stack dimensions in nm
+        min_dimming: 0.01                # minimum dimming intensity mod, this is the multiplier if the spot is on the edge of two zstacks
+        
+
+# Background image generation options
+
+frame:
+    quantile: .95                       # quantile to calculate standard dev of the pixels from 
+    spot_size: 15
+    
+    channel 0:
+        background:
+            source: 0                   # which channel of the base video to use, 0 or 1 currently
+            method: gaussian            # method for generating new frames, default gaussian fit of each pixel
+            parameters: [1]             # parameters for generation: for gaussian this is the scale of the standard dev of the pixels
+        
+        spots:                          # spot options in this channel
+            sigma: 2                    # sigma of the gaussian kernel of the spot
+            intensity_scale: 10         # intensity scale to multiply the spot values by
+            poisson_sample_spot: True   # sample from the kernel's poisson N photons
+            photon_count: 1000          # how many photons to sample, lower = more static and pixely spot
+       
+    channel 1:
+        background:
+            source: 0
+            method: gaussian
+            parameters: [1]
+        spots:
+            sigma: 2
+            intensity_scale: 10
+            poisson_sample_spot: True
+            photon_count: 1000
+        
+    channel 2:
+        background:
+            source: 1
+            method: gaussian
+            parameters: [1.1]
+        spots:
+            sigma: 2
+            intensity_scale: 50
+            poisson_sample_spot: True
+            photon_count: 1000
+            
+mRNA:
+    model: test
+    burnin: 1000
+
+# Photo bleaching options
+        
+
