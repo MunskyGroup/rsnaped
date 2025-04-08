@@ -14,6 +14,8 @@ diffusion:
         tstep: 1.0                      # time step size for brownian motion
         elasticity: 1.0                 # elastic boundary reflections, 1 = 100% elastic no momentum loss.
         
+        
+          
     jitter:                             # jitter the spot locations across channels (simulates probe subpixel changes)
         use: True
         n_channels: 3                   # number of channels to generate via jittering
@@ -33,7 +35,7 @@ diffusion:
 
 frame:
     quantile: .95                       # quantile to calculate standard dev of the pixels from 
-    spot_size: 15
+    spot_size: 15     #size of the kernel
     
     channel 0:
         background:
@@ -56,7 +58,7 @@ frame:
             sigma: 2
             intensity_scale: 10
             poisson_sample_spot: True
-            photon_count: 1000
+            photon_count: 200
         
     channel 2:
         background:

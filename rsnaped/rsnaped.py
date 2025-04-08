@@ -2076,9 +2076,44 @@ class Diffusion2D():
         self.vertices = vertices
         self.resolution = resolution
         self.geometry = mpltPath.Path(vertices)
+        
+# diffusion:
+
+#     initialization:         # how to initalize the spots?
+#         start: uniform      # uniform distribution start, no parameters
+#         parameters: []
+        
+#     motion:                             # brownian motion options
+#         diffusion_coefficient: 1.0      # diffusion coefficient(s) for spots
+#         tstep: 1.0                      # time step size for brownian motion
+#         elasticity: 1.0                 # elastic boundary reflections, 1 = 100% elastic no momentum loss.
+        
+        
+          
+#     jitter:                             # jitter the spot locations across channels (simulates probe subpixel changes)
+#         use: True
+#         n_channels: 3                   # number of channels to generate via jittering
+#         method: registration            # method by which to jitter, gaussian is default with parameters = [sigma]
+#         parameters: 
+#             - (0,0)
+#             - (2,2)
+#             - (-2,-2)               # parameters to jitter
+        
+#     simulate_z:                         # simulate intensity loss due to brownian motion in Z
+#         use: False
+#         z_stack: 130                    # z_stack dimensions in nm
+#         min_dimming: 0.01                # minimum dimming intensity mod, this is the multiplier if the spot is on the edge of two zstacks
+        
+        # defaults that can be overridden if wanted to use this as a class
+        self.initialize = {'parameters':[], 'start':'uniform'}
+        self.motion = {'diffusion_coefficient':1, 'tstep':1, 'elasticity':1}
+        self.jitter_pars = {'use':True, 'n_channels':3, 'method':'gaussian', 'parameters':[1], }
+        self.simulate_z_pars = {'use':True, 'z_stack':130, 'min_dimming':0.01}
         pass
     
-    def initialize_spots(self, n_spots: int, parameters: list = [], start: str = 'uniform'):
+    def initialize_spots(self, n_spots: int,
+                         parameters: list = None,
+                         start: str = None):
         '''
         This function generates initial points for the fluorescent spots in a 2D diffusion
         problem. Currently, there are two options for initial points: uniform distribution,
@@ -2112,6 +2147,11 @@ class Diffusion2D():
         # parameters for uniform: 
         # parameters for gaussian_point: [(x,y), (sigma_x, sigma_y)]    
 
+        if parameters is None or start is None:
+            parameters = self.initialize['parameters']
+            start = self.initialize['start']
+        
+        
         
         if start.lower() == 'uniform':
             distx = lambda: np.random.uniform(0+20, self.resolution[0]-20, size=(n_spots*2))
@@ -2214,54 +2254,85 @@ class Diffusion2D():
         return D
             
 
-    def gen(self, initial_points, diffusion_coefficients, t, step_size, elasticity = 1):
-            # Function that creates the simulated spots inside a given polygon
-            D = self.pad_D(diffusion_coefficients, len(t), initial_points.shape[-1])
-            D = np.array([D, D])
-            brownian_movement = np.sqrt(2*D*step_size)
-            movement = np.random.randn(*brownian_movement.shape)*brownian_movement
-            movement[:,0,:] = 0 # blank first time point to use initial points
-            trajs = initial_points[:,np.newaxis,:] + np.cumsum(movement,axis=1) # (2,t,n)
-            
-            ## TODO: This would have to change for 3D, use random reflections back in, 
-            # true geometry is too hard
-            
-            # reflect each trajectory when it crosses a boundary
-            for i in range(initial_points.shape[-1]):
-                for j in range(1,len(t)):
-                    # FOR EACH LINE SEGMENT, check if it crosses the geometry
-                    # if it does, vert1, vert2, and intersection point
-                    pt1 = trajs[:,j-1,i] 
-                    pt2 = trajs[:,j,i] 
-                    left, vert1, vert2, i1, vert_id = self.check_if_segment_left_geometry(pt1,pt2)
-                        
-                    new_point = pt2
-                    while left: #if the line segment left
-                        
-                        # reflect the part outside geometry back in (perfect elastic)
-                        v1 = new_point - i1 #vector that "left" the geometry
-                        
-                        #  FLIPPED normal of the geometry it left, this is not a normal normal.
-                        normal = (vert2[0] - vert1[0], vert2[1] - vert1[1] )/self.distance(vert1,vert2)
-                        
-                        #calculate new bounce vector and its endpoint
-                        u = (v1@normal)*normal
-                        r = (v1-2*(u))*elasticity
-                        new_point = i1-r 
-                        
-                        #did the new line leave again??? reflect again from the first intersection point
-                        left, vert1, vert2, i1, vert_id = self.check_if_segment_left_geometry(i1, new_point, reflection=True, previous_vert=vert_id)
-            
-                        
-                    trajs[:,j,i] =  new_point 
-                        
-                    if j != len(t):
-                        trajs[:,j+1:,i] = np.array([new_point]).T + np.cumsum(movement[:,j+1:,i],axis=1)
-                        
-                
-            return trajs
+    def gen(self, initial_points, t, diffusion_coefficient: list|np.ndarray|int|float = None, tstep: int = None, elasticity: int = None):
+        '''
+        Generate brownian motion trajectories for a set of spots / points.
+
+        Parameters
+        ----------
+        initial_points : np.ndarray
+            Initial points of the spots, in the shape of 2 x n_spots.
+        t : np.ndarray
+            time vector to generate spot motion trajectories over.
+        diffusion_coefficient : list|np.ndarray|int|float, optional
+            diffusion coefficient of the spots, can be over time or by spot or both. The default is 1.0.
+        tstep : int, optional
+            time step size for brownian motion. The default is 1.0.
+        elasticity : int, optional
+            elasticity of reflections of motion off the cell boundaries, ranges from 0 to 1 (perfect reflection). The default is 1.
+
+        Returns
+        -------
+        trajs : np.ndarray
+            spot motion matrix, 2 x t x n_spots.
+
+        '''
         
-    def jitter(self, trajs: np.ndarray, n_channels: int, parameters: list=[1], method: str='gaussian'):
+        if diffusion_coefficient is None:
+            diffusion_coefficient = self.motion['diffusion_coefficient']
+        if tstep is None:
+            tstep = self.motion['tstep']
+        if elasticity is None:
+            elasticity = self.motion['elasticity']
+
+    
+        # Function that creates the simulated spots inside a given polygon
+        D = self.pad_D(diffusion_coefficient, len(t), initial_points.shape[-1])
+        D = np.array([D, D])
+        brownian_movement = np.sqrt(2*D*tstep)
+        movement = np.random.randn(*brownian_movement.shape)*brownian_movement
+        movement[:,0,:] = 0 # blank first time point to use initial points
+        trajs = initial_points[:,np.newaxis,:] + np.cumsum(movement,axis=1) # (2,t,n)
+        
+        ## TODO: This would have to change for 3D, use random reflections back in, 
+        # true geometry is too hard
+        
+        # reflect each trajectory when it crosses a boundary
+        for i in range(initial_points.shape[-1]):
+            for j in range(1,len(t)):
+                # FOR EACH LINE SEGMENT, check if it crosses the geometry
+                # if it does, vert1, vert2, and intersection point
+                pt1 = trajs[:,j-1,i] 
+                pt2 = trajs[:,j,i] 
+                left, vert1, vert2, i1, vert_id = self.check_if_segment_left_geometry(pt1,pt2)
+                    
+                new_point = pt2
+                while left: #if the line segment left
+                    
+                    # reflect the part outside geometry back in (perfect elastic)
+                    v1 = new_point - i1 #vector that "left" the geometry
+                    
+                    #  FLIPPED normal of the geometry it left, this is not a normal normal.
+                    normal = (vert2[0] - vert1[0], vert2[1] - vert1[1] )/self.distance(vert1,vert2)
+                    
+                    #calculate new bounce vector and its endpoint
+                    u = (v1@normal)*normal
+                    r = (v1-2*(u))*elasticity
+                    new_point = i1-r 
+                    
+                    #did the new line leave again??? reflect again from the first intersection point
+                    left, vert1, vert2, i1, vert_id = self.check_if_segment_left_geometry(i1, new_point, reflection=True, previous_vert=vert_id)
+        
+                    
+                trajs[:,j,i] =  new_point 
+                    
+                if j != len(t):
+                    trajs[:,j+1:,i] = np.array([new_point]).T + np.cumsum(movement[:,j+1:,i],axis=1)
+                    
+            
+        return trajs
+        
+    def jitter(self, trajs: np.ndarray, n_channels: int, parameters: list = None, method: str = None):
         '''
         This function will take a spot trajectory array and "jitter" x,y locations out
         to simulate probe distances in different channels. This retuns a trajectory array of shape
@@ -2295,6 +2366,11 @@ class Diffusion2D():
         # jitter trajectories of (2,t,n) to (2,t,n,channels)
         # intended to offset subpixel values of different probes in different channels
         
+        if parameters is None:
+            parameters = self.jitter_pars['parameters']
+        if method is None:
+            method = self.jitter_pars['method']
+        
         # PARAMETERS: [sigma]
         if method.lower() == 'gaussian':
             offsets = parameters[0]*np.random.randn(*(*trajs.shape, n_channels))
@@ -2320,7 +2396,8 @@ class Diffusion2D():
         return trajs_N
     
     
-    def simulate_z(self, n_spots: int, t: np.ndarray | list, diffusion_coefficients: np.ndarray | float | list, step_size: float, z_stack:float=130, min_dimming: float=0.5):
+    def simulate_z(self, n_spots: int, t: np.ndarray | list, diffusion_coefficient: np.ndarray | float | list = None,
+                   tstep: float = None, z_stack: float = 130, min_dimming: float = 0.5):
         '''
         Simulates intensity loss due to movement within a Z plane via brownian
         motion. The idea is that in the center of the Z plane the intensity
@@ -2333,9 +2410,9 @@ class Diffusion2D():
             number of spots to simulate z motion for.
         t : np.ndarray | list
             Time vector to simulate z motion over.
-        diffusion_coefficients : np.ndarray | float | list
+        diffusion_coefficient : np.ndarray | float | list
             Diffusion rate, can be a single value, (n_timepoints), (n_spots), or (n_timepoints x n_spots).
-        step_size : float
+        tstep : float
             The step size to simulate brownian motion over.
         z_stack : float, optional
             Number of nanometers of height per z stack. The default is 130 nm.
@@ -2348,10 +2425,22 @@ class Diffusion2D():
             Intensity modification array of shape (n_times x n_spots) ranging from min_dimming to 1.
 
         '''
+
+        if diffusion_coefficient is None:
+            diffusion_coefficient = self.motion['diffusion_coefficient']
+        if tstep is None:
+            tstep = self.simulate_z_pars['tstep']
+        if z_stack is None:
+            z_stack = self.simulate_z_pars['z_stack']
+        if min_dimming is None:
+            min_dimming = self.simulate_z_pars['min_dimming']
         
-        D = self.pad_D(diffusion_coefficients, len(t), n_spots) #pad the diffusion rate
+        if min_dimming > 1 or min_dimming < 0: 
+            raise ce.InvalidMinimumDimming('Invalid minimum dimming arugment for Diffusion2D.simulate_z, minimum dimming, "min_dimming," for z-motion simulation should be between 0 and 1.')
+
+        D = self.pad_D(diffusion_coefficient, len(t), n_spots) #pad the diffusion rate
         initial_points = np.random.randint(0,high=z_stack,size=(1,n_spots)) #initial points in z, uniform dist
-        brownian_movement = np.sqrt(2*D*step_size)                          # brownian motion
+        brownian_movement = np.sqrt(2*D*tstep)                          # brownian motion
         movement = np.random.randn(*brownian_movement.shape)*brownian_movement #generate movement values
         movement[0,:] = 0 # blank first time point to use initial points
         ztrajs_absolute = initial_points + np.cumsum(movement,axis=0) # (t,n) make the absolute values of z trajectories
@@ -2512,12 +2601,33 @@ class Frame2D():
     
     def __init__(self, max_value_uint16=int(65535*0.8)):
         self.MAX_VALUE_uint16 = max_value_uint16
+        
+        # default parameter dictionary
+        self.spots = {'spot_size':15, 'sigma':2, 'intensity_scale':50, 'poisson_sample_spot':True, 'photon_count':1000}
+            
         pass
 
     
-    def make(self, spots_xy, values_xy, sizes_xy, sigma_xy,
-             baseimage_xy, intensity_scale, poisson_sample_spot=False, photon_count=1000):
+    def make(self, spots_xy, baseimage_xy, values_xy,
+             sizes: int|float|list|np.ndarray = None,
+             sigmas: int|float|list|np.ndarray = None,
+             intensity_scale: float = None, poisson_sample_spot: bool = None, photon_count: int = None):
         
+        if sizes is None:
+            sizes_xy = self.spots['spot_size']
+        else:
+            sizes_xy = sizes
+        if sigmas is None:
+            sigma_xy = self.spots['sigma']
+        else:
+            sigma_xy = sigmas
+        if intensity_scale is None:
+            intensity_scale = self.spots['intensity_scale']
+        if poisson_sample_spot is None:
+            poisson_sample_spot = self.spots['poisson_sample_spot']
+        if photon_count is None:
+            photon_count = self.spots['photon_count']
+            
         n_spots = len(spots_xy)
         
         # pad values by number of spots if the values/sizes/spots are single values per
@@ -2659,9 +2769,52 @@ class BackgroundGen2D():
         self.x_dim = original_video.shape[2]
         self.y_dim = original_video.shape[1]   
         #self.original_video = original_video         
+        
+        
+        # frame:
+        #     quantile: .95                       # quantile to calculate standard dev of the pixels from 
+        #     spot_size: 15
+            
+        #     channel 0:
+        #         background:
+        #             source: 0                   # which channel of the base video to use, 0 or 1 currently
+        #             method: gaussian            # method for generating new frames, default gaussian fit of each pixel
+        #             parameters: [1]             # parameters for generation: for gaussian this is the scale of the standard dev of the pixels
+                
+        #         spots:                          # spot options in this channel
+        #             sigma: 2                    # sigma of the gaussian kernel of the spot
+        #             intensity_scale: 10         # intensity scale to multiply the spot values by
+        #             poisson_sample_spot: True   # sample from the kernel's poisson N photons
+        #             photon_count: 1000          # how many photons to sample, lower = more static and pixely spot
+               
+        #     channel 1:
+        #         background:
+        #             source: 0
+        #             method: gaussian
+        #             parameters: [1]
+        #         spots:
+        #             sigma: 2
+        #             intensity_scale: 10
+        #             poisson_sample_spot: True
+        #             photon_count: 20
+                
+        #     channel 2:
+        #         background:
+        #             source: 1
+        #             method: gaussian
+        #             parameters: [1.1]
+        #         spots:
+        #             sigma: 2
+        #             intensity_scale: 50
+        #             poisson_sample_spot: True
+        #             photon_count: 1000
+        
+        self.bg = {'method':'gaussian','parameters':[1]}
+        
+        
         pass
     
-    def make(self, parameters: list, num_requested_frames: int, method: str = 'gaussian', verbose: int = 0):
+    def make(self, num_requested_frames: int, parameters: list = None, method: str = None, verbose: int = 0):
         '''
         Generates N new 2D frames from the stored original video.
         
@@ -2728,6 +2881,11 @@ class BackgroundGen2D():
             2D (X,Y) image of a background cell generated via a requested method.
 
         '''
+        
+        if method is None:
+            method = self.bg['method']
+        if parameters is None:
+            parameters = self.bg['parameters']
         x_dim = self.x_dim
         y_dim = self.y_dim
         method = method.lower()
@@ -2841,6 +2999,8 @@ class BackgroundGen2D():
         if method == 'shuffle':
             return self.original_video[np.random.randint(self.original_video.shape[0])]
     
+
+    
 class SimCell2D():    
     def __init__(self, base_video, mask_image, cell_config_yaml, mask_channel = 0):
         
@@ -2851,6 +3011,12 @@ class SimCell2D():
         
         with open(cell_config_yaml, 'r') as f:
             config_dict = yaml.safe_load(f)
+        
+        
+        ## EVERY CLASS USES A SET PARAMETER DICTIONARY, use the yaml to overwite 
+        # these. This lets the user access the classes and tweak certain settings,
+        # or to pass classes they have made directly without overwriting what they have set.
+        
         
         self.config_dict = config_dict
         
@@ -2868,26 +3034,40 @@ class SimCell2D():
         for i in range(self.n_channels):
             self.bg_frame_generator.append(BackgroundGen2D(base_video[:,:,:,config_dict['frame']['channel %i'%i]['background']['source']]))
             self.channel_pars.append(config_dict['frame']['channel %i'%i])
-            
+
 
         self.D = self.config_dict['diffusion']['motion']['diffusion_coefficient']
                     
         
         
-        #### Frame2D
-        self.f2D = Frame2D()
+        #### Frame2Ds
+        self.frame_merger = []
+        for i in range(self.n_channels):
+            f = Frame2D()
+            f.spots =  {'spot_size':config_dict['frame']['spot_size'],
+                           'sigma':config_dict['frame']['channel %i'%i]['spots']['sigma'] ,
+                           'intensity_scale':config_dict['frame']['channel %i'%i]['spots']['intensity_scale'],
+                           'poisson_sample_spot':config_dict['frame']['channel %i'%i]['spots']['poisson_sample_spot'],
+                           'photon_count':config_dict['frame']['channel %i'%i]['spots']['photon_count'],}
+            self.frame_merger.append(f)
+
         
         ##### Diffusion
         self.diffusion = Diffusion2D(vertices,
                                           resolution = (base_video.shape[1],base_video.shape[2]))
-
+        
+        #overwrite class defaults to use the yaml.
+        self.diffusion.initialize = self.config_dict['diffusion']['initialization']
+        self.diffusion.motion = self.config_dict['diffusion']['motion']
+        self.diffusion.jitter_pars = self.config_dict['diffusion']['jitter']
+        self.diffusion.simulate_z_pars = self.config_dict['diffusion']['simulate_z']
 
         ##### Model
-        self.model_generator = 1
+        self.mRNA_model = 1
         
         
         ##### Photo bleaching
-        self.photo_bleaching = 1
+        self.photobleaching_model = 1
         
         # make the temporary folder if its not in the home dir
         tmp_path = pathlib.Path().absolute().parents[0].joinpath('tmp')
@@ -2902,31 +3082,33 @@ class SimCell2D():
         if verbose:
             print('Generating spot motion.....')
         # generate all motion trajectories
-        spots_initial_points = self.diffusion.initialize_spots(number_of_spots,
-                                                                    parameters = self.config_dict['diffusion']['initialization']['parameters'],
-                                                                    start = self.config_dict['diffusion']['initialization']['start'])
+        spots_initial_points = self.diffusion.initialize_spots(number_of_spots,)
+                                                                    #parameters = self.config_dict['diffusion']['initialization']['parameters'],
+                                                                    #start = self.config_dict['diffusion']['initialization']['start'])
         
         # generate all motion
         spot_motion = self.diffusion.gen(spots_initial_points, 
-                                          self.D,
-                                          t, 
-                                          self.config_dict['diffusion']['motion']['tstep'],
-                                          elasticity=self.config_dict['diffusion']['motion']['elasticity'])
+                                          t, )
+                                          
+                                          #diffusion_coefficient = self.D,
+                                          #tstep = self.config_dict['diffusion']['motion']['tstep'],
+                                          #elasticity=self.config_dict['diffusion']['motion']['elasticity'])
         # jitter the spots if needed
         if self.config_dict['diffusion']['jitter']['use']:
-            spot_motion = self.diffusion.jitter(spot_motion, self.n_channels,
-                                                parameters = self.config_dict['diffusion']['jitter']['parameters'],
-                                                method = self.config_dict['diffusion']['jitter']['method'])
+            spot_motion = self.diffusion.jitter(spot_motion, self.n_channels,)
+                                                #parameters = self.config_dict['diffusion']['jitter']['parameters'],
+                                                #method = self.config_dict['diffusion']['jitter']['method'])
         else:
             spot_motion = np.dstack([spot_motion]*self.n_channels) # SHAPE: (2, t, n_spots, n_channels)
             
             
         # simulate z if needed
         if self.config_dict['diffusion']['simulate_z']['use']:
-            intensity_mod_z = self.diffusion.simulate_z( number_of_spots, t, 
-                                                     self.D, self.config_dict['diffusion']['motion']['tstep'],
-                                                     z_stack = self.config_dict['diffusion']['simulate_z']['z_stack'],
-                                                     min_dimming = self.config_dict['diffusion']['simulate_z']['min_dimming'])
+            intensity_mod_z = self.diffusion.simulate_z( number_of_spots, t,) 
+                                                     #diffusion_coefficient = self.D, 
+                                                     #tstep = self.config_dict['diffusion']['motion']['tstep'],
+                                                     #z_stack = self.config_dict['diffusion']['simulate_z']['z_stack'],
+                                                     #min_dimming = self.config_dict['diffusion']['simulate_z']['min_dimming'])
 
         else:
             intensity_mod_z = np.ones([len(t), number_of_spots])
@@ -2946,7 +3128,8 @@ class SimCell2D():
             for i in range(self.n_channels):
 
                 
-                bg_frame = self.bg_frame_generator[i].make(self.channel_pars[i]['background']['parameters'], number_of_frames,
+                bg_frame = self.bg_frame_generator[i].make(number_of_frames, 
+                                                           parameters = self.channel_pars[i]['background']['parameters'],
                                                      method = self.channel_pars[i]['background']['method'],)
                 if self.config_dict['diffusion']['jitter']['method'] == 'registration' and self.config_dict['diffusion']['jitter']['use']:
                     bg_frame = self.__offset_bg_for_registration_error(bg_frame,i)
@@ -2960,15 +3143,19 @@ class SimCell2D():
             for j in (tqdm(range(number_of_frames), desc='Generating video frames') if verbose else range(number_of_frames)):
                 for i in range(self.n_channels):
                     
-
-                    frame = self.f2D.make(spot_motion[:,j,:,i].T, 
-                                          spot_intensity[j,:,color_to_channel_map[i]],
-                                          self.config_dict['frame']['spot_size'],
-                                          self.channel_pars[i]['spots']['sigma'],
+                    # #    def make(self, spots_xy, baseimage_xy, values_xy,
+                    #              sizes: int|float|list|np.ndarray = None,
+                    #              sigmas: int|float|list|np.ndarray = None,
+                    #              intensity_scale: float = None, poisson_sample_spot: bool = None, photon_count: int = None):
+                            
+                    frame = self.frame_merger[i].make(spot_motion[:,j,:,i].T, 
                                           bg_frames[i][j,:,:],
-                                          self.channel_pars[i]['spots']['intensity_scale'],
-                                          poisson_sample_spot=self.channel_pars[i]['spots']['poisson_sample_spot'],
-                                          photon_count=self.channel_pars[i]['spots']['photon_count'])
+                                          spot_intensity[j,:,color_to_channel_map[i]],)
+                                          # sizes = self.config_dict['frame']['spot_size'],
+                                          # sigmas = self.channel_pars[i]['spots']['sigma'],
+                                          # intensity_scale = self.channel_pars[i]['spots']['intensity_scale'],
+                                          # poisson_sample_spot = self.channel_pars[i]['spots']['poisson_sample_spot'],
+                                          # photon_count = self.channel_pars[i]['spots']['photon_count'])
 
                     vid[j,:,:,i] = frame
             return vid
@@ -2995,7 +3182,7 @@ class SimCell2D():
                     # generate bg frames of buffersize
                     bg_frames = []
                     for i in range(self.n_channels):
-                        bg_frame = self.bg_frame_generator[i].make(self.channel_pars[i]['background']['parameters'], number_of_frames,
+                        bg_frame = self.bg_frame_generator[i].make(number_of_frames,parameters = self.channel_pars[i]['background']['parameters'],
                                                              method = self.channel_pars[i]['background']['method'],)
                         if self.config_dict['diffusion']['jitter']['method'] == 'registration' and self.config_dict['diffusion']['jitter']['use']:
                             bg_frame = self.__offset_bg_for_registration_error(bg_frame,i)
@@ -3008,14 +3195,14 @@ class SimCell2D():
                             break
                         # generate a frame in each channel
                         for i in range(self.n_channels):
-                            frame = self.f2D.make(spot_motion[:,j,:,i].T, 
-                                                  spot_intensity[j,:,color_to_channel_map[i]],
-                                                  self.config_dict['frame']['spot_size'],
-                                                  self.channel_pars[i]['spots']['sigma'],
-                                                  bg_frames[i][m],
-                                                  self.channel_pars[i]['spots']['intensity_scale'],
-                                                  poisson_sample_spot=self.channel_pars[i]['spots']['poisson_sample_spot'],
-                                                  photon_count=self.channel_pars[i]['spots']['photon_count'])
+                            frame = self.frame_merger[i].make(spot_motion[:,j,:,i].T, 
+                                                  bg_frames[i][j,:,:],
+                                                  spot_intensity[j,:,color_to_channel_map[i]],)
+                                                  # sizes = self.config_dict['frame']['spot_size'],
+                                                  # sigmas = self.channel_pars[i]['spots']['sigma'],
+                                                  # intensity_scale = self.channel_pars[i]['spots']['intensity_scale'],
+                                                  # poisson_sample_spot = self.channel_pars[i]['spots']['poisson_sample_spot'],
+                                                  # photon_count = self.channel_pars[i]['spots']['photon_count'])
                             chunk[m,:,:,i] = frame
                                             
                         # made one time point worth of frames
@@ -5597,6 +5784,51 @@ class Utilities():
     def video_to_html5():
         return 
 
+    def classes_to_simcell2D(base_video, mask_video, diffusion=None,
+                               bg_frame_generator=[], frame_merger=[],
+                               mRNA_model=None, photobleaching_model=None):
+        '''
+        Convenience class that converts seperate classes into a simulated cell class
+
+        Parameters
+        ----------
+        base_video : np.ndarray
+            base video, shape (t,x,y,c).
+        mask_video : np.ndarray
+            mask array of shape (x,y).
+        diffusion : Diffusion2D, optional
+            Diffusion2D class to use. The default is None.
+        bg_frame_generator : list, optional
+            list of BackgroundGen2D classes, one for each color channel. The default is [].
+        frame_merger : Frame2D, optional
+            list of Frame2D classes, one for each color channel. The default is [].
+
+
+        Returns
+        -------
+        simcell : SimCell2D
+            A simulated cell class to make videos with using the provided classes.
+
+        '''
+        
+        # make a new sim cell class with default settings 
+        default_yaml = pathlib.Path().absolute().joinpath('cell_config_template.yaml')
+        simcell = SimCell2D(base_video, mask_video, default_yaml)
+        
+        #overwrite with passed classes
+        if diffusion is not None:
+            simcell.diffusion = diffusion
+        if len(bg_frame_generator) > 0:
+            simcell.bg_frame_generator = bg_frame_generator
+        if len(frame_merger) > 0:
+            simcell.frame_merger = frame_merger
+        if mRNA_model is not None:
+            simcell.mRNA_model = mRNA_model
+        if photobleaching_model is not None:
+            simcell.photobleaching_model = photobleaching_model
+        simcell.D = diffusion.motion['diffusion_coefficient']
+        
+        return simcell
 
     def mask_to_vertices(mask_image, percentage_reduction:float = 0.2):
         contours = np.array(find_contours(mask_image, 0.5), dtype = int)
