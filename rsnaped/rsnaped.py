@@ -326,7 +326,7 @@ class ReadImages():
         number_files : int. 
             Number of images in the folder.
         '''
-        path_files, list_files_names, list_images, number_images = Utilities.read_files_in_directory(directory= self.directory, extension_of_files_to_look_for = 'tif')
+        path_files, list_files_names, list_images, number_images = Util.read_files_in_directory(directory= self.directory, extension_of_files_to_look_for = 'tif')
         return list_images, path_files, list_files_names, number_images
 
 
@@ -777,7 +777,7 @@ class GaussianFilter():
                 video_bp_filtered_float[index_time, :, :, index_channels] = gaussian(self.video[index_time, :, :, index_channels], self.sigma)
         # returning the image normalized as uint. Notice that difference_of_gaussians converts the image into float.
         for index_channels in range(0, number_channels):
-            init_video = Parallel(n_jobs = self.NUMBER_OF_CORES)(delayed(Utilities.img_uint)(video_bp_filtered_float[i, :, :, index_channels]) for i in range(0, number_time_points))
+            init_video = Parallel(n_jobs = self.NUMBER_OF_CORES)(delayed(Util.img_uint)(video_bp_filtered_float[i, :, :, index_channels]) for i in range(0, number_time_points))
             video_filtered[:,:,:,index_channels] = np.asarray(init_video)
         return video_filtered
 
@@ -822,7 +822,7 @@ class BandpassFilter():
         video_filtered = np.zeros_like(self.video, dtype = np.uint16)
         # returning the image normalized as uint. Notice that difference_of_gaussians converts the image into float.
         for index_channels in range(0, number_channels):
-            temp_video = Parallel(n_jobs = self.NUMBER_OF_CORES)(delayed(Utilities.img_float)(self.video [i, :, :, index_channels]) for i in range(0, number_time_points))
+            temp_video = Parallel(n_jobs = self.NUMBER_OF_CORES)(delayed(Util.img_float)(self.video [i, :, :, index_channels]) for i in range(0, number_time_points))
             video_float[:,:,:,index_channels] = np.asarray(temp_video)
         # Applying the filter
         for index_channels in range(0, number_channels):
@@ -830,7 +830,7 @@ class BandpassFilter():
                 video_bp_filtered_float[index_time, :, :, index_channels] = difference_of_gaussians(video_float[index_time, :, :, index_channels], self.low_pass, self.high_pass)
         # returning the image normalized as uint. Notice that difference_of_gaussians converts the image into float.
         for index_channels in range(0, number_channels):
-            init_video = Parallel(n_jobs = self.NUMBER_OF_CORES)(delayed(Utilities.img_uint)(video_bp_filtered_float[i, :, :, index_channels]) for i in range(0, number_time_points))
+            init_video = Parallel(n_jobs = self.NUMBER_OF_CORES)(delayed(Util.img_uint)(video_bp_filtered_float[i, :, :, index_channels]) for i in range(0, number_time_points))
             video_filtered[:,:,:,index_channels] = np.asarray(init_video)
         return video_filtered
 
@@ -923,10 +923,10 @@ class BeadsAlignment():
         '''
         # Applying a log filter to the image
         MIN_DISTANCE_TO_MATCH_BEADS = 4
-        filtered_first_image_beads= Utilities.log_filter(self.first_image_beads, sigma=1.5)
-        filtered_first_image_beads= Utilities.bandpass_filter(filtered_first_image_beads, lowfilter=0.5, highpass=10)
-        filtered_second_image_beads = Utilities.log_filter(self.second_image_beads, sigma=1.5)
-        filtered_second_image_beads = Utilities.bandpass_filter(filtered_second_image_beads, lowfilter=0.5, highpass=10)
+        filtered_first_image_beads= Util.log_filter(self.first_image_beads, sigma=1.5)
+        filtered_first_image_beads= Util.bandpass_filter(filtered_first_image_beads, lowfilter=0.5, highpass=10)
+        filtered_second_image_beads = Util.log_filter(self.second_image_beads, sigma=1.5)
+        filtered_second_image_beads = Util.bandpass_filter(filtered_second_image_beads, lowfilter=0.5, highpass=10)
         # Locating beads in the image using "tp.locate" function from trackpy.
         df0 = tp.locate(filtered_first_image_beads, diameter = self.spot_size, minmass=self.min_intensity, maxsize=self.spot_size*2, preprocess=False,max_iterations=100) # data frame for the first channel
         df1 = tp.locate(filtered_second_image_beads, diameter= self.spot_size, minmass=self.min_intensity, maxsize=self.spot_size*2, preprocess=False,max_iterations=100)  # data frame for the second channel
@@ -1085,7 +1085,7 @@ class Cellpose():
         def cellpose_max_area( optimization_threshold):
             try:
                 masks, _, _, _ = model.eval(self.video, normalize = True, cellprob_threshold = optimization_threshold, diameter = self.diameter, channels = self.channels, progress = None)
-                masks=Utilities().remove_artifacts_from_mask_image(masks,minimal_mask_area_size=self.minimum_cell_area)
+                masks=Util().remove_artifacts_from_mask_image(masks,minimal_mask_area_size=self.minimum_cell_area)
             except:
                 masks =0
             n_masks = np.max(masks)
@@ -1102,14 +1102,14 @@ class Cellpose():
         def cellpose_max_cells(optimization_threshold):
             try:
                 masks, _, _, _ = model.eval(self.video, normalize = True, cellprob_threshold = optimization_threshold, diameter =self.diameter, channels = self.channels, progress = None)
-                masks=Utilities().remove_artifacts_from_mask_image(masks,minimal_mask_area_size=self.minimum_cell_area)
+                masks=Util().remove_artifacts_from_mask_image(masks,minimal_mask_area_size=self.minimum_cell_area)
             except:
                 masks =0
             return np.max(masks)
         def cellpose_max_cells_and_area( optimization_threshold):
             try:
                 masks, _, _, _ = model.eval(self.video, normalize = True, cellprob_threshold = optimization_threshold, diameter = self.diameter, channels = self.channels, progress = None)
-                masks=Utilities().remove_artifacts_from_mask_image(masks,minimal_mask_area_size=self.minimum_cell_area)
+                masks=Util().remove_artifacts_from_mask_image(masks,minimal_mask_area_size=self.minimum_cell_area)
             except:
                 masks =0
             n_masks = np.max(masks)
@@ -1137,7 +1137,7 @@ class Cellpose():
         if np.max(evaluated_metric_for_masks) >0:
             selected_conditions = self.optimization_parameter[np.argmax(evaluated_metric_for_masks)]
             selected_masks, _, _, _ = model.eval(self.video, normalize = True, cellprob_threshold = selected_conditions, diameter = self.diameter, min_size = -1, channels = self.channels, progress = None)
-            selected_masks=Utilities().remove_artifacts_from_mask_image(selected_masks,minimal_mask_area_size=self.minimum_cell_area)
+            selected_masks=Util().remove_artifacts_from_mask_image(selected_masks,minimal_mask_area_size=self.minimum_cell_area)
             selected_masks[0:10, :] = 0;selected_masks[:, 0:10] = 0;selected_masks[selected_masks.shape[0]-10:selected_masks.shape[0]-1, :] = 0; selected_masks[:, selected_masks.shape[1]-10: selected_masks.shape[1]-1 ] = 0#This line of code ensures that the corners are zeros.
         else:
             selected_masks = None
@@ -1266,19 +1266,19 @@ class Trackpy():
         self.NUMBER_OF_CORES = multiprocessing.cpu_count()
         self.time_points = video.shape[0]
         self.selected_channel = selected_channel
-        ini_video = np.asarray(Parallel(n_jobs = self.NUMBER_OF_CORES)(delayed(Utilities.img_uint)(video[i, :, :, self.selected_channel]) for i in range(0, self.time_points)) )
+        ini_video = np.asarray(Parallel(n_jobs = self.NUMBER_OF_CORES)(delayed(Util.img_uint)(video[i, :, :, self.selected_channel]) for i in range(0, self.time_points)) )
         def filter_video(video, tracking_filter,frames_to_track):
             # function that remove outliers from the video
             video = RemoveExtrema(video, min_percentile = 0.5, max_percentile = 99.9,format_video='TYX').remove_outliers()
             # selecting the filter to apply
             if tracking_filter == 'bandpass_filter':
-                temp_vid_dif_filter = Parallel(n_jobs = self.NUMBER_OF_CORES)(delayed(Utilities.bandpass_filter)(video[i, :, :], self.low_pass_filter, self.highpass_filter) for i in range(0, frames_to_track))
+                temp_vid_dif_filter = Parallel(n_jobs = self.NUMBER_OF_CORES)(delayed(Util.bandpass_filter)(video[i, :, :], self.low_pass_filter, self.highpass_filter) for i in range(0, frames_to_track))
             elif tracking_filter == 'log_filter':       
-                temp_vid_dif_filter = Parallel(n_jobs = self.NUMBER_OF_CORES)(delayed(Utilities.log_filter)(video[i, :, :], sigma=1.5) for i in range(0, frames_to_track))
+                temp_vid_dif_filter = Parallel(n_jobs = self.NUMBER_OF_CORES)(delayed(Util.log_filter)(video[i, :, :], sigma=1.5) for i in range(0, frames_to_track))
             elif tracking_filter == 'all':  
-                temp_vid_filter = Parallel(n_jobs = self.NUMBER_OF_CORES)(delayed(Utilities.bandpass_filter)(video[i, :, :], self.low_pass_filter, self.highpass_filter) for i in range(0, frames_to_track))
+                temp_vid_filter = Parallel(n_jobs = self.NUMBER_OF_CORES)(delayed(Util.bandpass_filter)(video[i, :, :], self.low_pass_filter, self.highpass_filter) for i in range(0, frames_to_track))
                 temp_vid = np.asarray(temp_vid_filter)
-                temp_vid_dif_filter = Parallel(n_jobs = self.NUMBER_OF_CORES)(delayed(Utilities.log_filter)(temp_vid[i, :, :], sigma=1.5) for i in range(0, frames_to_track))
+                temp_vid_dif_filter = Parallel(n_jobs = self.NUMBER_OF_CORES)(delayed(Util.log_filter)(temp_vid[i, :, :], sigma=1.5) for i in range(0, frames_to_track))
             video_filtered = np.asarray(temp_vid_dif_filter)
             return video_filtered
         self.image_name=image_name
@@ -2038,7 +2038,7 @@ class Diffusion2D():
         
         # Simple brownian motion
         # get the geometry to diffuse within
-        vertices = rsp.Utilities.mask_to_vertices(mask_image)
+        vertices = rsp.Util.mask_to_vertices(mask_image)
         vertices = skimage.measure.approximate_polygon(vertices, tolerance=.5)
         
         # initialize diffusion
@@ -2064,7 +2064,7 @@ class Diffusion2D():
         ----------
         vertices : np.ndarray
             closed vertices array (end point and start point should connect). Vertices can be
-            generated via utilities.mask_to_vertices(mask_image). 
+            generated via Util.mask_to_vertices(mask_image). 
         resolution : tuple, optional
             resolution of the entire 2D image. The default is (512,512).
 
@@ -2105,7 +2105,7 @@ class Diffusion2D():
 #         min_dimming: 0.01                # minimum dimming intensity mod, this is the multiplier if the spot is on the edge of two zstacks
         
         # defaults that can be overridden if wanted to use this as a class
-        self.initialize = {'parameters':[], 'start':'uniform'}
+        self.initialization = {'parameters':[], 'start':'uniform'}
         self.motion = {'diffusion_coefficient':1, 'tstep':1, 'elasticity':1}
         self.jitter_pars = {'use':True, 'n_channels':3, 'method':'gaussian', 'parameters':[1], }
         self.simulate_z_pars = {'use':True, 'z_stack':130, 'min_dimming':0.01}
@@ -2148,8 +2148,8 @@ class Diffusion2D():
         # parameters for gaussian_point: [(x,y), (sigma_x, sigma_y)]    
 
         if parameters is None or start is None:
-            parameters = self.initialize['parameters']
-            start = self.initialize['start']
+            parameters = self.initialization['parameters']
+            start = self.initialization['start']
         
         
         
@@ -3004,10 +3004,12 @@ class BackgroundGen2D():
 class SimCell2D():    
     def __init__(self, base_video, mask_image, cell_config_yaml, mask_channel = 0):
         
-        vertices = Utilities.mask_to_vertices(mask_image)
+        vertices = Util.mask_to_vertices(mask_image)
         vertices = approximate_polygon(vertices, tolerance=.5)
         
         self.resolution = (base_video.shape[1],base_video.shape[2])
+        self.base_video = base_video
+        self.mask_image = mask_image
         
         with open(cell_config_yaml, 'r') as f:
             config_dict = yaml.safe_load(f)
@@ -3018,14 +3020,14 @@ class SimCell2D():
         # or to pass classes they have made directly without overwriting what they have set.
         
         
-        self.config_dict = config_dict
+        self.__config_dict = config_dict
         
         self.check_parameters(self.config_dict)
         
         # parse jitter par registration from string
-        if self.config_dict['diffusion']['jitter']['method'] == 'registration':
-            jitter_par = [tuple(x.replace('(','').replace(')','').split(',')) for x in self.config_dict['diffusion']['jitter']['parameters']]
-            self.config_dict['diffusion']['jitter']['parameters'] = [(int(x[0]),int(x[1])) for x in jitter_par]
+        if config_dict['diffusion']['jitter']['method'] == 'registration':
+            jitter_par = [tuple(x.replace('(','').replace(')','').split(',')) for x in config_dict['diffusion']['jitter']['parameters']]
+            config_dict['diffusion']['jitter']['parameters'] = [(int(x[0]),int(x[1])) for x in jitter_par]
         
         # initalize the bg_frame_generator
         self.n_channels = len(config_dict['frame'])-2
@@ -3036,7 +3038,7 @@ class SimCell2D():
             self.channel_pars.append(config_dict['frame']['channel %i'%i])
 
 
-        self.D = self.config_dict['diffusion']['motion']['diffusion_coefficient']
+        self.__D = config_dict['diffusion']['motion']['diffusion_coefficient']
                     
         
         
@@ -3057,10 +3059,10 @@ class SimCell2D():
                                           resolution = (base_video.shape[1],base_video.shape[2]))
         
         #overwrite class defaults to use the yaml.
-        self.diffusion.initialize = self.config_dict['diffusion']['initialization']
-        self.diffusion.motion = self.config_dict['diffusion']['motion']
-        self.diffusion.jitter_pars = self.config_dict['diffusion']['jitter']
-        self.diffusion.simulate_z_pars = self.config_dict['diffusion']['simulate_z']
+        self.diffusion.initialization = config_dict['diffusion']['initialization']
+        self.diffusion.motion = config_dict['diffusion']['motion']
+        self.diffusion.jitter_pars = config_dict['diffusion']['jitter']
+        self.diffusion.simulate_z_pars = config_dict['diffusion']['simulate_z']
 
         ##### Model
         self.mRNA_model = 1
@@ -3073,7 +3075,71 @@ class SimCell2D():
         tmp_path = pathlib.Path().absolute().parents[0].joinpath('tmp')
         tmp_path.mkdir(parents=False, exist_ok=True)
 
+
     
+    # the way the class .gen() works is by using all config dictionaries in the subclasses
+    # to make these sync with the overarching .config_dict dictionary, we must update the subclasses when its changed
+
+    # to do this the .config_dict is a property that calls the hidden ._SimCell2D__config_dict to 
+    # store its values, when .config_dict is changed it calls the setter, changing the hidden dictionary, which then overwrites
+    # all subclass defaults with the ._SimCell2D__config_dict values via _SimCell2D__update_classes_default_configs()
+    
+    # the reason its setup like this is so Util.classes_to_simcell2D can make a simcell class. This allows
+    # users to load in the subclasses and mess with settings as they like, then build a SimCell2D out of those classes without
+    # writing an entire config.yaml
+    @property
+    def config_dict(self):
+        return self.__config_dict
+    
+    
+    @config_dict.setter
+    def config_dict(self, bool):
+        self.__config_dict = bool 
+        # configuration dictionary was changed, update all defaults in the subclasses
+        self.__update_classes_default_configs()
+        
+    @property
+    def D(self):
+        return self.__D
+    
+    
+    @D.setter
+    def D(self, bool):
+        self.__D = bool 
+        self.__config_dict['diffusion']['motion']['diffusion_coefficient'] = bool
+        # configuration dictionary was changed, update all defaults in the subclasses
+        self.diffusion.motion = self.__config_dict['diffusion']['motion']
+        
+    
+    def __update_classes_default_configs(self):
+        
+        # update diffusion
+        self.diffusion.initialization = self.__config_dict['diffusion']['initialization']
+        self.diffusion.motion = self.__config_dict['diffusion']['motion']
+        self.diffusion.jitter_pars = self.__config_dict['diffusion']['jitter']
+        self.diffusion.simulate_z_pars = self.__config_dict['diffusion']['simulate_z']        
+        
+        # update frame2D classes
+        for i in range(len(self.frame_merger)):
+            self.frame_merger[i].spots =  {'spot_size':self.__config_dict['frame']['spot_size'],
+                           'sigma':self.__config_dict['frame']['channel %i'%i]['spots']['sigma'] ,
+                           'intensity_scale':self.__config_dict['frame']['channel %i'%i]['spots']['intensity_scale'],
+                           'poisson_sample_spot':self.__config_dict['frame']['channel %i'%i]['spots']['poisson_sample_spot'],
+                           'photon_count':self.__config_dict['frame']['channel %i'%i]['spots']['photon_count'],}
+
+        # source might have updated, remake the bg_frames, this could be done better
+        self.bg_frame_generator = []*self.n_channels
+        self.channel_pars = []
+        for i in range(self.n_channels):
+            self.bg_frame_generator.append(BackgroundGen2D(self.base_video[:,:,:,self.__config_dict['frame']['channel %i'%i]['background']['source']]))
+            self.channel_pars.append(self.__config_dict['frame']['channel %i'%i])
+
+        self.D = self.__config_dict['diffusion']['motion']['diffusion_coefficient']
+        
+        #update model configs
+        #update photobleach configs
+
+
     def gen(self, number_of_spots, t,
                        disk_buffer=True, buffer_size=5, verbose=0):
         
@@ -5664,7 +5730,7 @@ class Plots():
         if not (name_plot is None):
             current_dir = pathlib.Path().absolute()
             save_to_dir =  current_dir.joinpath('temp_images' )
-            Utilities.test_if_directory_exist_if_not_create(save_to_dir,remove_if_already_exist=False)
+            Util.test_if_directory_exist_if_not_create(save_to_dir,remove_if_already_exist=False)
             name_plot = save_to_dir.joinpath(name_plot)
         # Extracting vector sizes
         simulation_time_in_sec = df['frame'].values.max()+1
@@ -5774,7 +5840,7 @@ class Plots():
 
 
 
-class Utilities():
+class Util():
     '''
     This class contains miscellaneous methods to perform tasks needed in multiple classes. No parameters are necessary for this class.
     '''
@@ -5807,7 +5873,7 @@ class Utilities():
         Returns
         -------
         simcell : SimCell2D
-            A simulated cell class to make videos with using the provided classes.
+            A simulated cell class to make videos made using the provided subclasses.
 
         '''
         
@@ -5815,18 +5881,38 @@ class Utilities():
         default_yaml = pathlib.Path().absolute().joinpath('cell_config_template.yaml')
         simcell = SimCell2D(base_video, mask_video, default_yaml)
         
-        #overwrite with passed classes
+        with open(default_yaml, 'r') as f:
+            config_dict = yaml.safe_load(f)
+        
+        
+        # rewrite the configuration dictionary to match the passed classes
+        # so the simcellclass.config_dict matches the passed subclasses.
+        
+
+        
+        #overwrite with passed classes if they were given
         if diffusion is not None:
-            simcell.diffusion = diffusion
+            config_dict['diffusion']['initialization'] = diffusion.initialization
+            config_dict['diffusion']['jitter'] = diffusion.jitter_pars
+            config_dict['diffusion']['simulate_z'] = diffusion.simulate_z_pars
+            config_dict['diffusion']['motion'] = diffusion.motion
+            
         if len(bg_frame_generator) > 0:
-            simcell.bg_frame_generator = bg_frame_generator
+            for i in range(len(bg_frame_generator)):
+                config_dict['frame']['channel %i']['background'] = bg_frame_generator[i].bg
+            
         if len(frame_merger) > 0:
-            simcell.frame_merger = frame_merger
-        if mRNA_model is not None:
-            simcell.mRNA_model = mRNA_model
-        if photobleaching_model is not None:
-            simcell.photobleaching_model = photobleaching_model
-        simcell.D = diffusion.motion['diffusion_coefficient']
+            for i in range(len(frame_merger)):
+                config_dict['frame']['channel %i']['spots'] = frame_merger[i].spots
+                
+        # not used yet
+        # if mRNA_model is not None:
+        #     simcell.mRNA_model = mRNA_model
+        # if photobleaching_model is not None:
+        #     simcell.photobleaching_model = photobleaching_model
+            
+            
+        simcell.config_dict = config_dict #overwrite the config dictionary
         
         return simcell
 
@@ -5883,7 +5969,7 @@ class Utilities():
                 mask_size = np.sum(mask_image_tested == index_mask)
                 if mask_size <= minimal_mask_area_size:
                     mask_image_tested = np.where(mask_image_tested == index_mask,0,mask_image_tested )
-            reordered_mask = Utilities().reorder_mask_image(mask_image_tested)
+            reordered_mask = Util().reorder_mask_image(mask_image_tested)
         else:
             reordered_mask=mask_image_tested
         return reordered_mask 
@@ -5913,7 +5999,7 @@ class Utilities():
         return path_to_test
     
     def test_if_file_exist(path_to_test):
-        path_to_test=Utilities.convert_str_to_path(path_to_test)
+        path_to_test=Util.convert_str_to_path(path_to_test)
         if path_to_test.is_file()== True:
             is_a_file = True
         else:
@@ -5922,7 +6008,7 @@ class Utilities():
     
     def test_if_directory_exist_if_not_create(path_to_test, remove_if_already_exist = False):
         # making sure the path is a pathlib object
-        path_to_test=Utilities.convert_str_to_path(path_to_test)
+        path_to_test=Util.convert_str_to_path(path_to_test)
         print(path_to_test)
         # Test if the file or folder exist exist
         if Path.exists(path_to_test):
@@ -5937,7 +6023,7 @@ class Utilities():
     
     def remove_folder(path_to_test):
         # making sure the path is a pathlib object
-        path_to_test=Utilities.convert_str_to_path(path_to_test)
+        path_to_test=Util.convert_str_to_path(path_to_test)
         if Path.exists(path_to_test):
             # removing existing dir
             shutil.rmtree(str(path_to_test))
@@ -5950,7 +6036,7 @@ class Utilities():
             return False
     
     def read_files_in_directory(directory, extension_of_files_to_look_for = 'tif',return_images_in_list=True):
-        directory = Utilities.convert_str_to_path(directory)
+        directory = Util.convert_str_to_path(directory)
         ## Reads the folder and returns the files inside of the folder as lists
         list_files_names = sorted([f for f in listdir(directory) if isfile(join(directory, f)) and ('.'+extension_of_files_to_look_for) in f], key=str.lower)  # reading all files in the folder
         list_files_names.sort(key=lambda f: int(re.sub('\D', '', f)))  # sorting the index in numerical order
@@ -5964,7 +6050,7 @@ class Utilities():
         return path_files, list_files_names, list_images, number_images
     
     def convert_directory_to_standard_format(directory, time_position = 0, height_position = 1,  width_position = 2, channel_position = 3):
-        path_files, _,list_images, number_images = Utilities.read_files_in_directory(directory= directory, extension_of_files_to_look_for = 'tif',return_images_in_list=True)
+        path_files, _,list_images, number_images = Util.read_files_in_directory(directory= directory, extension_of_files_to_look_for = 'tif',return_images_in_list=True)
         directory.joinpath('standard_format').mkdir(parents=True, exist_ok=True)
         path_to_images_in_standard_format = directory.joinpath('standard_format')
         # Showing the simulated images
@@ -6116,7 +6202,7 @@ class Utilities():
             save_to_path = pathlib.Path().absolute()
         if isinstance(save_to_path, pathlib.PurePath) == False:
             save_to_path = pathlib.Path(save_to_path)
-        video = Utilities.convert_to_int8(image=video)
+        video = Util.convert_to_int8(image=video)
         if not (max_frames is None):
             num_images_for_gif = max_frames
         else:
@@ -6269,16 +6355,16 @@ def simulate_cell ( video_dir,
     # running the simulation
     #start = timer()
     # Testing if the user passed parameters as lists. If not the code conver the parameters into lists
-    list_gene_sequences = Utilities.variable_to_list(list_gene_sequences)
-    list_number_spots = Utilities.variable_to_list (list_number_spots)
-    list_target_channels_proteins = Utilities.variable_to_list (list_target_channels_proteins)
-    list_target_channels_mRNA = Utilities.variable_to_list(list_target_channels_mRNA)
-    list_diffusion_coefficients = Utilities.variable_to_list (list_diffusion_coefficients)
-    list_elongation_rates = Utilities.variable_to_list(list_elongation_rates)
-    list_initiation_rates = Utilities.variable_to_list(list_initiation_rates)
+    list_gene_sequences = Util.variable_to_list(list_gene_sequences)
+    list_number_spots = Util.variable_to_list (list_number_spots)
+    list_target_channels_proteins = Util.variable_to_list (list_target_channels_proteins)
+    list_target_channels_mRNA = Util.variable_to_list(list_target_channels_mRNA)
+    list_diffusion_coefficients = Util.variable_to_list (list_diffusion_coefficients)
+    list_elongation_rates = Util.variable_to_list(list_elongation_rates)
+    list_initiation_rates = Util.variable_to_list(list_initiation_rates)
     # Creating a list of labels
     if not (list_label_names is None):
-        list_label_names = Utilities.variable_to_list(list_label_names)
+        list_label_names = Util.variable_to_list(list_label_names)
     else:
         list_label_names = [i for i in range(len(list_gene_sequences) )]
     # Testing if some of the intensities is None. If true, the channel is ignored during the simulation. Resulting in tensor full with zeros.
@@ -6348,11 +6434,11 @@ def simulate_cell ( video_dir,
     save_to_path_video_int8 =  current_dir.joinpath('temp_simulation',name_folder , folder_video_int_8 )
     # Creating directories
     if save_dataframe == True:
-        Utilities.test_if_directory_exist_if_not_create(save_to_path_df,remove_if_already_exist=True)
+        Util.test_if_directory_exist_if_not_create(save_to_path_df,remove_if_already_exist=True)
     if save_as_tif == True:
-        Utilities.test_if_directory_exist_if_not_create(save_to_path_video,remove_if_already_exist=True)
+        Util.test_if_directory_exist_if_not_create(save_to_path_video,remove_if_already_exist=True)
     if save_as_gif == True:
-        Utilities.test_if_directory_exist_if_not_create(save_to_path_video_int8,remove_if_already_exist=True)
+        Util.test_if_directory_exist_if_not_create(save_to_path_video_int8,remove_if_already_exist=True)
     
     # function  that simulates the multiplexing experiments    
     # Pre-alocating arrays
@@ -6362,7 +6448,7 @@ def simulate_cell ( video_dir,
     list_files_names_outputs = []
     list_masks  = []
     # Reading all empty cells in directory
-    path_files, list_files_names, list_images, num_cell_shapes = Utilities.read_files_in_directory(directory=video_dir, extension_of_files_to_look_for = 'tif',return_images_in_list=True)
+    path_files, list_files_names, list_images, num_cell_shapes = Util.read_files_in_directory(directory=video_dir, extension_of_files_to_look_for = 'tif',return_images_in_list=True)
     for i in range(0,number_cells): 
         saved_file_name = 'sim_cell_' + str(i)  # if the video or dataframe are save, this variable assigns the name to the files
         if (select_background_cell_index is None):
@@ -6411,7 +6497,7 @@ def simulate_cell ( video_dir,
         if save_as_tif == True:
             tifffile.imwrite(str(save_to_path_video.joinpath(saved_file_name+'.tif')), video)
         if save_as_gif == True:
-            video_int_8 = Utilities.convert_to_int8(image=video)
+            video_int_8 = Util.convert_to_int8(image=video)
             tifffile.imwrite(str(save_to_path_video_int8.joinpath(saved_file_name+'_unit8'+'.tif')), video_int_8)
             num_images_for_gif = video_int_8.shape[0]
             num_channels_to_plot_in_gif = np.min((3, video_int_8.shape[3])) 
@@ -6502,11 +6588,11 @@ def image_processing(files_dir_path_processing=None,
     
     ## Reads the folder with the results and import the simulations as lists
     if not (files_dir_path_processing is None):
-        is_a_file = Utilities.test_if_file_exist(files_dir_path_processing)
+        is_a_file = Util.test_if_file_exist(files_dir_path_processing)
         if is_a_file == False:
-            path_files, _, _, number_images = Utilities.read_files_in_directory(directory= files_dir_path_processing, extension_of_files_to_look_for = 'tif',return_images_in_list=False)
+            path_files, _, _, number_images = Util.read_files_in_directory(directory= files_dir_path_processing, extension_of_files_to_look_for = 'tif',return_images_in_list=False)
         else:
-            path_files = [Utilities.convert_str_to_path(files_dir_path_processing)]
+            path_files = [Util.convert_str_to_path(files_dir_path_processing)]
             number_images = 1
         processing_path_name = files_dir_path_processing.name
     else:
@@ -6517,9 +6603,9 @@ def image_processing(files_dir_path_processing=None,
     # Creating directory to store tracking images.
     current_dir = pathlib.Path().absolute()
     save_to_path_ip =  current_dir.joinpath('temp_processing',processing_path_name )
-    Utilities.test_if_directory_exist_if_not_create(save_to_path_ip,remove_if_already_exist=False)
+    Util.test_if_directory_exist_if_not_create(save_to_path_ip,remove_if_already_exist=False)
     path_temporal_results =  save_to_path_ip.joinpath('temp_results')
-    Utilities.test_if_directory_exist_if_not_create(path_temporal_results,remove_if_already_exist=True)
+    Util.test_if_directory_exist_if_not_create(path_temporal_results,remove_if_already_exist=True)
     list_video_paths = []
     
     for i in range(0,number_images): 
@@ -6537,7 +6623,7 @@ def image_processing(files_dir_path_processing=None,
         frames_in_video = selected_video.shape[0]
         
         if not (real_positions_dataframe is None):
-            image_real_positions_dataframe= Utilities.variable_to_list(real_positions_dataframe)
+            image_real_positions_dataframe= Util.variable_to_list(real_positions_dataframe)
             image_real_positions_dataframe = image_real_positions_dataframe[i]
         else:
             image_real_positions_dataframe = None
