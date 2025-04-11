@@ -58,7 +58,7 @@ def buffer_video_npy(frames, buffersize=5, clear=False):
             else:
                 vid = make_random_video(frame_count%buffersize)
             
-            np.save(f, vid)
+            vid.tofile(f)
             frame_count -= buffersize
             i += 1
             if i > 1000:

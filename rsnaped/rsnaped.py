@@ -2999,6 +2999,99 @@ class BackgroundGen2D():
         if method == 'shuffle':
             return self.original_video[np.random.randint(self.original_video.shape[0])]
     
+    
+class PhotoBleach2D():
+    '''
+    This class is intended to provide a photobleaching array to multiply a final video by.
+    
+    Per-pixel or a consistent loss value can be used across time, as such this class will return either
+    an array of shape [timepoints, X, Y] or just [timepoints].
+    
+    '''
+    
+    def __init__(self,):
+        self.photobleaching = {'use':True, 'method':'percent_loss', 'parameters':[0.001]}
+    
+    def generate_bleaching_array(self, xy_shape: list|tuple, t: np.ndarray, parameters: list = None, method: str = None, start = None):
+        '''
+        Generate a photo bleaching array of shape (len(t), *xy_shape)
+
+        methods:
+            'percent_loss': parameters = [alpha]
+                generates a single loss curve for all pixels by the following formula:
+                    $I_0*(1-\alpha)^(len(t))$
+            'normal_percent_loss': parameters = [$\mu$, $\sigma$]
+                generates a loss curve for all pixels with a noisy alpha distributed by $N(\mu, \sigma)$:
+                    $I_0*(1-$N(\mu, \sigma)$)^(len(t))$
+                It redraws from the normal at each time point for each pixel.
+                
+            'exponential': parameters = [alpha]
+                generates a single loss curve for all pixels by the following formula:
+                    $I_0*e^(-\alpha*t)$
+            'normal_exponential': parameters = [$\mu$, $\sigma$]
+                generates a loss curve for all pixels with a noisy alpha distributed by $N(\mu, \sigma)$:
+                    $I_0*e^(-N(\mu, \sigma)*t)$            
+                It redraws from the normal at each time point for each pixel.
+                
+                
+        Parameters
+        ----------
+        xy_shape : list|tuple
+            shape of the x,y dimension, usually is (512,512).
+        t : np.ndarray
+            time vector to generate the array over.
+        parameters : list, optional
+            list of parameters for each method, see above. The default is [0.001].
+        method : str, optional
+            The method by which to generate photobleaching curves. The default is 'percent_loss'.
+
+        Returns
+        -------
+        bleaching_array : np.ndarray
+            photobleaching array to multiply a video by to simulate photobleaching, shape: (len(t), *xy_shape).
+
+        '''
+        
+        if method is None:
+            method = self.photobleaching['method']
+            parameters = self.photobleaching['parameters'] # loc, sigma of the normal dist
+        
+        if method.lower() == 'percent_loss':
+            #same percent loss per pixel (one photo bleaching curve for all pixels)
+            if start is None:
+                start = 1
+            else:
+                start = start[0,0]
+            bleaching_array = 1-(np.ones(len(t))*parameters[0]).clip(min=0)
+            bleaching_array[0] *= start
+            bleaching_array = np.cumprod(bleaching_array, axis=0)
+            
+        if method.lower() == 'normal_percent_loss':
+            # this is the cumulative product of a normally distributed random % loss (clipped to avoid negatives)
+            
+            if start is None:
+                start = 1
+                
+            bleaching_array = 1-(np.random.normal(loc=parameters[0],
+                                                            scale=parameters[1],
+                                                            size=(tuple([len(t)])  + tuple(xy_shape) ))).clip(min=0)
+            bleaching_array[0] *= start
+            bleaching_array = np.cumprod(bleaching_array,axis=0)
+            
+            
+            
+        if method.lower() in 'normal_exponential':
+
+            # use the e ^ -alpha * t  model where alpha is noisy via normal
+            bleaching_array = np.swapaxes(np.swapaxes(np.exp(-np.random.normal(loc=parameters[0],
+                                                            scale=parameters[1],
+                                                            size=(tuple(xy_shape)  + tuple([len(t)]) )).clip(min=0)*t),-1,0),-1,1)
+            
+        if method.lower() in 'exponential':
+            # use the e ^ -alpha * t 
+            bleaching_array = np.exp(-parameters[0]*t)  #just a single curve is needed if theres no noise
+                            
+        return bleaching_array
 
     
 class SimCell2D():    
@@ -3069,8 +3162,12 @@ class SimCell2D():
         
         
         ##### Photo bleaching
-        self.photobleaching_model = 1
-        
+        self.photobleaching_classes = []
+        for i in range(self.n_channels):
+            f = PhotoBleach2D()
+            f.photobleaching = config_dict['frame']['channel %i'%i]['photobleaching'] 
+            self.photobleaching_classes.append(f)
+
         # make the temporary folder if its not in the home dir
         tmp_path = pathlib.Path().absolute().parents[0].joinpath('tmp')
         tmp_path.mkdir(parents=False, exist_ok=True)
@@ -3138,6 +3235,10 @@ class SimCell2D():
         
         #update model configs
         #update photobleach configs
+        
+        for i in range(self.n_channels):
+            self.photobleaching_classes[i] = self.__config_dict['frame']['channel %i'%i]['photobleaching'] 
+
 
 
     def gen(self, number_of_spots, t,
@@ -3160,7 +3261,7 @@ class SimCell2D():
                                           #tstep = self.config_dict['diffusion']['motion']['tstep'],
                                           #elasticity=self.config_dict['diffusion']['motion']['elasticity'])
         # jitter the spots if needed
-        if self.config_dict['diffusion']['jitter']['use']:
+        if self.__config_dict['diffusion']['jitter']['use']:
             spot_motion = self.diffusion.jitter(spot_motion, self.n_channels,)
                                                 #parameters = self.config_dict['diffusion']['jitter']['parameters'],
                                                 #method = self.config_dict['diffusion']['jitter']['method'])
@@ -3169,7 +3270,7 @@ class SimCell2D():
             
             
         # simulate z if needed
-        if self.config_dict['diffusion']['simulate_z']['use']:
+        if self.__config_dict['diffusion']['simulate_z']['use']:
             intensity_mod_z = self.diffusion.simulate_z( number_of_spots, t,) 
                                                      #diffusion_coefficient = self.D, 
                                                      #tstep = self.config_dict['diffusion']['motion']['tstep'],
@@ -3178,7 +3279,7 @@ class SimCell2D():
 
         else:
             intensity_mod_z = np.ones([len(t), number_of_spots])
-            
+        
 
         
         ######### mRNA model intensity simulation here
@@ -3189,6 +3290,10 @@ class SimCell2D():
         
         if not disk_buffer:
             vid = np.zeros([len(t), *self.resolution, self.n_channels], dtype=np.uint16)
+            
+            photobleaching_arrays = []
+            for i in range(self.n_channels):
+                photobleaching_arrays.append(self.photobleaching_classes[i].generate_bleaching_array(self.resolution, t))
 
             bg_frames = []
             for i in range(self.n_channels):
@@ -3222,6 +3327,9 @@ class SimCell2D():
                                           # intensity_scale = self.channel_pars[i]['spots']['intensity_scale'],
                                           # poisson_sample_spot = self.channel_pars[i]['spots']['poisson_sample_spot'],
                                           # photon_count = self.channel_pars[i]['spots']['photon_count'])
+                                          
+                    # apply photobleaching
+                    frame = (frame* photobleaching_arrays[i][j]).astype(np.uint16)
 
                     vid[j,:,:,i] = frame
             return vid
@@ -3233,18 +3341,25 @@ class SimCell2D():
             if tmp_path.exists():
                 tmp_path.unlink()         
             
+            #vid = np.zeros([len(t), *self.resolution, self.n_channels], dtype=np.uint16)
+            
             with open(tmp_path, "ab") as f:
+                #write the header manually on the temporary buffer file (we keep it if we need too later):
+                np.lib.format.write_array_header_1_0(f, {'descr': '<u2', 'fortran_order': False, 'shape': (number_of_frames,512,512,self.n_channels)})
+                
                 frame_count = number_of_frames
                 j = 0
                 k = 0
+                tc = 0 #time point iterator for photobleaching
                 chunk = np.zeros([buffer_size, *self.resolution, self.n_channels], dtype=np.uint16)
                 
                 if verbose:
                     pbar = tqdm(total=number_of_frames, desc='Generating video frames')
                 
-                
+                #initialize photo bleaching  save the last frame in each channel for the buffer
+                photobleach_starts = [np.ones(self.resolution),]*self.n_channels 
                 while frame_count > 0:
-                    
+                    chunk[:,:,:,:] = 0
                     # generate bg frames of buffersize
                     bg_frames = []
                     for i in range(self.n_channels):
@@ -3254,7 +3369,12 @@ class SimCell2D():
                             bg_frame = self.__offset_bg_for_registration_error(bg_frame,i)
                         bg_frames.append(bg_frame)
 
-
+                    photobleaching_arrays = []
+                    for i in range(self.n_channels):
+                        photobleaching_arrays.append(self.photobleaching_classes[i].generate_bleaching_array(self.resolution, t[tc:tc+buffer_size],
+                                                                                                             start = photobleach_starts[i]))
+                        photobleach_starts[i] = photobleaching_arrays[i][-1] #save the last timepoint frame in this channel
+                        
                     for m in range(buffer_size):
                         # break the for loop if we are done with all frames
                         if frame_count==0:
@@ -3269,25 +3389,29 @@ class SimCell2D():
                                                   # intensity_scale = self.channel_pars[i]['spots']['intensity_scale'],
                                                   # poisson_sample_spot = self.channel_pars[i]['spots']['poisson_sample_spot'],
                                                   # photon_count = self.channel_pars[i]['spots']['photon_count'])
+                                                  
+                            # apply photobleaching
+                            frame = (frame*photobleaching_arrays[i][m]).astype(np.uint16)
                             chunk[m,:,:,i] = frame
+                           # vid[j,:,:,i] = frame
                                             
                         # made one time point worth of frames
                         j += 1
+                        tc +=1
                         frame_count -= 1
                         if verbose:
                             pbar.update(1)
                     
                     # filled one chunk, save it
                     if frame_count > 0:
-                        np.save(f, chunk)
+                        chunk.tofile(f)
                     if frame_count == 0: #finished, fill the rest with rest of chunk
-                        np.save(f, chunk[:m])
+                        chunk[:m].tofile(f)
                         frame_count = -1
                         break
                     
-                    
-                
-            return np.memmap(tmp_path, dtype=np.uint16, shape=(number_of_frames,512,512,self.n_channels))
+            # hard code the header back in for now
+            return np.lib.format.open_memmap(tmp_path, dtype=np.uint16, shape=(number_of_frames,512,512,self.n_channels))
 
     @staticmethod
     def check_parameters(config_dict):
@@ -5852,7 +5976,7 @@ class Util():
 
     def classes_to_simcell2D(base_video, mask_video, diffusion=None,
                                bg_frame_generator=[], frame_merger=[],
-                               mRNA_model=None, photobleaching_model=None):
+                               mRNA_model=None, photobleaching_models=[]):
         '''
         Convenience class that converts seperate classes into a simulated cell class
 
@@ -5904,6 +6028,11 @@ class Util():
         if len(frame_merger) > 0:
             for i in range(len(frame_merger)):
                 config_dict['frame']['channel %i']['spots'] = frame_merger[i].spots
+
+        if len(photobleaching_models) > 0:
+            for i in range(len(photobleaching_models)):
+                config_dict['frame']['channel %i']['photobleaching'] = photobleaching_models[i].photobleaching
+                
                 
         # not used yet
         # if mRNA_model is not None:

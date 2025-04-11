@@ -47,7 +47,13 @@ frame:
             sigma: 2                    # sigma of the gaussian kernel of the spot
             intensity_scale: 10         # intensity scale to multiply the spot values by
             poisson_sample_spot: True   # sample from the kernel's poisson N photons
-            photon_count: 1000          # how many photons to sample, lower = more static and pixely spot
+            photon_count: 1000          # how many photons to sample, lower = more static and pixely spot]
+            
+        photobleaching:                 # photobleaching options for this channel
+            use: True
+            method: 'normal_percent_loss'   # photobleaching method for this channel
+            parameters: [0.01, 0.001]     # photobleaching parameters for this channel
+                
        
     channel 1:
         background:
@@ -59,6 +65,11 @@ frame:
             intensity_scale: 10
             poisson_sample_spot: True
             photon_count: 200
+        photobleaching:
+            use: True
+            method: 'normal_percent_loss'
+            parameters: [0.01, 0.001]
+                
         
     channel 2:
         background:
@@ -70,11 +81,15 @@ frame:
             intensity_scale: 50
             poisson_sample_spot: True
             photon_count: 1000
+        photobleaching:
+            use: True
+            method: 'normal_percent_loss'
+            parameters: [0.01, 0.001]
+                
             
 mRNA:
     model: test
     burnin: 1000
 
-# Photo bleaching options
-        
+
 
