@@ -3,6 +3,11 @@ name: Test Cell
 
 # Diffusion and spot motion simulation options
 
+# Diffusion options:
+#   Initialization:
+#       start: uniform - generates all spots from a uniform distribution across the cell
+#       start: gaussian_point - generates all spots from a 2D gaussian about a point
+#           parameters: [(x,y),(sigma_x, sigma_y)]
 diffusion:
 
     initialization:         # how to initalize the spots?
@@ -15,7 +20,6 @@ diffusion:
         elasticity: 1.0                 # elastic boundary reflections, 1 = 100% elastic no momentum loss.
         
         
-          
     jitter:                             # jitter the spot locations across channels (simulates probe subpixel changes)
         use: True
         n_channels: 3                   # number of channels to generate via jittering
@@ -64,7 +68,7 @@ frame:
             sigma: 2
             intensity_scale: 10
             poisson_sample_spot: True
-            photon_count: 200
+            photon_count: 2000
         photobleaching:
             use: True
             method: 'normal_percent_loss'
@@ -80,16 +84,20 @@ frame:
             sigma: 2
             intensity_scale: 50
             poisson_sample_spot: True
-            photon_count: 1000
+            photon_count: 2000
         photobleaching:
             use: True
             method: 'normal_percent_loss'
             parameters: [0.01, 0.001]
                 
             
-mRNA:
-    model: test
+mRNAs:
+    model: default
+    gene_file: 'Bactin_withTags.txt'
     burnin: 1000
+    parameters: [0.03, 10, 10]
+    use_precomputed_intensities: True
+    precomputed_intensities_file: '../Databases/example_intensities_100.npy'
 
 
 

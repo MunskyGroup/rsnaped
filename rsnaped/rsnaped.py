@@ -13,6 +13,15 @@ Authors: Luis U. Aguilera, William Raymond, Brooke Silagy, Brian Munsky.
 # global_var_name, instance_var_name, function_parameter_name, local_var_name.
 
 import yaml
+import os
+
+try:
+    import rsnapsim as rsnp
+except:
+    cwd_1 = os.getcwd()
+    os.chdir('C:\\Users\\willi\\Documents\\GitHub\\rSNAPsim\\rsnapsim')
+    import rsnapsim as rsnp
+    os.chdir(cwd_1)
 
 # To manipulate arrays
 import custom_errors as ce
@@ -230,74 +239,6 @@ class SSA_rsnapsim():
         ssa = ssa_solution.I # np.transpose( ssa_solution.intensity_vec[:,self.t_burnin*self.frame_rate:-1,:]) [:,:,0]
         ssa_ump = ssa/np.array(number_probes)
         return ssa, ssa_ump, t, gene_length
-
-
-class SSA_rsnapsim_custom_model():
-    '''
-    This class uses rsnapsim to simulate the single-molecule translation dynamics of any gene.
-    
-    Parameters
-
-    gene_file : str, 
-        Path to the location of a FASTA file.
-    ke : float, optional.
-        Elongation rate. The default is 10.0.
-    ki: float, optional.
-        Initiation rate. The default is 0.03.
-    frames: int, optional.
-        Total number of simulation frames in seconds. The default is 300.
-    n_traj: int, optional.
-        Number of trajectories to simulate. The default is 20.
-    frame_rate : int, optional.
-        Frame rate per second. The default is 1.
-    t_burnin : int , optional
-        time of burnin. The default is 1000
-    Outputs:
-    '''  
-    def __init__(self, mRNA_model, parameters, frames=300, frame_rate=1, n_traj=20, t_burnin=1000):
-        self.mRNA_model=mRNA_model
-        self.frames=frames
-        self.frame_rate=frame_rate
-        self.n_traj=n_traj
-        self.t_burnin=t_burnin
-        self.NUMBER_OF_CORES = multiprocessing.cpu_count()
-
-    def simulate(self):
-        '''
-        Method runs rSNAPsim and simulates the single molecule translation dynamics.
-
-        Returns
-
-        ssa_int : NumPy array.
-            Contains the SSA trajectories with dimensions [Time_points, simulated_trajectories].
-        ssa_ump : NumPy array.
-            SSA trajectories in UMP(units of mature protein). SSA trajectories normalized by the number of probes in the sequence.  Array with dimensions [Time_points, simulated_trajectories].
-        time_vector: NumPy array with dimensions [1, Time_points].
-            Time vector used in the simulation.
-        '''
-        
-        ##TODO ADD THE MRNA OBJECT SOLVER VERSION
-        
-        t = np.linspace(0,self.t_burnin+self.frames,(self.t_burnin+self.frames+1)*(self.frame_rate))
-        _, _, tagged_pois,raw_seq = rss.seqmanip.open_seq_file(str(self.gene_file))
-        try:
-            gene_obj = tagged_pois['0'][0]
-        except:
-            gene_obj = tagged_pois['1'][0]
-        gene_obj.ke_mu = self.ke
-        number_probes = np.max(gene_obj.probe_vec)
-        gene_length = len(raw_seq)
-        if not ( self.perturbation_time_stop is None):
-            t_stop_perturbation = self.perturbation_time_stop+self.t_burnin
-        else:
-            t_stop_perturbation = self.t_burnin+self.frames
-        perturbation_list = [self.use_FRAP, self.use_Harringtonin,self.perturbation_time_start+self.t_burnin,t_stop_perturbation]
-        rss.solver.protein = gene_obj #pass the protein object
-        ssa_solution = rss.solver.solve_ssa(gene_obj.kelong,t, perturb=perturbation_list, ki=self.ki, low_memory=True, n_traj=self.n_traj )
-        ssa = np.transpose( ssa_solution.intensity_vec[:,self.t_burnin*self.frame_rate:-1,:]) [:,:,0]
-        ssa_ump = ssa/number_probes
-        return ssa, ssa_ump, t, gene_length
-
 
 
 
@@ -3093,6 +3034,101 @@ class PhotoBleach2D():
                             
         return bleaching_array
 
+
+
+class mRNA2D():
+    '''
+    This class uses rsnapsim to simulate the single-molecule translation dynamics of any gene.
+    
+    Parameters
+
+    gene_file : str, 
+        Path to the location of a FASTA file.
+    ke : float, optional.
+        Elongation rate. The default is 10.0.
+    ki: float, optional.
+        Initiation rate. The default is 0.03.
+    frames: int, optional.
+        Total number of simulation frames in seconds. The default is 300.
+    n_traj: int, optional.
+        Number of trajectories to simulate. The default is 20.
+    frame_rate : int, optional.
+        Frame rate per second. The default is 1.
+    t_burnin : int , optional
+        time of burnin. The default is 1000
+    Outputs:
+    '''  
+    def __init__(self, mRNA_model=None,):
+        self.NUMBER_OF_CORES = multiprocessing.cpu_count()
+        
+        # (probe 1 to channel 1 (green)) corresponds to model.probe_mat
+        self.mRNAs = {'mRNA_model': 'default',
+                      'gene_file': 'Bactin_withTags.txt',
+                      'parameters':[0.03,10,10],
+                      'burnin': 1000,
+                      'probe_to_channel_map':[(1,1),],
+                    'seed':'random',
+                    'use_precomputed_intensities':False,
+                    'precomputed_intensities_file':None}
+        
+        if mRNA_model is None:
+            self.mRNA_model = self.load_default_model_from_file()
+
+
+
+    def load_default_model_from_file(self):
+        print(pathlib.Path(__file__).parents[1])
+        gene_file = pathlib.Path(__file__).parents[1].resolve().joinpath('DataBases','gene_files',self.mRNAs['gene_file'])
+        a,c,b,d = rsnp.seqmanip.open_seq_file(str(gene_file), add_tag=False)        
+    
+        poi = b['0'][0]    
+        poi.ki = self.mRNAs['parameters'][0]
+        poi.ke_mu = self.mRNAs['parameters'][1]
+        poi.kt = self.mRNAs['parameters'][2]    
+        
+        return poi
+    
+    def load_precomputed_intensities(self):
+        if self.mRNAs['use_precomputed_intensities']:
+            ssa_ump = np.load(self.mRNAs['precomputed_intensities_file'])
+        return ssa_ump
+
+    def gen(self, t, n_traj, probe_to_channel_map = None, seed=None,
+                burnin = None, cplus=False, parallel=False, cores=4, 
+                  verbose=False):
+
+        if seed is None:
+            seed = self.mRNAs['seed']
+        if burnin is None:
+            burnin = self.mRNAs['burnin']
+        if probe_to_channel_map is None:
+            probe_to_channel_map = self.mRNAs['probe_to_channel_map']
+        if seed == 'random':
+            seed = np.random.randint(0,0x7FFFFFF)
+    
+        soln = rsnp.solver.solve_ssa(self.model, t, burnin=burnin,
+                                     n_traj=n_traj, seed=1, parallel=parallel,
+                                     cplus=cplus, cores=cores)
+
+
+        # calculate intensity in units of mature protein
+        n_probes = [int(np.sum(self.model.probe_mat == i)) for i in range(1,np.max(self.model.probe_mat)+1)]        
+        #ntraj, nt, nc
+        ssa_ump = np.zeros(soln.I.shape) 
+        for i in range(1,ssa_ump.shape[-1]+1): # for each color divide by number of probes
+            
+            ssa_ump[:,:,probe_to_channel_map[i-1][1]-1] /= n_probes[probe_to_channel_map[i-1][0]-1]
+        
+        return ssa_ump
+
+##############################################################################
+# Default SSA models
+
+    def test_default_model_run_py_single(self):
+        st = time.time()
+        rss.solver.solve_ssa(self.poi,self.t, n_traj=1, seed=1 )
+
+
     
 class SimCell2D():    
     def __init__(self, base_video, mask_image, cell_config_yaml, mask_channel = 0):
@@ -3158,7 +3194,8 @@ class SimCell2D():
         self.diffusion.simulate_z_pars = config_dict['diffusion']['simulate_z']
 
         ##### Model
-        self.mRNA_model = 1
+        self.mRNA_model = mRNA2D()
+        self.mRNA_model.mRNAs = config_dict['mRNAs']
         
         
         ##### Photo bleaching
@@ -3169,7 +3206,7 @@ class SimCell2D():
             self.photobleaching_classes.append(f)
 
         # make the temporary folder if its not in the home dir
-        tmp_path = pathlib.Path().absolute().parents[0].joinpath('tmp')
+        tmp_path = pathlib.Path(__file__).parents[1].resolve().joinpath('tmp')
         tmp_path.mkdir(parents=False, exist_ok=True)
 
 
@@ -3283,9 +3320,19 @@ class SimCell2D():
 
         
         ######### mRNA model intensity simulation here
-        spot_intensity = np.random.randint(90,100, size=(len(t), number_of_spots, 3))
-        spot_intensity = np.multiply(spot_intensity.T,intensity_mod_z.T).T
-        color_to_channel_map = [0,1,2]
+        
+        if self.mRNA_model.mRNAs['use_precomputed_intensities']:
+            print('using precomputed intensity....')
+            spot_intensity = self.mRNA_model.load_precomputed_intensities()[:number_of_spots,1000::60,:][:,:len(t),:]
+            color_to_channel_map = [0,1,2]
+            RNA = np.ones(spot_intensity.shape)[:,:,0]*100
+            spot_intensity = np.dstack([RNA,spot_intensity])
+            spot_intensity = np.multiply(intensity_mod_z,spot_intensity.T).T
+        else:
+            spot_intensity = np.random.randint(90,100, size=(number_of_spots, len(t), 3))
+            spot_intensity = np.multiply(intensity_mod_z,spot_intensity.T).T
+            color_to_channel_map = [0,1,2]
+        
         spot_diffusion_sim = None
         
         if not disk_buffer:
@@ -3321,7 +3368,7 @@ class SimCell2D():
                             
                     frame = self.frame_merger[i].make(spot_motion[:,j,:,i].T, 
                                           bg_frames[i][j,:,:],
-                                          spot_intensity[j,:,color_to_channel_map[i]],)
+                                          spot_intensity[:,j,color_to_channel_map[i]],)
                                           # sizes = self.config_dict['frame']['spot_size'],
                                           # sigmas = self.channel_pars[i]['spots']['sigma'],
                                           # intensity_scale = self.channel_pars[i]['spots']['intensity_scale'],
@@ -3337,7 +3384,7 @@ class SimCell2D():
                     
         else:
             # delete any previous buffer file
-            tmp_path = pathlib.Path().absolute().parents[0].joinpath('tmp','tmp.bin')
+            tmp_path = pathlib.Path(__file__).parents[1].resolve().joinpath('tmp','tmp.bin')
             if tmp_path.exists():
                 tmp_path.unlink()         
             
