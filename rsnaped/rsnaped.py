@@ -3149,9 +3149,9 @@ class SimCell2D():
         # or to pass classes they have made directly without overwriting what they have set.
         
         
-        self.__config_dict = config_dict
+
         
-        self.check_parameters(self.config_dict)
+        
         
         # parse jitter par registration from string
         if config_dict['diffusion']['jitter']['method'] == 'registration':
@@ -3209,8 +3209,9 @@ class SimCell2D():
         tmp_path = pathlib.Path(__file__).parents[1].resolve().joinpath('tmp')
         tmp_path.mkdir(parents=False, exist_ok=True)
 
-
-    
+        self.__config_dict = config_dict
+        self.check_parameters(self.config_dict)
+        
     # the way the class .gen() works is by using all config dictionaries in the subclasses
     # to make these sync with the overarching .config_dict dictionary, we must update the subclasses when its changed
 
@@ -3223,14 +3224,15 @@ class SimCell2D():
     # writing an entire config.yaml
     @property
     def config_dict(self):
+        self.__update_classes_default_configs()
         return self.__config_dict
     
     
-    @config_dict.setter
-    def config_dict(self, bool):
-        self.__config_dict = bool 
-        # configuration dictionary was changed, update all defaults in the subclasses
-        self.__update_classes_default_configs()
+    # @config_dict.setter
+    # def config_dict(self, bool):
+    #     self.__config_dict = bool 
+    #     # configuration dictionary was changed, update all defaults in the subclasses
+    #     self.__update_classes_default_configs()
         
     @property
     def D(self):
@@ -3274,13 +3276,14 @@ class SimCell2D():
         #update photobleach configs
         
         for i in range(self.n_channels):
-            self.photobleaching_classes[i] = self.__config_dict['frame']['channel %i'%i]['photobleaching'] 
+            self.photobleaching_classes[i].photobleaching = self.__config_dict['frame']['channel %i'%i]['photobleaching'] 
 
 
 
     def gen(self, number_of_spots, t,
                        disk_buffer=True, buffer_size=5, verbose=0):
         
+        #self.__update_classes_default_configs()
         number_of_frames = len(t)
     
         if verbose:
@@ -5618,9 +5621,6 @@ class VisualizerVideo():
         controls = HBox(interactive_plot.children[:-1], layout = Layout(flex_flow = 'row wrap'))
         output = interactive_plot.children[-1]
         return controls, output
-    
-    def make_html5():
-        video = self.list_videos[drop_cell]
 
 
 class VisualizerVideo3D():
