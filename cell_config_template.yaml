@@ -102,7 +102,7 @@ mRNAs:
     burnin: 1000
     parameters: [0.03, 10, 10]
     use_precomputed_intensities: True
-    precomputed_intensities_file: '../Databases/example_intensities_100.npy'
+    precomputed_intensities_file: '../Databases/example_intensities_50.npy'
 
 
 

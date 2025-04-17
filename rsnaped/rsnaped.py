@@ -3248,6 +3248,7 @@ class SimCell2D():
     # writing an entire config.yaml
     @property
     def config_dict(self):
+        print('updating...')
         self.__update_classes_default_configs()
         return self.__config_dict
     
@@ -3400,7 +3401,7 @@ class SimCell2D():
                     frame = (frame* photobleaching_arrays[i][j]).astype(np.uint16)
 
                     vid[j,:,:,i] = frame
-            return vid
+            return vid, spot_intensity, spot_motion
                     
                     
         else:
@@ -3479,7 +3480,7 @@ class SimCell2D():
                         break
                     
             # hard code the header back in for now
-            return np.lib.format.open_memmap(tmp_path, dtype=np.uint16, shape=(number_of_frames,512,512,self.n_channels))
+            return np.lib.format.open_memmap(tmp_path, dtype=np.uint16, shape=(number_of_frames,512,512,self.n_channels)), spot_intensity, spot_motion
 
     @staticmethod
     def check_parameters(config_dict):
