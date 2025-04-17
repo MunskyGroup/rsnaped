@@ -2049,7 +2049,7 @@ class Diffusion2D():
         self.initialization = {'parameters':[], 'start':'uniform'}
         self.motion = {'diffusion_coefficient':1, 'tstep':1, 'elasticity':1}
         self.jitter_pars = {'use':True, 'n_channels':3, 'method':'gaussian', 'parameters':[1], }
-        self.simulate_z_pars = {'use':True, 'z_stack':130, 'min_dimming':0.01}
+        self.simulate_z_pars = {'use':True, 'z_stack':130, 'min_dimming':0.01, 'method':'linear', 'parameters':[]}
         pass
     
     def initialize_spots(self, n_spots: int,
@@ -2338,7 +2338,7 @@ class Diffusion2D():
     
     
     def simulate_z(self, n_spots: int, t: np.ndarray | list, diffusion_coefficient: np.ndarray | float | list = None,
-                   tstep: float = None, z_stack: float = 130, min_dimming: float = 0.5):
+                   tstep: float = None, z_stack: float = None, min_dimming: float = None, method: str = None, parameters: str = None, ):
         '''
         Simulates intensity loss due to movement within a Z plane via brownian
         motion. The idea is that in the center of the Z plane the intensity
@@ -2373,21 +2373,45 @@ class Diffusion2D():
             tstep = self.simulate_z_pars['tstep']
         if z_stack is None:
             z_stack = self.simulate_z_pars['z_stack']
-        if min_dimming is None:
-            min_dimming = self.simulate_z_pars['min_dimming']
+        if method is None:
+            method = self.simulate_z_pars['method']
+        if parameters is None:
+            parameters = self.simulate_z_pars['parameters']
+
         
         if min_dimming > 1 or min_dimming < 0: 
             raise ce.InvalidMinimumDimming('Invalid minimum dimming arugment for Diffusion2D.simulate_z, minimum dimming, "min_dimming," for z-motion simulation should be between 0 and 1.')
 
-        D = self.pad_D(diffusion_coefficient, len(t), n_spots) #pad the diffusion rate
-        initial_points = np.random.randint(0,high=z_stack,size=(1,n_spots)) #initial points in z, uniform dist
-        brownian_movement = np.sqrt(2*D*tstep)                          # brownian motion
-        movement = np.random.randn(*brownian_movement.shape)*brownian_movement #generate movement values
-        movement[0,:] = 0 # blank first time point to use initial points
-        ztrajs_absolute = initial_points + np.cumsum(movement,axis=0) # (t,n) make the absolute values of z trajectories
-        ztrajs_relative = 1-(np.abs((ztrajs_absolute%z_stack) - (z_stack/2))/(z_stack/2)) # now modulus over the middle of the z_stacks so its the relative z positions to the stack
-        intensity_mod = ((ztrajs_relative - 0)*(1-min_dimming)/1) + min_dimming           # scale this value so 1 is the middle of the z stack and min_dimming is the edge.
-    
+        if method == 'linear':
+            D = self.pad_D(diffusion_coefficient, len(t), n_spots) #pad the diffusion rate
+            initial_points = np.random.randint(0,high=z_stack,size=(1,n_spots)) #initial points in z, uniform dist
+            brownian_movement = np.sqrt(2*D*tstep)                          # brownian motion
+            movement = np.random.randn(*brownian_movement.shape)*brownian_movement #generate movement values
+            movement[0,:] = 0 # blank first time point to use initial points
+            ztrajs_absolute = initial_points + np.cumsum(movement,axis=0) # (t,n) make the absolute values of z trajectories
+            ztrajs_relative = 1-(np.abs((ztrajs_absolute%z_stack) - (z_stack/2))/(z_stack/2)) # now modulus over the middle of the z_stacks so its the relative z positions to the stack
+            intensity_mod = ((ztrajs_relative - 0)*(1-min_dimming)/1) + min_dimming           # scale this value so 1 is the middle of the z stack and min_dimming is the edge.
+        
+        
+        # USES A GAUSSIAN INSTEAD OF LINEAR LOSS as spots move from center of z planes.
+        if method == 'gaussian': #parameters = sigma, 0.1 will result in close to 0 min dimming, .5 is close to .5 min dimming
+            sigma = parameters[0]
+            # gaussian centered at .5
+            gaussian = lambda x: 1/np.sqrt(2*np.pi*sigma**2)*np.exp(-(x-1)**2/(2*sigma**2))
+            
+            D = self.pad_D(diffusion_coefficient, len(t), n_spots) #pad the diffusion rate
+            initial_points = np.random.randint(0,high=z_stack,size=(1,n_spots)) #initial points in z, uniform dist
+            brownian_movement = np.sqrt(2*D*tstep)                          # brownian motion
+            movement = np.random.randn(*brownian_movement.shape)*brownian_movement #generate movement values
+            movement[0,:] = 0 # blank first time point to use initial points
+            ztrajs_absolute = initial_points + np.cumsum(movement,axis=0) # (t,n) make the absolute values of z trajectories
+            ztrajs_relative = 1-(np.abs((ztrajs_absolute%z_stack) - (z_stack/2))/(z_stack/2)) # now modulus over the middle of the z_stacks so its the relative z positions to the stack
+            
+            # x = a + (x - min(x))*(b-a)/(max(x) - min(x)) rescale gaussian to [a,b] = [min_dimming, 1]
+            intensity_mod = (gaussian(ztrajs_relative)/gaussian(1))*(1-min_dimming)/(1) + min_dimming
+            #np.maximum(gaussian(ztrajs_relative)/peak_value, min_dimming)          
+        
+        
         return intensity_mod
     
   
@@ -3228,12 +3252,6 @@ class SimCell2D():
         return self.__config_dict
     
     
-    # @config_dict.setter
-    # def config_dict(self, bool):
-    #     self.__config_dict = bool 
-    #     # configuration dictionary was changed, update all defaults in the subclasses
-    #     self.__update_classes_default_configs()
-        
     @property
     def D(self):
         return self.__D
