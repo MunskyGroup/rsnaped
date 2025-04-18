@@ -40,7 +40,51 @@ diffusion:
         min_dimming: 0.3                # minimum dimming intensity mod, this is the min multiplier
         
 
-# Background image generation options
+# Background and Spot image generation options
+# These are parameters for making a new blank frames for spots to move around on
+
+# frame:
+#   quantile: 0.95 range (0 to 1). This is the upper quantile of standard deviation to set everything above it too
+#                                  This will stop huge std's from random one frame maxed out pixels.
+#   spot_size: 15 - this is the NxN area to generate spots in. Basically the maximum allowed area for spots in pixels.
+
+#   Channel N: - channel number N options
+#       background: - background options
+#           source: 0 or 1 - of the original video, which channel to use as a bg for generation methods
+#           method: background generation methods, see below
+#
+#                   gaussian - parameters = [sigma]
+#
+#                   poisson - parameters = []
+#
+#                   gaussian_w_tau_correlation - parameters = [shot_noise_percent, tau, scale ]
+#
+#                   gaussian_w_tau_correlation2 - parameters = [shot_noise_percent, scale]
+#
+#                   loop - parameters = []
+#
+#                   shuffle - parameters = []
+#
+#       spots: 
+#           sigma: float - sigma of the gaussian kernel of the spot, larger = more spread out
+#           intensity_scale: float - intensity multiplier of the spots vs the bg.
+#           poisson_sample_spot - for each pixel of the kernel, sample the pixel value from a poisson, makes spots "imperfect"
+#           photon_count - number of photons to sample from the poisson of each pixel, more = less pixely spot more closer to true kernel
+#
+#       photobleaching:
+#           use: bool
+#           method: normal_percent_loss - parameters = [mu_alpha, sigma]
+#                       generates a loss curve for all pixels with a noisy alpha distributed by $N(\mu_\alpha, \sigma)$ using $I_0*(1-$N(\mu, \sigma)$)^(len(t))$  
+#
+#                   percent_loss - parameters = [alpha]
+#                       generates a single loss curve for all pixels by the following formula: $I_0*(1-\alpha)^(len(t))$
+#                           
+#                   normal_exponential - parameters = [mu_alpha, sigma]
+#                       generates a loss curve for all pixels with a noisy alpha distributed by $N(\mu_\alpha, \sigma)$ using $I_0*e^(-N(\mu, \sigma)*t)$  
+#
+#                   exponential - parameters = [alpha]
+#                       generates a single loss curve for all pixels by the following formula: $I_0*e^(-\alpha*t)$
+#           
 
 frame:
     quantile: .95                       # quantile to calculate standard dev of the pixels from 
