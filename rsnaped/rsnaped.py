@@ -80,6 +80,7 @@ from skimage.restoration import denoise_nl_means, estimate_sigma, denoise_wavele
 from skimage.morphology import square, dilation
 from skimage.io import imread
 from scipy.ndimage import gaussian_filter1d
+from scipy.stats import norm
 # Parallel computing
 from joblib import Parallel, delayed
 import multiprocessing
@@ -3599,6 +3600,180 @@ class SimCell2D():
                    # frame_count -= 1
                    # if verbose:
                    #     pbar.update(1)
+
+
+class Video_to_Intensity():
+    def __init__(self):
+        pass
+    
+
+    @staticmethod
+    def spot_size_guesser(self, centered_image):
+        '''
+        This function takes an X by Y image np array with a spot centered
+        at its center and tries to guess the spot size (its sigma if it was a gaussian kernel).
+        
+        The function takes the average of the 3 center columns in a "+" shape and fits
+        a gaussian to the vertical and horizontal line. This guessed sigma in both
+        directions is then averaged as the "guessed sigma." curve fitting is done
+        via scipy.optimize's curve_fit function. Also returned is the vertical 
+        offset of the fit gaussian, as this corresponds to the average bg
+        around the spot.
+
+        Parameters
+        ----------
+        centered_image : np.ndarray
+            X by Y image data with spot centered.
+
+        Returns
+        -------
+        guessed_sigma : float
+            guessed gaussian kernel sigma.
+        guessed_bg : float
+            guessed background value (vertical offset of fit gaussian).
+
+        '''
+        center = int(np.round(centered_image.shape[0]/2)) # center pixel of the image
+        
+        # average "peak" from the spot, in both the X and Y direction
+        horizontal_line = np.mean(centered_image[center-2:center+2,:],axis=0) 
+        vertical_line = np.mean(centered_image[:,center-2:center+2], axis=1)
+        
+        x = np.arange(len(centered_image)) #axis
+        
+        # fit a gaussian curve centered at "center" to both the vertical and horziontal
+        # intensity averages over the middle 3 columns or rows
+
+        # gaussian: sigma is the width, intensity is the scaling amplitude, and offset is the offset vertically
+        # from 0 (av bg intensity in our case)
+        f = lambda x, sigma, intensity, offset: norm.pdf(x, center, sigma)*intensity + offset
+        sigmas = []
+        offsets = []
+        for y in [horizontal_line, vertical_line]:
+            pars,_ = curve_fit(f, x, y) # fit the guassian's sigma intensity and offset
+            sigma, intensity, offset,  = pars
+            sigmas.append(sigma)
+            offsets.append(offset)
+            
+        # return the average of the fitted sigmas and offsets
+        return np.mean(sigmas), np.mean(offsets)
+    
+    
+    @staticmethod
+    def disk_donut_circular(self, centered_image, disk_r, donut_r=10):
+        '''
+        Get a circular disk and donut mask for a given spot
+
+        Parameters
+        ----------
+        centered_image : np.ndarray
+            X by Y np array of image data with spot centered.
+        disk_r : float
+            radius of the disk to use.
+        donut_r : float, optional
+            radius of the donut AFTER the disk (ie disk_r = 5, and donut_r = 10 the true donut radius is 15). The default is 10.
+
+        Returns
+        -------
+        disk_mask : np.ndarray
+            boolean array of the disk mask.
+        donut_mask : np.ndarray
+            boolean array of the donut mask.
+
+        '''
+        # the short: convert every pixel to a distance from center array, then do a boolean comparison
+        
+        h,w = centered_image.shape #height and width
+        center = tuple([int(np.round(x)/2) for x in centered_image.shape]) #center of the image given
+        Y, X = np.ogrid[:h, :w] #transform into an ogrid trick
+        dist_from_center = np.sqrt((X - center[0])**2 + (Y-center[1])**2) #cakculate distance from center to each pixel
+        disk_mask = dist_from_center <= disk_r #return the disk mask based on this distance
+        donut_mask = (dist_from_center > disk_r) *(dist_from_center <= disk_r+donut_r) #return the disk mask based on this distance
+        
+        return disk_mask, donut_mask
+    
+
+    @staticmethod
+    def disk_donut_square(self, centered_image, disk_w, donut_w=10):
+        '''
+        Get a circular disk and donut mask for a given spot
+
+        Parameters
+        ----------
+        centered_image : np.ndarray
+            X by Y np array of image data with spot centered.
+        disk_r : float
+            radius of the disk to use.
+        donut_r : float, optional
+            radius of the donut AFTER the disk (ie disk_r = 5, and donut_r = 10 the true donut radius is 15). The default is 10.
+
+        Returns
+        -------
+        disk_mask : np.ndarray
+            boolean array of the disk mask.
+        donut_mask : np.ndarray
+            boolean array of the donut mask.
+
+        '''
+        # the short: convert every pixel to a distance from center array, then do a boolean comparison
+        
+        center_coordinates = int(centered_image.shape[0]/2)    
+        range_to_replace = np.linspace(-(disk_w - 1) / 2, (disk_w - 1) / 2, disk_w, dtype=int)
+        min_index = center_coordinates+range_to_replace[0]
+        max_index = (center_coordinates +range_to_replace[-1])+1    
+        disk_mask = np.ones_like(centered_image)
+        disk_mask[min_index: max_index , min_index: max_index] +=1
+        disk_mask -= 1
+        donut_mask =  np.ones_like(centered_image)
+        donut_mask[min_index-donut_w:max_index+donut_w , min_index-donut_w:max_index+donut_w] +=1
+        donut_mask[min_index: max_index , min_index: max_index] -=1
+        donut_mask -= 1
+        
+        return disk_mask, donut_mask
+    
+    @staticmethod
+    def get_intensity_disk_donut(self, centered_spot_image, guessed_sigma=None, donut_r = 10, circular=True):
+        '''
+        This function returns the average intensity in a circular disk and donut around
+        a spot. The spot should be centered in the image passed. This function will
+        also guess the spot size based on a gaussian fit, if guessed_sigma is not none
+        it will use the sigma provided to make the disk and donut masks.
+
+        Parameters
+        ----------
+        centered_spot_image : np.ndarray
+            X by Y numpy array of image data.
+        guessed_sigma : TYPE, optional
+            previously guessed sigma, if left None, will call spot_size_guesser to guess the sigma. The default is None.
+        donut_r : float, optional
+            donut radius beyond the disk. The default is 10.
+
+        Returns
+        -------
+        disk_av : float
+            average pixel intensity in the disk mask.
+        donut_av : float
+            average pixel intensity in the donut mask.
+
+        '''
+        if guessed_sigma is None:
+            guessed_sigma, guessed_bg = self.spot_size_guesser(centered_spot_image) #guess the sigma of gaussian fit of the spot
+        
+        # use this sigma to calculate the full-width-half-maximum of the gaussian + one pixel (this gives us a disk that covers the
+        # entire spot if its circular gaussian)
+        fwhm = 2*np.sqrt(2*np.log(2))*3 
+        fwhm_plus_one = fwhm + 1
+        
+        # get the masks (circular inclusive of the guessed sized)
+        if circular:
+            disk_mask, donut_mask = self.disk_donut_circular(centered_spot_image, fwhm_plus_one, donut_r=donut_r)
+        else:
+            disk_mask, donut_mask = self.disk_donut_square(centered_spot_image, fwhm_plus_one, donut_r=donut_r)
+        disk_av = np.mean(centered_spot_image[disk_mask])
+        donut_av = np.mean(centered_spot_image[donut_mask])
+        return disk_av, donut_av
+        
+
 
 
 class Video2df():
