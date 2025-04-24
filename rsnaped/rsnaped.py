@@ -3606,7 +3606,47 @@ class Video_to_Intensity():
     def __init__(self):
         pass
     
+    
+    def convert_video_to_intensity(self, video, spot_positions, method='disk_donut_circular',
+                                   crop_size = 25,
+                                   calculate_spot_sizes_per_frame=False,
+                                   verbose=0):
+        
+        n_frames = len(video) #how many frames
+        n_channels = video.shape[-1]
+        if len(spot_positions.shape) == 4: #xy, t, nspots, nchannels
+            n_spots = spot_positions.shape[-2]
+        if len(spot_positions.shape) == 3: #xy, t, nspots
+            n_spots = spot_positions.shape[-1]    
+        
+        I = -1*np.ones([n_spots, n_frames, n_channels])
+        
+        if not calculate_spot_sizes_per_frame:
+            spot_sizes = []
+            for i in range(n_spots):
+                sigma,_ = self.spot_size_guesser(self.get_crop(xy, crop_size))
+                spot_sizes.append(sigma)
+        
+        for i in range(n_frames):
+            for j in range(n_channels):
+                for k in range(n_spots):
+                    x=1
+        
+        return 
 
+
+    @staticmethod
+    def get_crop(self, image, xy,  crop_size=25):
+        rx = int(np.round(xy[0]))
+        ry = int(np.round(xy[1])) #center pixel
+        
+        if crop_size%2 == 0:
+            lc, rc = int(np.floor(crop_size/2)-1), int(np.floor(crop_size/2))
+        else:
+            lc, rc = int(np.floor(crop_size/2)), int(np.floor(crop_size/2))
+        return image[rx-lc:rx+rc+1, ry-lc:ry+rc+1]
+        
+    
     @staticmethod
     def spot_size_guesser(self, centered_image):
         '''
