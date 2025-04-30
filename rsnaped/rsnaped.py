@@ -3606,10 +3606,13 @@ class Video_to_Intensity():
     def __init__(self):
         pass
     
-    
+
     def convert_video_to_intensity(self, video, spot_positions, method='disk_donut_circular',
                                    crop_size = 25,
+                                   donut_r = 10,
                                    calculate_spot_sizes_per_frame=False,
+                                   channel_for_spot_size = 0,
+                                   spot_sizes = None,
                                    verbose=0):
         
         n_frames = len(video) #how many frames
@@ -3618,25 +3621,129 @@ class Video_to_Intensity():
             n_spots = spot_positions.shape[-2]
         if len(spot_positions.shape) == 3: #xy, t, nspots
             n_spots = spot_positions.shape[-1]    
+            video = np.expand_dims(video, axis=-1)
         
         I = -1*np.ones([n_spots, n_frames, n_channels])
         
-        if not calculate_spot_sizes_per_frame:
-            spot_sizes = []
-            for i in range(n_spots):
-                sigma,_ = self.spot_size_guesser(self.get_crop(xy, crop_size))
-                spot_sizes.append(sigma)
+        if spot_sizes is None:
+            if not calculate_spot_sizes_per_frame:
+                spot_sizes = []
+                for i in range(n_spots):
+                    sigma,_ = self.spot_size_guesser(self.get_crop(video[0,:,:,channel_for_spot_size,], spot_positions[:,0,i, channel_for_spot_size], crop_size))
+                    spot_sizes.append(sigma)
+                spot_sizes = np.array(spot_sizes*n_frames).reshape((n_frames,n_spots)).T
+            else:
+                spot_sizes = np.zeros([n_frames, n_spots])
+                for i in range(n_spots):
+                    for j in range(n_frames):
+                        sigma,_ = self.spot_size_guesser(self.get_crop(video[0,:,:,channel_for_spot_size,], spot_positions[:,j,i, channel_for_spot_size], crop_size))
+                        spot_sizes[j,i] = sigma   
+                spot_sizes = spot_sizes.T
+        else:
+            spot_sizes = self.pad_spot_sizes(spot_sizes, n_frames, n_spots).T
+            
+        
+        
+        
+        # t, spots,  crop_size, crop_size, colors 
+        crops = self.get_all_crops(video, spot_positions, crop_size=crop_size)
+        
+        if method == 'disk_donut_circular':
+            circular = True
+        if method == 'disk_donut_square':
+            circular = False        
         
         for i in range(n_frames):
             for j in range(n_channels):
                 for k in range(n_spots):
-                    x=1
+                    disk_av, donut_av = self.get_intensity_disk_donut(crops[i,k,:,:,j], guessed_sigma=spot_sizes[k,i],
+                                                               donut_r=donut_r, circular=circular)
+                    I[k, i, j] = disk_av - donut_av
         
-        return 
+        return I, spot_sizes
 
+    def pad_spot_sizes(self, spot_sizes: int | float | list | np.ndarray, n_frames: int, n_spots: int,
+              by_spot: str = True):
+
+        # convert and pad diffusion coefficients into an array of n_times x n_spots
+    
+        if isinstance(spot_sizes, float | int):
+            D = np.ones([n_frames, n_spots])*spot_sizes
+        if isinstance(spot_sizes, list):
+            if len(spot_sizes) == n_spots:  # constant D for each particle
+                D = np.vstack([spot_sizes]*n_frames)
+            if len(spot_sizes) == n_frames:  # same D over time for each particle
+                D = np.hstack([spot_sizes]*n_frames)                
+        if isinstance(spot_sizes, np.ndarray):
+            if len(spot_sizes.shape) == 2:
+                D = spot_sizes
+            if len(spot_sizes.shape) == 1:
+                if n_spots != n_frames:
+                    if len(spot_sizes) == n_spots:  # constant D for each particle
+                        D = np.vstack([spot_sizes.tolist()]*n_frames)
+                    if len(spot_sizes) == n_frames:  # same D over time for each particle
+                        D = np.vstack([spot_sizes.tolist()]*n_spots).T   
+                else:
+                    if by_spot:
+                        if len(spot_sizes) == n_spots:  # constant D for each particle
+                            D = np.vstack([spot_sizes.tolist()]*n_frames)
+                    else:
+                        if len(spot_sizes) == n_frames:  # same D over time for each particle
+                            D = np.vstack([spot_sizes.tolist()]*n_spots).T   
+        return D
 
     @staticmethod
-    def get_crop(self, image, xy,  crop_size=25):
+    def get_all_crops(video, spot_positions, crop_size=25):
+        #xyt should be shape 2, t, spots, channels
+        rx = np.round(spot_positions[0]).astype(int) #center pixels per spot
+        ry = np.round(spot_positions[1]).astype(int) 
+        
+        n_spots = spot_positions.shape[2]
+        
+        if crop_size%2 == 0:
+            lc, rc = int(np.floor(crop_size/2)-1), int(np.floor(crop_size/2))
+        else:
+            lc, rc = int(np.floor(crop_size/2)), int(np.floor(crop_size/2))
+
+        rx1 = rx-lc
+        rx2 = rx+rc+1
+        ry1 = ry-lc
+        ry2 = ry+rc+1
+        
+        croparr = np.zeros([video.shape[0], n_spots, crop_size, crop_size, video.shape[-1]], dtype=np.uint16)
+        
+        for j in range(video.shape[-1]):
+            for i in range(video.shape[0]):
+                for k in range(n_spots):
+                    croparr[i,k,:,:,j] = video[i, rx1[i,k,j]:rx2[i,k,j], ry1[i,k,j]:ry2[i,k,j], j]                
+            
+        return croparr
+
+    @staticmethod
+    def get_crop_t(video, xyt, c, crop_size=25):
+        #xyt should be shape 2, t, spots, channels
+        
+        #center pixels
+        rx = np.round(xyt[0]).astype(int)
+        ry = np.round(xyt[1]).astype(int) 
+        
+        if crop_size%2 == 0:
+            lc, rc = int(np.floor(crop_size/2)-1), int(np.floor(crop_size/2))
+        else:
+            lc, rc = int(np.floor(crop_size/2)), int(np.floor(crop_size/2))
+            
+        rx1 = rx-lc
+        rx2 = rx+rc+1
+        ry1 = ry-lc
+        ry2 = ry+rc+1
+        
+        croparr = np.zeros([video.shape[0], crop_size, crop_size], dtype=np.uint16)
+        for i in range(video.shape[0]):
+            croparr[i] = video[i, rx1:rx2, ry1:ry2, c]        
+        return croparr
+
+    @staticmethod
+    def get_crop(image, xy,  crop_size=25):
         rx = int(np.round(xy[0]))
         ry = int(np.round(xy[1])) #center pixel
         
@@ -3648,7 +3755,7 @@ class Video_to_Intensity():
         
     
     @staticmethod
-    def spot_size_guesser(self, centered_image):
+    def spot_size_guesser(centered_image):
         '''
         This function takes an X by Y image np array with a spot centered
         at its center and tries to guess the spot size (its sigma if it was a gaussian kernel).
@@ -3700,7 +3807,7 @@ class Video_to_Intensity():
     
     
     @staticmethod
-    def disk_donut_circular(self, centered_image, disk_r, donut_r=10):
+    def disk_donut_circular(centered_image, disk_r, donut_r=10):
         '''
         Get a circular disk and donut mask for a given spot
 
@@ -3734,7 +3841,7 @@ class Video_to_Intensity():
     
 
     @staticmethod
-    def disk_donut_square(self, centered_image, disk_w, donut_w=10):
+    def disk_donut_square(centered_image, disk_w, donut_w=10):
         '''
         Get a circular disk and donut mask for a given spot
 
@@ -3771,7 +3878,7 @@ class Video_to_Intensity():
         
         return disk_mask, donut_mask
     
-    @staticmethod
+
     def get_intensity_disk_donut(self, centered_spot_image, guessed_sigma=None, donut_r = 10, circular=True):
         '''
         This function returns the average intensity in a circular disk and donut around
@@ -3801,7 +3908,7 @@ class Video_to_Intensity():
         
         # use this sigma to calculate the full-width-half-maximum of the gaussian + one pixel (this gives us a disk that covers the
         # entire spot if its circular gaussian)
-        fwhm = 2*np.sqrt(2*np.log(2))*3 
+        fwhm = 2*np.sqrt(2*np.log(2))*guessed_sigma
         fwhm_plus_one = fwhm + 1
         
         # get the masks (circular inclusive of the guessed sized)

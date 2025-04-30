@@ -106,6 +106,17 @@ def disk_donut(values_disk, values_donut):
     return spot_intensity_disk_donut, spot_intensity_disk_donut_std
 
 
+def get_crop(image, xy,  crop_size=25):
+    rx = int(np.round(xy[0]))
+    ry = int(np.round(xy[1])) #center pixel
+    
+    if crop_size%2 == 0:
+        lc, rc = int(np.floor(crop_size/2)-1), int(np.floor(crop_size/2))
+    else:
+        lc, rc = int(np.floor(crop_size/2)), int(np.floor(crop_size/2))
+    return image[rx-lc:rx+rc+1, ry-lc:ry+rc+1]
+    
+
 def gaussian_fit(test_im):
     size_spot = test_im.shape[0]
     image_flat = test_im.ravel()
