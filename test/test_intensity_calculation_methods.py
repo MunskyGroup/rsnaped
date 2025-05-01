@@ -14,6 +14,7 @@ from scipy.stats import norm
 
 test_spot_one = np.random.randint(0,50,size=(50,50))
 test_spot_two = np.random.randint(0,50,size=(50,50))
+test_spot_three = np.random.randint(0,50,size=(50,50))
 
 test_spots = []
 
@@ -66,6 +67,11 @@ spots_range_to_replace = np.linspace(-(size_spot - 1) / 2, (size_spot - 1) / 2, 
 test_spot_one[center_position[0]+spots_range_to_replace[0]: center_position[0]+spots_range_to_replace[-1]+1 , center_position[1]+spots_range_to_replace[0]: center_position[1]+spots_range_to_replace[-1]+1 ] += kernel_value_intensity
 
 test_spot_two[center_position[0]+spots_range_to_replace[0]: center_position[0]+spots_range_to_replace[-1]+1 , center_position[1]+spots_range_to_replace[0]: center_position[1]+spots_range_to_replace[-1]+1 ] += kernel_value_intensity2
+
+test_spot_three[center_position[0]+15+spots_range_to_replace[0]: center_position[0]+15+spots_range_to_replace[-1]+1 , center_position[1]+spots_range_to_replace[0]: center_position[1]+spots_range_to_replace[-1]+1 ] += kernel_value_intensity2
+test_spot_three[center_position[0]+spots_range_to_replace[0]: center_position[0]+spots_range_to_replace[-1]+1 , center_position[1]+spots_range_to_replace[0]: center_position[1]+spots_range_to_replace[-1]+1 ] += kernel_value_intensity2
+test_spot_three[center_position[0]+spots_range_to_replace[0]: center_position[0]+spots_range_to_replace[-1]+1 , center_position[1]+15+spots_range_to_replace[0]: center_position[1]+15+spots_range_to_replace[-1]+1 ] += kernel_value_intensity2
+
 
 plt.imshow(test_spot_one)
 plt.figure()
@@ -189,12 +195,12 @@ def spot_size_guesser(centered_image):
     
     y = horizontal_line
     f = lambda x, sigma, intensity, offset: norm.pdf(x, 24.1, sigma)*intensity + offset
-    pars,_ = curve_fit(f, x, y)
+    pars,_ = curve_fit(f, x, y, bounds = ([.5,0,0],[5,np.inf,65335]))
     sigma_x, intensity_x, offset_x,  = pars
     
     y = vertical_line
     f = lambda x, sigma, intensity, offset: norm.pdf(x, 24.1, sigma)*intensity + offset
-    pars,_ = curve_fit(f, x, y)
+    pars,_ = curve_fit(f, x, y, bounds = ([.5,0,0],[5,np.inf,65335]))
     sigma_y, intensity_y, offset_y,  = pars
     
     return np.mean([sigma_x,sigma_y]), np.mean([offset_y,offset_x])
@@ -265,6 +271,16 @@ def get_intensity_disk_donut_circular(centered_spot_image, guessed_sigma=None, d
     return disk_av, donut_av
     
     
+    
+    
+x = np.linspace(0,49,50)
+center = int(np.round(test_spot_three.shape[0]/2))
+y = np.mean(test_spot_three[center-2:center+2,:],axis=0)
+f = lambda x, sigma, intensity, offset: norm.pdf(x, 25, sigma)*intensity + offset
+pars,_ = curve_fit(f, x, y)
+sigma, intensity, offset  = pars
+plt.plot(x,y)
+plt.plot(norm.pdf(x, center, sigma)*intensity + offset)
 
 # method 2 - round disk donut 
 

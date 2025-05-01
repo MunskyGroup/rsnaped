@@ -2179,7 +2179,10 @@ class Diffusion2D():
                 D = np.hstack([diffusion_coefficient]*n_times)                
         if isinstance(diffusion_coefficient, np.ndarray):
             if len(diffusion_coefficient.shape) == 2:
-                D = diffusion_coefficient
+                if diffusion_coefficient.shape != (n_times, n_spots):
+                    raise ce.DiffusionCoefficentDimensionMismatchError('Passed diffusion rate matrix is 2D and not the correct size to match (n_frames by n_spots)')
+                else:
+                    D = diffusion_coefficient
             if len(diffusion_coefficient.shape) == 1:
                 if n_spots != n_times:
                     if len(diffusion_coefficient) == n_spots:  # constant D for each particle
@@ -3797,7 +3800,7 @@ class Video_to_Intensity():
         sigmas = []
         offsets = []
         for y in [horizontal_line, vertical_line]:
-            pars,_ = curve_fit(f, x, y) # fit the guassian's sigma intensity and offset
+            pars,_ = curve_fit(f, x, y, bounds = ([.5,0,0],[5,np.inf,65534])) # fit the guassian's sigma intensity and offset
             sigma, intensity, offset,  = pars
             sigmas.append(sigma)
             offsets.append(offset)
@@ -3849,9 +3852,9 @@ class Video_to_Intensity():
         ----------
         centered_image : np.ndarray
             X by Y np array of image data with spot centered.
-        disk_r : float
+        disk_w : float
             radius of the disk to use.
-        donut_r : float, optional
+        donut_w : float, optional
             radius of the donut AFTER the disk (ie disk_r = 5, and donut_r = 10 the true donut radius is 15). The default is 10.
 
         Returns
@@ -3876,7 +3879,7 @@ class Video_to_Intensity():
         donut_mask[min_index: max_index , min_index: max_index] -=1
         donut_mask -= 1
         
-        return disk_mask, donut_mask
+        return disk_mask.astype(bool), donut_mask.astype(bool)
     
 
     def get_intensity_disk_donut(self, centered_spot_image, guessed_sigma=None, donut_r = 10, circular=True):
@@ -3915,7 +3918,7 @@ class Video_to_Intensity():
         if circular:
             disk_mask, donut_mask = self.disk_donut_circular(centered_spot_image, fwhm_plus_one, donut_r=donut_r)
         else:
-            disk_mask, donut_mask = self.disk_donut_square(centered_spot_image, fwhm_plus_one, donut_r=donut_r)
+            disk_mask, donut_mask = self.disk_donut_square(centered_spot_image, int(fwhm_plus_one), donut_w=donut_r)
         disk_av = np.mean(centered_spot_image[disk_mask])
         donut_av = np.mean(centered_spot_image[donut_mask])
         return disk_av, donut_av
@@ -6775,6 +6778,33 @@ class Util():
     '''
     def __init__(self):
         pass
+    
+    
+    def write_video_to_tif(video, filename,
+                           PhysicalSizeX = 0.13,
+                           PhysicalSizeY = 0.13,
+                           PhysicalSizeZ = 0.3,
+                           TimeIncrement = 1.0,
+                           TimeIncrementUnit ='s'):
+        video = np.expand_dims(video, axis=1) # adding a place holder for the z-dimenssion.
+
+        channels = {'Name':['c' + str(x) for x in range(video.shape[-1])]}
+
+        # Save the video and metadata including the physical size of the pixels and time increment.
+        
+        tifffile.imwrite(filename, video,
+                         shape = video.shape, 
+                         dtype=str(video.dtype), imagej=False,
+                         metadata={                    
+                            'axes':'TZYXC',
+                            'PhysicalSizeX': PhysicalSizeX, # micrometers
+                            'PhysicalSizeY': PhysicalSizeY, #micrometers
+                            'PhysicalSizeZ': PhysicalSizeZ, # micrometers
+                            'TimeIncrement': TimeIncrement, #seconds
+                            'TimeIncrementUnit': TimeIncrementUnit,
+                            'SignificantBits' : ''.join([s for s in list(str(video.dtype)) if s.isdigit()]), 
+                            'Channel': channels
+                            } ) 
     
     def video_to_html5():
         return 
