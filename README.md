@@ -41,7 +41,7 @@ You must accept our Content Policy when using this library:
 
 The code generates videos with the simulated cell and a data frame containing spot and intensity positions. This simulation can be used to train new algorithms. 
 
-<img src= ./docs/images/gallery/simulated_cell.gif alt="drawing" width="600"/>
+<img src= ./notebooks_final/test_cell alt="example simulated cell" width="600"/>
 
 ## Local installation using PIP
 
