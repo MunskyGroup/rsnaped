@@ -26,8 +26,8 @@ diffusion:
         method: registration            # method by which to jitter, gaussian is default with parameters = [sigma]
         parameters: 
             - (0,0)
-            - (2,2)
-            - (-2,-2)               # parameters to jitter
+            - (0,0)
+            - (0,0)               # parameters to jitter
         
     simulate_z:                         # simulate intensity loss due to brownian motion in Z
         use: False
@@ -141,12 +141,21 @@ frame:
                 
             
 mRNAs:
-    model: default
-    gene_file: 'Bactin_withTags.txt'
-    burnin: 1000
-    parameters: [0.03, 10, 10]
-    use_precomputed_intensities: True
-    precomputed_intensities_file: '../Databases/example_intensities_50.npy'
+    species 1:
+        custom_model: False  # use a custom rSNAPsim model, if false uses default model (aguilera 2019)
+        # for a default model, use a .txt, .dna, or .gb file with the largest orf being your desired mRNA
+        model_file: 'Bactin_withTags.txt' #model file, for custom model a .json or .h5 
+        
+        # parameters for default model: [ki, ke_mu, kt]
+        burnin: 1000
+        parameters: [0.03, 10, 10]
+        probe_to_channel_map:  #how do the mRNA probes map to channels?
+            - (0,0)  # probe 0 = channel 0, R
+            - (1,1)  # probe 1 = channel 1, G
+            - (2,2)  # probe 2 = channel 2, B             
+        
+        use_precomputed_intensities: True  #overrides the models entirely
+        precomputed_intensities_file: '../Databases/example_intensities_50.npy'
 
 
 

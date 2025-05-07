@@ -3089,14 +3089,16 @@ class mRNA2D():
         self.NUMBER_OF_CORES = multiprocessing.cpu_count()
         
         # (probe 1 to channel 1 (green)) corresponds to model.probe_mat
-        self.mRNAs = {'mRNA_model': 'default',
-                      'gene_file': 'Bactin_withTags.txt',
-                      'parameters':[0.03,10,10],
-                      'burnin': 1000,
-                      'probe_to_channel_map':[(1,1),],
-                    'seed':'random',
-                    'use_precomputed_intensities':False,
-                    'precomputed_intensities_file':None}
+        self.mRNAs = {
+                          'custom_model': False,
+                          'model_file': 'Bactin_withTags.txt',
+                          'parameters':[0.03,10,10],
+                          'burnin': 1000,
+                          'probe_to_channel_map':[(1,1),],
+                          'seed':'random',
+                          'use_precomputed_intensities':False,
+                          'precomputed_intensities_file':None
+                     }
         
         if mRNA_model is None:
             self.mRNA_model = self.load_default_model_from_file()
