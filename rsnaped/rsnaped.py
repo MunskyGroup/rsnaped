@@ -3107,7 +3107,7 @@ class mRNA2D():
 
     def load_default_model_from_file(self):
         print(pathlib.Path(__file__).parents[1])
-        gene_file = pathlib.Path(__file__).parents[1].resolve().joinpath('DataBases','gene_files',self.mRNAs['gene_file'])
+        gene_file = pathlib.Path(__file__).parents[1].resolve().joinpath('DataBases','gene_files',self.mRNAs['model_file'])
         a,c,b,d = rsnp.seqmanip.open_seq_file(str(gene_file), add_tag=False)        
     
         poi = b['0'][0]    
@@ -3130,23 +3130,22 @@ class mRNA2D():
             seed = self.mRNAs['seed']
         if burnin is None:
             burnin = self.mRNAs['burnin']
-        if probe_to_channel_map is None:
-            probe_to_channel_map = self.mRNAs['probe_to_channel_map']
+        # if probe_to_channel_map is None:
+        #     probe_to_channel_map = self.mRNAs['probe_to_channel_map']
         if seed == 'random':
             seed = np.random.randint(0,0x7FFFFFF)
     
-        soln = rsnp.solver.solve_ssa(self.model, t, burnin=burnin,
-                                     n_traj=n_traj, seed=1, parallel=parallel,
-                                     cplus=cplus, cores=cores)
+        soln = rsnp.solver.solve_ssa(self.mRNA_model, t, burnin=burnin,
+                                     n_traj=n_traj, seed=seed, parallel=parallel,
+                                     cplus=cplus, cores=cores, verbose=verbose)
 
 
         # calculate intensity in units of mature protein
-        n_probes = [int(np.sum(self.model.probe_mat == i)) for i in range(1,np.max(self.model.probe_mat)+1)]        
+        n_probes = [int(np.sum(self.mRNA_model.probe_mat == i)) for i in range(1,np.max(self.mRNA_model.probe_mat)+1)]        
         #ntraj, nt, nc
         ssa_ump = np.zeros(soln.I.shape) 
-        for i in range(1,ssa_ump.shape[-1]+1): # for each color divide by number of probes
-            
-            ssa_ump[:,:,probe_to_channel_map[i-1][1]-1] /= n_probes[probe_to_channel_map[i-1][0]-1]
+        #for i in range(1,ssa_ump.shape[-1]+1): # for each color divide by number of probes
+        ssa_ump /= n_probes
         
         return ssa_ump
 
@@ -3187,6 +3186,10 @@ class SimCell2D():
             jitter_par = [tuple(x.replace('(','').replace(')','').split(',')) for x in config_dict['diffusion']['jitter']['parameters']]
             config_dict['diffusion']['jitter']['parameters'] = [(int(x[0]),int(x[1])) for x in jitter_par]
         
+        for i in range(len(config_dict['mRNAs'])):
+            probe_to_channel_map = [tuple(x.replace('(','').replace(')','').split(',')) for x in config_dict['mRNAs']['species %i'%i]['probe_to_channel_map']]
+            config_dict['mRNAs']['species %i'%i]['probe_to_channel_map'] = [(int(x[0]),int(x[1])) for x in probe_to_channel_map]
+        
         # initalize the bg_frame_generator
         self.n_channels = len(config_dict['frame'])-2
         self.bg_frame_generator = []*(len(config_dict['frame'])-2)
@@ -3223,8 +3226,13 @@ class SimCell2D():
         self.diffusion.simulate_z_pars = config_dict['diffusion']['simulate_z']
 
         ##### Model
-        self.mRNA_model = mRNA2D()
-        self.mRNA_model.mRNAs = config_dict['mRNAs']
+        n_mRNA_species = len(config_dict['mRNAs'])
+        
+        
+        self.mRNAs = []
+        for i in range(n_mRNA_species):
+            self.mRNAs.append(mRNA2D())
+            self.mRNAs[i].mRNAs = config_dict['mRNAs']['species %i'%i]
         
         
         ##### Photo bleaching
@@ -3239,7 +3247,7 @@ class SimCell2D():
         tmp_path.mkdir(parents=False, exist_ok=True)
 
         self.__config_dict = config_dict
-        self.check_parameters(self.config_dict)
+        self.check_parameters(self.__config_dict)
         
     # the way the class .gen() works is by using all config dictionaries in the subclasses
     # to make these sync with the overarching .config_dict dictionary, we must update the subclasses when its changed
@@ -3271,7 +3279,7 @@ class SimCell2D():
         
     
     def __update_classes_default_configs(self):
-        
+        print(1)
         # update diffusion
         self.diffusion.initialization = self.__config_dict['diffusion']['initialization']
         self.diffusion.motion = self.__config_dict['diffusion']['motion']
@@ -3300,19 +3308,27 @@ class SimCell2D():
         
         for i in range(self.n_channels):
             self.photobleaching_classes[i].photobleaching = self.__config_dict['frame']['channel %i'%i]['photobleaching'] 
-
+            
+        for i in range(len(self.mRNAs)):
+            self.mRNAs[i].mRNAs = self.__config_dict['mRNAs']['species %i'%i]
+                    
 
 
     def gen(self, number_of_spots, t,
                        disk_buffer=True, buffer_size=5, verbose=0):
-        
+        print(self.__config_dict) 
         #self.__update_classes_default_configs()
         number_of_frames = len(t)
-    
+        if isinstance(number_of_spots ,int):
+            number_of_spots = [number_of_spots]*len(self.mRNAs)
+            
+        total_spots = sum(number_of_spots)
+        
+        
         if verbose:
             print('Generating spot motion.....')
         # generate all motion trajectories
-        spots_initial_points = self.diffusion.initialize_spots(number_of_spots,)
+        spots_initial_points = self.diffusion.initialize_spots(total_spots,)
                                                                     #parameters = self.config_dict['diffusion']['initialization']['parameters'],
                                                                     #start = self.config_dict['diffusion']['initialization']['start'])
         
@@ -3334,31 +3350,61 @@ class SimCell2D():
             
         # simulate z if needed
         if self.__config_dict['diffusion']['simulate_z']['use']:
-            intensity_mod_z = self.diffusion.simulate_z( number_of_spots, t,) 
+            intensity_mod_z = self.diffusion.simulate_z( total_spots, t,) 
                                                      #diffusion_coefficient = self.D, 
                                                      #tstep = self.config_dict['diffusion']['motion']['tstep'],
                                                      #z_stack = self.config_dict['diffusion']['simulate_z']['z_stack'],
                                                      #min_dimming = self.config_dict['diffusion']['simulate_z']['min_dimming'])
 
         else:
-            intensity_mod_z = np.ones([len(t), number_of_spots])
+            intensity_mod_z = np.ones([len(t), total_spots])
         
 
         
         ######### mRNA model intensity simulation here
+        spot_intensity = np.zeros([total_spots, len(t), self.n_channels])
         
-        if self.mRNA_model.mRNAs['use_precomputed_intensities']:
-            print('using precomputed intensity....')
-            spot_intensity = self.mRNA_model.load_precomputed_intensities()[:number_of_spots,1000::60,:][:,:len(t),:]
-            color_to_channel_map = [0,1,2]
-            RNA = np.ones(spot_intensity.shape)[:,:,0]*100
-            spot_intensity = np.dstack([RNA,spot_intensity])
-            spot_intensity = np.multiply(intensity_mod_z,spot_intensity.T).T
-        else:
-            spot_intensity = np.random.randint(90,100, size=(number_of_spots, len(t), 3))
-            spot_intensity = np.multiply(intensity_mod_z,spot_intensity.T).T
-            color_to_channel_map = [0,1,2]
+        #make the indexes to fill, we need indexes that are like [0:40, 40:70, 70:90] for a spot set of [40, 30, 20]
+        ns = [0] + number_of_spots
+        inds = [(ns[x],ns[x+1]) for x in range(len(ns)-1)]
+        inds = np.cumsum(np.array(inds),axis=0).tolist() #convert to consecutive stacking indexes
         
+        for i in range(len(self.mRNAs)):
+            if verbose:
+                print('Generating/loading intensity for mRNAs %i.....'%i)
+            probe_to_channel_map = self.mRNAs[i].mRNAs['probe_to_channel_map']
+            tag_channel = self.mRNAs[i].mRNAs['tag_channel']
+            
+            if self.mRNAs[i].mRNAs['tag_model'] == 'constant':
+                RNA = np.ones([number_of_spots[i], len(t),])*self.mRNAs[i].mRNAs['tag_intensity'][0]
+            if self.mRNAs[i].mRNAs['tag_model'] == 'gaussian':
+                RNA = np.random.normal(self.mRNAs[i].mRNAs['tag_intensity'][0], self.mRNAs[i].mRNAs['tag_intensity'][1],
+                                       size=[number_of_spots[i], len(t)])
+                
+            if self.mRNAs[i].mRNAs['use_precomputed_intensities']:
+                si = self.mRNAs[i].load_precomputed_intensities()[:number_of_spots[i],self.mRNAs[i].mRNAs['burnin']::self.mRNAs[i].mRNAs['slicing'],:][:,:len(t),:]
+                
+                
+
+            else:
+                if self.mRNAs[i].mRNAs['custom_model']:
+                    si = np.random.randint(90,100, size=(number_of_spots[i], len(t), 3))
+                else:
+                    si = self.mRNAs[i].gen(t, number_of_spots[i], seed=None,
+                                burnin = self.mRNAs[i].mRNAs['burnin'], cplus=False, 
+                                  verbose=True)
+                    
+            
+            for j in range(len(probe_to_channel_map)):
+                spot_intensity[inds[i][0]:inds[i][1], :, probe_to_channel_map[j][1]] = si[:,:,probe_to_channel_map[j][0]]
+            spot_intensity[inds[i][0]:inds[i][1], :, tag_channel] = RNA
+            
+        # finally apply Z-simulation if needed
+        spot_intensity = np.multiply(intensity_mod_z,spot_intensity.T).T
+        print(np.sum(spot_intensity[:,:,1]))
+        print((spot_intensity[:,:,1]))
+        
+        print(self.__config_dict)
         spot_diffusion_sim = None
         
         if not disk_buffer:
@@ -3375,7 +3421,7 @@ class SimCell2D():
                 bg_frame = self.bg_frame_generator[i].make(number_of_frames, 
                                                            parameters = self.channel_pars[i]['background']['parameters'],
                                                      method = self.channel_pars[i]['background']['method'],)
-                if self.config_dict['diffusion']['jitter']['method'] == 'registration' and self.config_dict['diffusion']['jitter']['use']:
+                if self.__config_dict['diffusion']['jitter']['method'] == 'registration' and self.__config_dict['diffusion']['jitter']['use']:
                     bg_frame = self.__offset_bg_for_registration_error(bg_frame,i)
             
                         
@@ -3394,7 +3440,7 @@ class SimCell2D():
                             
                     frame = self.frame_merger[i].make(spot_motion[:,j,:,i].T, 
                                           bg_frames[i][j,:,:],
-                                          spot_intensity[:,j,color_to_channel_map[i]],)
+                                          spot_intensity[:,j,i],)
                                           # sizes = self.config_dict['frame']['spot_size'],
                                           # sigmas = self.channel_pars[i]['spots']['sigma'],
                                           # intensity_scale = self.channel_pars[i]['spots']['intensity_scale'],
@@ -3406,20 +3452,7 @@ class SimCell2D():
 
                     vid[j,:,:,i] = frame
                     
-                    
-            # spot_positions_movement_int = np.round(spot_motion).astype('int')
-            # dataframe_particles, _, _, _, _, _, _ = Intensity(vid,
-            #                                                   particle_size = self.size_spot_ch0,
-            #                                                   spot_positions_movement = spot_positions_movement_int,
-            #                                                   method = self.intensity_calculation_method,
-            #                                                   step_size = self.step_size,
-            #                                                   show_plot = 0,
-            #                                                   dataframe_format = self.dataframe_format ).calculate_intensity()
-            # # Adding SSA Channels
-            # #number_elements = np.prod(self.simulated_trajectories_ch0.shape)
-            # ssa_columns = ['ch%i_SSA_UMP'%i for i in range(self.n_channels)]
-            # dataframe_particles[ssa_columns] = spot_intensity  
-            
+            print(self.__config_dict) 
             return vid, spot_intensity, spot_motion
                     
                     
@@ -3453,7 +3486,7 @@ class SimCell2D():
                     for i in range(self.n_channels):
                         bg_frame = self.bg_frame_generator[i].make(number_of_frames,parameters = self.channel_pars[i]['background']['parameters'],
                                                              method = self.channel_pars[i]['background']['method'],)
-                        if self.config_dict['diffusion']['jitter']['method'] == 'registration' and self.config_dict['diffusion']['jitter']['use']:
+                        if self.__config_dict['diffusion']['jitter']['method'] == 'registration' and self.__config_dict['diffusion']['jitter']['use']:
                             bg_frame = self.__offset_bg_for_registration_error(bg_frame,i)
                         bg_frames.append(bg_frame)
 
@@ -3471,7 +3504,7 @@ class SimCell2D():
                         for i in range(self.n_channels):
                             frame = self.frame_merger[i].make(spot_motion[:,j,:,i].T, 
                                                   bg_frames[i][j,:,:],
-                                                  spot_intensity[j,:,color_to_channel_map[i]],)
+                                                  spot_intensity[j,:,i],)
                                                   # sizes = self.config_dict['frame']['spot_size'],
                                                   # sigmas = self.channel_pars[i]['spots']['sigma'],
                                                   # intensity_scale = self.channel_pars[i]['spots']['intensity_scale'],
@@ -3514,8 +3547,8 @@ class SimCell2D():
                                             'a boundary.')
 
     def __offset_bg_for_registration_error(self, bg_frame, i):
-        offset_x = self.config_dict['diffusion']['jitter']['parameters'][i][0]
-        offset_y = self.config_dict['diffusion']['jitter']['parameters'][i][1]
+        offset_x = self.__config_dict['diffusion']['jitter']['parameters'][i][0]
+        offset_y = self.__config_dict['diffusion']['jitter']['parameters'][i][1]
         if offset_x > 0 and offset_y > 0:
             bg_frame[:,:-offset_x,:-offset_y] = bg_frame[:,offset_x:,offset_y:]
 
