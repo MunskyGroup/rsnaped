@@ -6826,6 +6826,8 @@ class Util():
         tifffile.imwrite(filename, video,
                          shape = video.shape, 
                          dtype=str(video.dtype), imagej=False,
+                         compression='zstd',
+                         compressionargs={'level':19}, 
                          metadata={                    
                             'axes':'TZYXC',
                             'PhysicalSizeX': PhysicalSizeX, # micrometers
