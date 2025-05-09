@@ -3105,9 +3105,11 @@ class mRNA2D():
 
 
 
-    def load_default_model_from_file(self):
-        print(pathlib.Path(__file__).parents[1])
-        gene_file = pathlib.Path(__file__).parents[1].resolve().joinpath('DataBases','gene_files',self.mRNAs['model_file'])
+    def load_default_model_from_file(self, gene_file=None):
+        if gene_file is None:
+            gene_file = pathlib.Path(__file__).parents[1].resolve().joinpath('DataBases','gene_files',self.mRNAs['model_file'])
+        else:
+            gene_file = gene_file
         a,c,b,d = rsnp.seqmanip.open_seq_file(str(gene_file), add_tag=False)        
     
         poi = b['0'][0]    
@@ -3116,6 +3118,8 @@ class mRNA2D():
         poi.kt = self.mRNAs['parameters'][2]    
         
         return poi
+
+    
     
     def load_precomputed_intensities(self):
         if self.mRNAs['use_precomputed_intensities']:
@@ -3143,7 +3147,7 @@ class mRNA2D():
         # calculate intensity in units of mature protein
         n_probes = [int(np.sum(self.mRNA_model.probe_mat == i)) for i in range(1,np.max(self.mRNA_model.probe_mat)+1)]        
         #ntraj, nt, nc
-        ssa_ump = np.zeros(soln.I.shape) 
+        ssa_ump = soln.I.astype(float)
         #for i in range(1,ssa_ump.shape[-1]+1): # for each color divide by number of probes
         ssa_ump /= n_probes
         
@@ -3279,7 +3283,6 @@ class SimCell2D():
         
     
     def __update_classes_default_configs(self):
-        print(1)
         # update diffusion
         self.diffusion.initialization = self.__config_dict['diffusion']['initialization']
         self.diffusion.motion = self.__config_dict['diffusion']['motion']
@@ -3316,7 +3319,6 @@ class SimCell2D():
 
     def gen(self, number_of_spots, t,
                        disk_buffer=True, buffer_size=5, verbose=0):
-        print(self.__config_dict) 
         #self.__update_classes_default_configs()
         number_of_frames = len(t)
         if isinstance(number_of_spots ,int):
@@ -3394,17 +3396,12 @@ class SimCell2D():
                                 burnin = self.mRNAs[i].mRNAs['burnin'], cplus=False, 
                                   verbose=True)
                     
-            
             for j in range(len(probe_to_channel_map)):
                 spot_intensity[inds[i][0]:inds[i][1], :, probe_to_channel_map[j][1]] = si[:,:,probe_to_channel_map[j][0]]
             spot_intensity[inds[i][0]:inds[i][1], :, tag_channel] = RNA
             
         # finally apply Z-simulation if needed
         spot_intensity = np.multiply(intensity_mod_z,spot_intensity.T).T
-        print(np.sum(spot_intensity[:,:,1]))
-        print((spot_intensity[:,:,1]))
-        
-        print(self.__config_dict)
         spot_diffusion_sim = None
         
         if not disk_buffer:
@@ -3452,7 +3449,6 @@ class SimCell2D():
 
                     vid[j,:,:,i] = frame
                     
-            print(self.__config_dict) 
             return vid, spot_intensity, spot_motion
                     
                     

@@ -1,0 +1,161 @@
+# This is a comment
+name: Test Cell
+
+# Diffusion and spot motion simulation options
+
+# Diffusion options:
+#   Initialization:
+#       start: uniform - generates all spots from a uniform distribution across the cell
+#       start: gaussian_point - generates all spots from a 2D gaussian about a point
+#           parameters: [(x,y),(sigma_x, sigma_y)]
+diffusion:
+
+    initialization:         # how to initalize the spots?
+        start: uniform      # uniform distribution start, no parameters
+        parameters: []
+        
+    motion:                             # brownian motion options
+        diffusion_coefficient: 1.0      # diffusion coefficient(s) for spots
+        tstep: 1.0                      # time step size for brownian motion
+        elasticity: 1.0                 # elastic boundary reflections, 1 = 100% elastic no momentum loss.
+        
+        
+    jitter:                             # jitter the spot locations across channels (simulates probe subpixel changes)
+        use: True
+        n_channels: 3                   # number of channels to generate via jittering
+        method: gaussian            # method by which to jitter, gaussian is default with parameters = [sigma]
+        parameters: [.2]             # parameters to jitter
+        
+    simulate_z:                         # simulate intensity loss due to brownian motion in Z
+        use: False
+        method: gaussian                # gaussian curve of intensity loss, scaled by sigma and min dimming
+        parmaeters: [0.3]               # sigma of the gaussian curve, 
+                                        # 0.3 is a smooth scaling to the edge of the z plane, losing 95% of intensity at z plane edge. 
+                                        # .1 is losing all intensity 20% from center
+                                        # .2 is losing all intensity 60% from center
+        z_stack: 130                    # z_stack dimensions in nm
+        min_dimming: 0.3                # minimum dimming intensity mod, this is the min multiplier
+        
+
+# Background and Spot image generation options
+# These are parameters for making a new blank frames for spots to move around on
+
+# frame:
+#   quantile: 0.95 range (0 to 1). This is the upper quantile of standard deviation to set everything above it too
+#                                  This will stop huge std's from random one frame maxed out pixels.
+#   spot_size: 15 - this is the NxN area to generate spots in. Basically the maximum allowed area for spots in pixels.
+
+#   Channel N: - channel number N options
+#       background: - background options
+#           source: 0 or 1 - of the original video, which channel to use as a bg for generation methods
+#           method: background generation methods, see below
+#
+#                   gaussian - parameters = [sigma]
+#
+#                   poisson - parameters = []
+#
+#                   gaussian_w_tau_correlation - parameters = [shot_noise_percent, tau, scale ]
+#
+#                   gaussian_w_tau_correlation2 - parameters = [shot_noise_percent, scale]
+#
+#                   loop - parameters = []
+#
+#                   shuffle - parameters = []
+#
+#       spots: 
+#           sigma: float - sigma of the gaussian kernel of the spot, larger = more spread out
+#           intensity_scale: float - intensity multiplier of the spots vs the bg.
+#           poisson_sample_spot - for each pixel of the kernel, sample the pixel value from a poisson, makes spots "imperfect"
+#           photon_count - number of photons to sample from the poisson of each pixel, more = less pixely spot more closer to true kernel
+#
+#       photobleaching:
+#           use: bool
+#           method: normal_percent_loss - parameters = [mu_alpha, sigma]
+#                       generates a loss curve for all pixels with a noisy alpha distributed by $N(\mu_\alpha, \sigma)$ using $I_0*(1-$N(\mu, \sigma)$)^(len(t))$  
+#
+#                   percent_loss - parameters = [alpha]
+#                       generates a single loss curve for all pixels by the following formula: $I_0*(1-\alpha)^(len(t))$
+#                           
+#                   normal_exponential - parameters = [mu_alpha, sigma]
+#                       generates a loss curve for all pixels with a noisy alpha distributed by $N(\mu_\alpha, \sigma)$ using $I_0*e^(-N(\mu, \sigma)*t)$  
+#
+#                   exponential - parameters = [alpha]
+#                       generates a single loss curve for all pixels by the following formula: $I_0*e^(-\alpha*t)$
+#           
+
+frame:
+    quantile: .95                       # quantile to calculate standard dev of the pixels from 
+    spot_size: 15     #size of the kernel
+    
+    channel 0:
+        background:
+            source: 0                   # which channel of the base video to use, 0 or 1 currently
+            method: gaussian            # method for generating new frames, default gaussian fit of each pixel
+            parameters: [1]             # parameters for generation: for gaussian this is the scale of the standard dev of the pixels
+        
+        spots:                          # spot options in this channel
+            sigma: 1                    # sigma of the gaussian kernel of the spot
+            intensity_scale: 10         # intensity scale to multiply the spot values by
+            poisson_sample_spot: True   # sample from the kernel's poisson N photons
+            photon_count: 600          # how many photons to sample, lower = more static and pixely spot]
+            
+        photobleaching:                 # photobleaching options for this channel
+            use: True
+            method: 'normal_percent_loss'   # photobleaching method for this channel
+            parameters: [0.005, 0.001]     # photobleaching parameters for this channel
+                
+       
+    channel 1:
+        background:
+            source: 0
+            method: gaussian
+            parameters: [1]
+        spots:
+            sigma: 1
+            intensity_scale: 250
+            poisson_sample_spot: True
+            photon_count: 600
+        photobleaching:
+            use: True
+            method: 'normal_percent_loss'
+            parameters: [0.005, 0.001]
+                
+        
+    channel 2:
+        background:
+            source: 1
+            method: gaussian
+            parameters: [1.1]
+        spots:
+            sigma: 2
+            intensity_scale: 100
+            poisson_sample_spot: True
+            photon_count: 600
+        photobleaching:
+            use: True
+            method: 'normal_percent_loss'
+            parameters: [0.005, 0.001]
+                
+            
+mRNAs:
+    species 0:
+        name: smHA-KDM5B
+        seed: random
+        custom_model: False  # use a custom rSNAPsim model, if false uses default model (aguilera 2019)
+        # for a default model, use a .txt, .dna, or .gb file with the largest orf being your desired mRNA
+        model_file: 'KDM5B_withTags.txt' #model file, for custom model a .json or .h5 
+        probe_to_channel_map:  #how do the mRNA probes map to channels?
+            - (0,1)  # probe 0 = channel 0, G 
+        tag_channel: 0        # which channel is the MS2/mRNA tag in?
+        tag_intensity: [100,10]
+        tag_model: gaussian
+        
+        burnin: 1000
+        parameters: [0.04, 4.5, 10]
+                
+         #overrides the models entirely with an intensity file
+        use_precomputed_intensities: False 
+        precomputed_intensities_file: None
+        slicing: None
+        
+
