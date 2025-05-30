@@ -3023,41 +3023,45 @@ class PhotoBleach2D():
         if method is None:
             method = self.photobleaching['method']
             parameters = self.photobleaching['parameters'] # loc, sigma of the normal dist
+            
+        if self.photobleaching['use']:
         
-        if method.lower() == 'percent_loss':
-            #same percent loss per pixel (one photo bleaching curve for all pixels)
-            if start is None:
-                start = 1
-            else:
-                start = start[0,0]
-            bleaching_array = 1-(np.ones(len(t))*parameters[0]).clip(min=0)
-            bleaching_array[0] *= start
-            bleaching_array = np.cumprod(bleaching_array, axis=0)
-            
-        if method.lower() == 'normal_percent_loss':
-            # this is the cumulative product of a normally distributed random % loss (clipped to avoid negatives)
-            
-            if start is None:
-                start = 1
+            if method.lower() == 'percent_loss':
+                #same percent loss per pixel (one photo bleaching curve for all pixels)
+                if start is None:
+                    start = 1
+                else:
+                    start = start[0,0]
+                bleaching_array = 1-(np.ones(len(t))*parameters[0]).clip(min=0)
+                bleaching_array[0] *= start
+                bleaching_array = np.cumprod(bleaching_array, axis=0)
                 
-            bleaching_array = 1-(np.random.normal(loc=parameters[0],
-                                                            scale=parameters[1],
-                                                            size=(tuple([len(t)])  + tuple(xy_shape) ))).clip(min=0)
-            bleaching_array[0] *= start
-            bleaching_array = np.cumprod(bleaching_array,axis=0)
-            
-            
-            
-        if method.lower() in 'normal_exponential':
-
-            # use the e ^ -alpha * t  model where alpha is noisy via normal
-            bleaching_array = np.swapaxes(np.swapaxes(np.exp(-np.random.normal(loc=parameters[0],
-                                                            scale=parameters[1],
-                                                            size=(tuple(xy_shape)  + tuple([len(t)]) )).clip(min=0)*t),-1,0),-1,1)
-            
-        if method.lower() in 'exponential':
-            # use the e ^ -alpha * t 
-            bleaching_array = np.exp(-parameters[0]*t)  #just a single curve is needed if theres no noise
+            if method.lower() == 'normal_percent_loss':
+                # this is the cumulative product of a normally distributed random % loss (clipped to avoid negatives)
+                
+                if start is None:
+                    start = 1
+                    
+                bleaching_array = 1-(np.random.normal(loc=parameters[0],
+                                                                scale=parameters[1],
+                                                                size=(tuple([len(t)])  + tuple(xy_shape) ))).clip(min=0)
+                bleaching_array[0] *= start
+                bleaching_array = np.cumprod(bleaching_array,axis=0)
+                
+                
+                
+            if method.lower() in 'normal_exponential':
+    
+                # use the e ^ -alpha * t  model where alpha is noisy via normal
+                bleaching_array = np.swapaxes(np.swapaxes(np.exp(-np.random.normal(loc=parameters[0],
+                                                                scale=parameters[1],
+                                                                size=(tuple(xy_shape)  + tuple([len(t)]) )).clip(min=0)*t),-1,0),-1,1)
+                
+            if method.lower() in 'exponential':
+                # use the e ^ -alpha * t 
+                bleaching_array = np.exp(-parameters[0]*t)  #just a single curve is needed if theres no noise
+        else:
+            bleaching_array = np.ones( tuple([len(t)])  + tuple(xy_shape), dtype='uint16')
                             
         return bleaching_array
 
@@ -3100,10 +3104,24 @@ class mRNA2D():
                           'precomputed_intensities_file':None
                      }
         
-        if mRNA_model is None:
-            self.mRNA_model = self.load_default_model_from_file()
+        #if mRNA_model is None:
+        self.mRNA_model = mRNA_model
 
 
+
+    def get_mRNA_model_from_config_dict(self,):
+        
+        if self.mRNAs['custom_model'] == False:
+            mRNA_model = self.load_custom_model_from_file()
+        else:  
+            mRNA_model = self.load_default_model_from_file()
+        return mRNA_model
+        
+    
+    ## TODO
+    def load_custom_model_from_file(self, gene_file=None):
+        poi = 1
+        return poi
 
     def load_default_model_from_file(self, gene_file=None):
         if gene_file is None:
@@ -3136,10 +3154,16 @@ class mRNA2D():
             burnin = self.mRNAs['burnin']
         # if probe_to_channel_map is None:
         #     probe_to_channel_map = self.mRNAs['probe_to_channel_map']
+        
+        if self.mRNA_model is None:
+            mRNA_model = self.get_mRNA_model_from_config_dict()
+        else:
+            mRNA_model = self.mRNA_model
+        
         if seed == 'random':
             seed = np.random.randint(0,0x7FFFFFF)
     
-        soln = rsnp.solver.solve_ssa(self.mRNA_model, t, burnin=burnin,
+        soln = rsnp.solver.solve_ssa(mRNA_model, t, burnin=burnin,
                                      n_traj=n_traj, seed=seed, parallel=parallel,
                                      cplus=cplus, cores=cores, verbose=verbose)
 
