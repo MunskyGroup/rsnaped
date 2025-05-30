@@ -3393,7 +3393,7 @@ class SimCell2D():
                     si = np.random.randint(90,100, size=(number_of_spots[i], len(t), 3))
                 else:
                     si = self.mRNAs[i].gen(t, number_of_spots[i], seed=None,
-                                burnin = self.mRNAs[i].mRNAs['burnin'], cplus=False, 
+                                burnin = self.mRNAs[i].mRNAs['burnin'], cplus=True, 
                                   verbose=True)
                     
             for j in range(len(probe_to_channel_map)):
