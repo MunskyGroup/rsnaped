@@ -3111,7 +3111,7 @@ class mRNA2D():
 
     def get_mRNA_model_from_config_dict(self,):
         
-        if self.mRNAs['custom_model'] == False:
+        if self.mRNAs['custom_model'] == True:
             mRNA_model = self.load_custom_model_from_file()
         else:  
             mRNA_model = self.load_default_model_from_file()
@@ -3120,8 +3120,11 @@ class mRNA2D():
     
     ## TODO
     def load_custom_model_from_file(self, gene_file=None):
-        poi = 1
-        return poi
+        
+        model = rsnp.tasep_model(self.mRNAs['model_file'], mRNA=None) # model object
+        model.load_saved_cmodel(self.mRNAs['model_file'])
+        model.set_parameters(self.mRNAs['parameters'])
+        return model
 
     def load_default_model_from_file(self, gene_file=None):
         if gene_file is None:
@@ -3342,7 +3345,7 @@ class SimCell2D():
 
 
     def gen(self, number_of_spots, t,
-                       disk_buffer=True, buffer_size=5, verbose=0):
+                       disk_buffer=True, buffer_size=5, verbose=0, model=None):
         #self.__update_classes_default_configs()
         number_of_frames = len(t)
         if isinstance(number_of_spots ,int):
@@ -3414,7 +3417,10 @@ class SimCell2D():
 
             else:
                 if self.mRNAs[i].mRNAs['custom_model']:
-                    si = np.random.randint(90,100, size=(number_of_spots[i], len(t), 3))
+                    si = self.mRNAs[i].gen(t, number_of_spots[i], seed=None,
+                                burnin = self.mRNAs[i].mRNAs['burnin'], cplus=True, 
+                                  verbose=True)
+
                 else:
                     si = self.mRNAs[i].gen(t, number_of_spots[i], seed=None,
                                 burnin = self.mRNAs[i].mRNAs['burnin'], cplus=True, 

@@ -100,7 +100,7 @@ frame:
             photon_count: 600          # how many photons to sample, lower = more static and pixely spot]
             
         photobleaching:                 # photobleaching options for this channel
-            use: True
+            use: False
             method: 'normal_percent_loss'   # photobleaching method for this channel
             parameters: [0.005, 0.001]     # photobleaching parameters for this channel
                 
@@ -116,7 +116,7 @@ frame:
             poisson_sample_spot: True
             photon_count: 600
         photobleaching:
-            use: True
+            use: False
             method: 'normal_percent_loss'
             parameters: [0.005, 0.001]
                 
@@ -132,7 +132,7 @@ frame:
             poisson_sample_spot: True
             photon_count: 600
         photobleaching:
-            use: True
+            use: False
             method: 'normal_percent_loss'
             parameters: [0.005, 0.001]
                 
