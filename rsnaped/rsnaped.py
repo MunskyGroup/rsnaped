@@ -3159,20 +3159,23 @@ class mRNA2D():
         #     probe_to_channel_map = self.mRNAs['probe_to_channel_map']
         
         if self.mRNA_model is None:
-            mRNA_model = self.get_mRNA_model_from_config_dict()
+            if self.mRNAs['custom_model']:
+                mRNA_model = self.load_custom_model_from_file()
+            else:
+                mRNA_model = self.get_mRNA_model_from_config_dict()
         else:
             mRNA_model = self.mRNA_model
         
         if seed == 'random':
             seed = np.random.randint(0,0x7FFFFFF)
-    
+
         soln = rsnp.solver.solve_ssa(mRNA_model, t, burnin=burnin,
                                      n_traj=n_traj, seed=seed, parallel=parallel,
                                      cplus=cplus, cores=cores, verbose=verbose)
 
 
         # calculate intensity in units of mature protein
-        n_probes = [int(np.sum(self.mRNA_model.probe_mat == i)) for i in range(1,np.max(self.mRNA_model.probe_mat)+1)]        
+        n_probes = [int(np.sum(mRNA_model._probe_mat == i)) for i in range(1,np.max(mRNA_model._probe_mat)+1)]        
         #ntraj, nt, nc
         ssa_ump = soln.I.astype(float)
         #for i in range(1,ssa_ump.shape[-1]+1): # for each color divide by number of probes
